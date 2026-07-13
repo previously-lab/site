@@ -1,0 +1,40 @@
+{
+  "Landing": {
+    "Meta": {
+      "title": "你的 AI，按时间组织",
+      "description": "一个开源的个人 AI 代理，按时间组织记忆——一条时间线上的情景切片，而非聊天线程"
+    },
+    "Hero": {
+      "eyebrow": "Previously on you。",
+      "title": "你的 AI，按时间组织——而非按对话线程。",
+      "subtitle": "一个开源的个人 AI 代理，按时间组织记忆——一条时间线上的情景切片，而非聊天线程",
+      "ctaDemo": "体验在线演示",
+      "ctaDocs": "阅读文档",
+      "ctaGithub": "在 GitHub 查看"
+    },
+    "Concept": {
+      "title": "情景记忆，按时间组织",
+      "description": "Previously 将你的 AI 互动以单一时间线的形式保存，而非分散在各个聊天线程中。每一次对话、任务和事件都按时间顺序排列——就像你自己的记忆一样。",
+      "slices": "时间切片是按时间范围划分的快照——数小时、数天或数周的活动被归入连贯的片段，供你浏览、搜索和回顾。",
+      "strands": "线索将相关的时间切片跨时间编织在一起，连接贯穿你一天中的对话、项目和想法。",
+      "labelThreads": "散落的线程",
+      "labelTimeline": "单一时间线"
+    },
+    "Recall": {
+      "title": "回忆如何工作",
+      "description": "回忆分两个阶段进行。首先，广泛的时序搜索在你的时间线上找到候选切片。然后，在这些切片内进行语义匹配，精确定位你需要的具体记忆——无需在无尽的线程中翻找。",
+      "cta": "了解更多关于回忆"
+    },
+    "DeeperReading": {
+      "title": "深度阅读",
+      "articleTitle": "时间是否是 AI 记忆缺失的维度？",
+      "cta": "在 Dev.to 阅读"
+    },
+    "OpenSource": {
+      "title": "开源，可自托管",
+      "description": "Previously 采用 MIT 许可，设计为可自托管。无云锁定、无遥测、无意外。在你自己的基础设施上部署，或在 GitHub 上贡献代码。",
+      "ctaGithub": "在 GitHub 查看",
+      "ctaGettingStarted": "开始使用"
+    }
+  }
+}

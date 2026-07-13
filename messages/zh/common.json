@@ -1,0 +1,23 @@
+{
+  "Nav": {
+    "home": "首页",
+    "docs": "文档",
+    "github": "GitHub",
+    "demo": "在线演示"
+  },
+  "Footer": {
+    "tagline": "Previously on you。",
+    "github": "GitHub",
+    "demo": "在线演示",
+    "docs": "文档",
+    "devto": "Dev.to 文章",
+    "license": "MIT 许可证"
+  },
+  "Common": {
+    "themeLight": "浅色",
+    "themeDark": "深色",
+    "themeSystem": "系统",
+    "langEn": "English",
+    "langZh": "中文"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "Docs": {
+    "title": "Documentation",
+    "description": "Previously documentation",
+    "onThisPage": "On this page",
+    "editPage": "Edit this page",
+    "nextPage": "Next",
+    "previousPage": "Previous",
+    "searchDocs": "Search docs",
+    "searchNoResults": "No results found.",
+    "searchPlaceholder": "Search documentation...",
+    "pageNotFound": "Page not found",
+    "pageNotFoundDescription": "This documentation page doesn't exist yet.",
+    "backToDocs": "Back to the docs",
+    "somethingWentWrong": "Something went wrong",
+    "tryAgain": "Try again",
+    "copyMarkdown": "Copy markdown",
+    "copied": "Copied!",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu"
+  }
+}

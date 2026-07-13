@@ -1,0 +1,23 @@
+{
+  "Nav": {
+    "home": "Home",
+    "docs": "Docs",
+    "github": "GitHub",
+    "demo": "Live Demo"
+  },
+  "Footer": {
+    "tagline": "Previously on you.",
+    "github": "GitHub",
+    "demo": "Live Demo",
+    "docs": "Docs",
+    "devto": "Dev.to Article",
+    "license": "MIT License"
+  },
+  "Common": {
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeSystem": "System",
+    "langEn": "English",
+    "langZh": "中文"
+  }
+}

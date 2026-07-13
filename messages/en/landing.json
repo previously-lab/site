@@ -1,0 +1,40 @@
+{
+  "Landing": {
+    "Meta": {
+      "title": "Your AI, organized by time",
+      "description": "an open-source personal AI agent that organizes memory by time — a single timeline of episodic slices, not chat threads"
+    },
+    "Hero": {
+      "eyebrow": "Previously on you.",
+      "title": "Your AI, organized by time — not by threads.",
+      "subtitle": "an open-source personal AI agent that organizes memory by time — a single timeline of episodic slices, not chat threads",
+      "ctaDemo": "Try the live demo",
+      "ctaDocs": "Read the docs",
+      "ctaGithub": "View on GitHub"
+    },
+    "Concept": {
+      "title": "Episodic memory, organized by time",
+      "description": "Previously keeps a single timeline of your AI interactions instead of scattering them across chat threads. Every conversation, task, and event lives in chronological order — just like your own memory.",
+      "slices": "Slices are time-bound snapshots — hours, days, or weeks of activity grouped into cohesive episodes you can browse, search, and revisit.",
+      "strands": "Strands weave related slices together across time, connecting the dots between conversations, projects, and ideas that thread through your day.",
+      "labelThreads": "Scattered threads",
+      "labelTimeline": "Single timeline"
+    },
+    "Recall": {
+      "title": "How recall works",
+      "description": "Recall happens in two phases. First, a broad temporal search surfaces candidate slices across your timeline. Then, semantic matching within those slices pinpoints the exact memory you need — without digging through endless threads.",
+      "cta": "Learn more about recall"
+    },
+    "DeeperReading": {
+      "title": "Deeper reading",
+      "articleTitle": "Is time the missing dimension in AI memory?",
+      "cta": "Read on Dev.to"
+    },
+    "OpenSource": {
+      "title": "Open source, self-host",
+      "description": "Previously is MIT-licensed and designed to be self-hosted. No cloud lock-in, no telemetry, no surprises. Deploy on your own infrastructure or contribute on GitHub.",
+      "ctaGithub": "View on GitHub",
+      "ctaGettingStarted": "Get started"
+    }
+  }
+}

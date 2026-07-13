@@ -1,0 +1,22 @@
+{
+  "Docs": {
+    "title": "文档",
+    "description": "Previously 文档",
+    "onThisPage": "本页内容",
+    "editPage": "编辑此页",
+    "nextPage": "下一页",
+    "previousPage": "上一页",
+    "searchDocs": "搜索文档",
+    "searchNoResults": "未找到结果。",
+    "searchPlaceholder": "搜索文档...",
+    "pageNotFound": "页面未找到",
+    "pageNotFoundDescription": "此文档页面尚不存在。",
+    "backToDocs": "返回文档首页",
+    "somethingWentWrong": "出错了",
+    "tryAgain": "重试",
+    "copyMarkdown": "复制 Markdown",
+    "copied": "已复制！",
+    "openMenu": "打开菜单",
+    "closeMenu": "关闭菜单"
+  }
+}
