@@ -9,6 +9,10 @@ export type SiteConfig = {
   ogImage: string;
   locales: readonly ["en", "zh"];
   defaultLocale: "en";
+  keywords: {
+    en: readonly string[];
+    zh: readonly string[];
+  };
 };
 
 export const siteConfig: SiteConfig = {
@@ -24,4 +28,30 @@ export const siteConfig: SiteConfig = {
   ogImage: "/opengraph-image",
   locales: ["en", "zh"] as const,
   defaultLocale: "en",
+  keywords: {
+    en: [
+      "episodic memory",
+      "AI memory",
+      "time slices",
+      "timeline",
+      "temporal memory",
+      "personal AI agent",
+      "AI agent memory",
+      "open source AI agent",
+      "memory organization",
+      "Previously",
+    ],
+    zh: [
+      "情景记忆",
+      "AI 记忆",
+      "时间切片",
+      "时间线",
+      "时序记忆",
+      "个人 AI 代理",
+      "AI 代理记忆",
+      "开源 AI 代理",
+      "记忆组织",
+      "Previously",
+    ],
+  },
 };

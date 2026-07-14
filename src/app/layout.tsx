@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Raleway, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/providers/theme-provider";
-import { StoreProvider } from "@/providers/store-provider";
 import { siteConfig } from "@/lib/site";
 import "./globals.css";
 
@@ -37,7 +36,7 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <StoreProvider>{children}</StoreProvider>
+          {children}
         </ThemeProvider>
       </body>
     </html>

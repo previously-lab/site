@@ -177,7 +177,7 @@ export default async function HomePage({
         </ScrollReveal>
       </TimelineShell>
 
-      <JsonLd />
+      <JsonLd locale={locale} />
     </>
   );
 }

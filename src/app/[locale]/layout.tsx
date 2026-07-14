@@ -26,6 +26,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       template: `%s | ${siteConfig.name}`,
     },
     description: siteConfig.description,
+    keywords: [
+      ...siteConfig.keywords[locale === "zh" ? "zh" : "en"],
+    ],
     openGraph: {
       title: siteConfig.name,
       description: siteConfig.description,

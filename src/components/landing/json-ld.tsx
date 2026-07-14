@@ -8,7 +8,11 @@ import { siteConfig } from "@/lib/site";
  * - Organization (the publisher)
  * - WebSite (the site itself)
  */
-export function JsonLd(): React.ReactElement {
+export function JsonLd({ locale }: { locale: string }): React.ReactElement {
+  const keywords = [
+    ...siteConfig.keywords[locale === "zh" ? "zh" : "en"],
+  ].join(", ");
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
@@ -22,6 +26,7 @@ export function JsonLd(): React.ReactElement {
         operatingSystem: "Linux, macOS, Windows",
         license: "https://opensource.org/licenses/MIT",
         programmingLanguage: ["Rust", "TypeScript", "JavaScript"],
+        keywords,
       },
       {
         "@type": "Organization",
@@ -33,6 +38,7 @@ export function JsonLd(): React.ReactElement {
         name: siteConfig.name,
         url: siteConfig.url,
         description: siteConfig.description,
+        keywords,
       },
     ],
   };
