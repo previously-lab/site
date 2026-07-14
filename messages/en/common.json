@@ -10,7 +10,8 @@
     "github": "GitHub",
     "demo": "Live Demo",
     "docs": "Docs",
-    "devto": "Dev.to Article",
+    "community": "Community",
+    "devto": "Is time the missing dimension in AI memory?",
     "license": "MIT License"
   },
   "Common": {

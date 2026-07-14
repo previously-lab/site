@@ -6,11 +6,12 @@
     "demo": "在线演示"
   },
   "Footer": {
-    "tagline": "Previously on you。",
+    "tagline": "Previously on you.",
     "github": "GitHub",
     "demo": "在线演示",
     "docs": "文档",
-    "devto": "Dev.to 文章",
+    "community": "社区",
+    "devto": "时间是否是 AI 记忆缺失的维度？",
     "license": "MIT 许可证"
   },
   "Common": {

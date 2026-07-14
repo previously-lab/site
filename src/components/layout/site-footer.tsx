@@ -65,7 +65,9 @@ export async function SiteFooter({
 
           {/* Community column */}
           <div className="space-y-3">
-            <h4 className="text-sm font-semibold text-foreground">Community</h4>
+            <h4 className="text-sm font-semibold text-foreground">
+              {t("community")}
+            </h4>
             <ul className="space-y-2">
               <li>
                 <a
