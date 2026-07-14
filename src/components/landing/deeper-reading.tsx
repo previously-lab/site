@@ -44,7 +44,7 @@ export async function DeeperReadingCard({
             {t("DeeperReading.articleTitle")}
           </a>
         </CardTitle>
-        <CardDescription>Dev.to</CardDescription>
+        <CardDescription>LikeDreamwalker</CardDescription>
       </CardHeader>
       <CardContent>
         <a
