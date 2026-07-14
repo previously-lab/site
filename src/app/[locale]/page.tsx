@@ -51,20 +51,23 @@ export default async function HomePage({
   return (
     <>
       {/* ── Hero ──────────────────────────────────────────── */}
-      <section className="relative flex min-h-[90vh] flex-col items-center justify-center text-center px-4 sm:px-6 lg:px-8">
-        {/* "Previously on" — cinematic, not translated */}
-        <div className="font-[family-name:var(--font-raleway)]">
+      <section className="relative flex min-h-screen flex-col items-center justify-center text-center px-4 sm:px-6 lg:px-8">
+        {/* Real heading for SEO / screen readers; the visual below is decorative. */}
+        <h1 className="sr-only">{siteConfig.tagline}</h1>
+
+        {/* "Previously on" — word-by-word blur-in */}
+        <div aria-hidden="true">
           <TextGenerateEffect
             words="Previously on"
-            className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-light text-foreground leading-none tracking-tighter"
-            filter={true}
+            className="text-6xl font-light leading-none tracking-tighter text-foreground sm:text-7xl md:text-8xl lg:text-9xl"
+            filter
             duration={0.5}
             delay={0.3}
             staggerDelay={0.25}
           />
         </div>
 
-        {/* Name cycler — scrolls through names, lands on "You." */}
+        {/* Name cycler — starts after the title finishes, lands on "You." */}
         <NameCycler />
 
         {/* CTAs */}

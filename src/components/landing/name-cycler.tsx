@@ -1,99 +1,91 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { useEffect, useState, type ReactElement } from "react";
+import { FlipWords } from "@/components/ui/flip-words";
 
+/** Full names the recap can flip through before settling on the viewer.
+ *  Full names read more like a TV-show "Previously on…" recap. */
 const POOL = [
-  "Alan",
-  "Sarah",
-  "Michael",
-  "Priya",
-  "David",
-  "Emma",
-  "Carlos",
-  "Yuki",
+  "James Carter",
+  "Sarah Chen",
+  "Michael Rivera",
+  "Priya Nair",
+  "David Okafor",
+  "Emma Larsson",
+  "Carlos Mendez",
+  "Yuki Tanaka",
+  "Fatima Al-Sayed",
+  "Noah Bennett",
+  "Sophie Dubois",
+  "Marco Rossi",
+  "Aisha Khan",
+  "Wei Zhang",
+  "Camille Laurent",
+  "Dmitri Volkov",
+  "Lena Meyer",
+  "Omar Haddad",
+  "Grace Kim",
+  "Diego Fernandez",
+  "Hannah Cohen",
+  "Ravi Patel",
+  "Elena Petrova",
+  "Kofi Mensah",
+  "Mia Andersen",
+  "Luca Bianchi",
+  "Nadia Rahman",
+  "Tom Fisher",
+  "Ingrid Solberg",
+  "Samuel Adeyemi",
+  "Chloe Martin",
+  "Hiroshi Sato",
 ] as const;
 
 const FINAL = "You.";
 
-function pickDifferent(current: string): string {
-  let next: string;
-  do {
-    next = POOL[Math.floor(Math.random() * POOL.length)];
-  } while (next === current && POOL.length > 1);
-  return next;
+/** Fisher-Yates shuffle → first `count` names, no repeats. */
+function randomNames(count: number): string[] {
+  const arr = [...POOL];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr.slice(0, count);
 }
 
 /**
- * Shows a random name immediately, then cycles through 3-4 more
- * at a natural pace, finally settling on "You." — giving the viewer
- * the feeling of a TV recap that lands on *them*.
+ * Client leaf. Builds a fresh random sequence of a few full names on each load
+ * and flips through them via FlipWords, settling on "You." — a TV-recap
+ * "Previously on…" that ends on the viewer. Cycling names are shown in a light
+ * weight; only the final "You." is bold, so the emphasis lands on the viewer.
+ * The random sequence is computed after mount to keep server/client markup in sync.
  */
-export function NameCycler() {
-  // SSR-safe: start with the final value so there's no layout flash
-  const [name, setName] = useState<string>(FINAL);
-  const [isFinal, setIsFinal] = useState(true);
-  const [started, setStarted] = useState(false);
+export function NameCycler(): ReactElement {
+  const [words, setWords] = useState<string[] | null>(null);
 
-  // On mount, immediately swap to a random name and schedule the cycle
   useEffect(() => {
-    const startName = pickDifferent(FINAL);
-    setName(startName);
-    setIsFinal(false);
-
-    // Wait for "Previously on" to finish animating (~1.8 s), then start
-    const timer = setTimeout(() => setStarted(true), 2200);
+    // Start only after "Previously on" has finished animating in (~1.05s),
+    // so the reveal feels staged — title first, then the names roll in.
+    const timer = setTimeout(() => {
+      const count = 4 + Math.floor(Math.random() * 3); // 4–6 names
+      setWords([...randomNames(count), FINAL]);
+    }, 1200);
     return () => clearTimeout(timer);
   }, []);
 
-  // Cycle through a few names, then land on "You."
-  useEffect(() => {
-    if (!started) return;
-
-    let cancelled = false;
-    let steps = 0;
-    const MAX_STEPS = 3 + Math.floor(Math.random() * 2); // 3-4 extra names
-
-    const cycle = () => {
-      if (cancelled) return;
-      if (steps >= MAX_STEPS) {
-        setName(FINAL);
-        setIsFinal(true);
-        return;
-      }
-
-      setName((prev) => pickDifferent(prev));
-      steps++;
-
-      // Natural rhythm: 350-500 ms between names
-      setTimeout(cycle, 350 + Math.random() * 150);
-    };
-
-    const kickoff = setTimeout(cycle, 500);
-    return () => {
-      cancelled = true;
-      clearTimeout(kickoff);
-    };
-  }, [started]);
-
   return (
-    <div className="mt-3 flex h-16 items-center justify-center overflow-hidden sm:h-20 md:h-24">
-      <AnimatePresence mode="wait">
-        <motion.span
-          key={name}
-          initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
-          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-          exit={{ opacity: 0, y: -10, filter: "blur(4px)" }}
-          transition={{ duration: isFinal ? 0.6 : 0.22 }}
-          className={
-            isFinal
-              ? "bg-gradient-to-r from-foreground to-primary bg-clip-text text-3xl font-bold text-transparent sm:text-4xl md:text-5xl"
-              : "text-3xl font-bold text-foreground sm:text-4xl md:text-5xl"
-          }
-        >
-          {name}
-        </motion.span>
-      </AnimatePresence>
+    <div
+      aria-hidden="true"
+      className="relative mt-3 flex h-16 w-full items-center justify-center sm:h-20 md:h-24"
+    >
+      {words && (
+        <FlipWords
+          words={words}
+          loop={false}
+          duration={1000}
+          className="text-3xl font-light text-foreground sm:text-4xl md:text-5xl"
+          finalClassName="font-bold"
+        />
+      )}
     </div>
   );
 }
