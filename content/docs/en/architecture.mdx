@@ -7,10 +7,10 @@ order: 1
 # Architecture
 
 <Callout variant="info">
-No database, no always-on agent, no persistent connection. Previously runs entirely inside the Vercel request lifecycle: you send a message, the route fires the pipeline, and the response streams back. When the response ends, there is no background process, no heartbeat, no loop.
+Every chat turn runs inside a durable Vercel Workflow run — resumable after a dropped connection, with each LLM call and tool call as an individually retried step.
 </Callout>
 
-Previously is a single HTTP endpoint on Vercel that reads GitHub files, calls two LLMs, and streams one response back — no database, no cron, no persistent server.
+Previously is powered by Vercel Workflow for durable execution — each chat turn reads GitHub files, calls two LLMs, and streams one response back through a resumable run. No database, no cron, no persistent server.
 
 ## The Three Layers
 
@@ -21,6 +21,18 @@ The system is split into three layers, each with a distinct responsibility and a
 | **Browser / Phone** | Next.js App Router UI | Renders the chat surface. Captures input. Streams the response. That is all — no business logic, no state machine, no local memory. |
 | **Vercel Orchestration** | A single `POST /api/chat` handler | Reads GitHub state, calls DeepSeek-chat for Flash and DeepSeek-chat (or client-selected model) for Pro, writes back. No cron. No worker. No queue. One request = one response. |
 | **GitHub Private Repo** | The single source of truth | Holds everything: `src/` (agent-read-only), `memory/`, `tasks/`, `sessions/` (agent-read-write). Code and data coexist in one repo. |
+
+### Execution Model: Vercel Workflow
+
+Every chat turn runs inside a durable Vercel Workflow run (`src/app/api/chat/turn-workflow.ts`). This means:
+
+- **Resumable streaming** — the response streams through `run.readable`. If the user drops their connection, the workflow continues running on Vercel's infrastructure and the client can reconnect to the same turn.
+- **Durable steps** — each LLM call and each tool call is an individually durable, automatically retried workflow step. A transient API failure retries without losing the turn's progress.
+- **WorkflowAgent** — the agent loop uses AI SDK 7's `WorkflowAgent` (`@ai-sdk/workflow`). Chat turns and background loops share one agent layer (`src/app/api/agent/` — factories, tool definitions, and standalone tool executors).
+
+Background loops (`src/app/api/loops/`) use the same Workflow infrastructure. The agent can spawn durable background tasks that persist their progress to the repo. GitHub files remain the single source of truth — Workflow is the execution container, never a store.
+
+There is intentionally no database or KV store. State lives in GitHub files. Workflow provides durability for execution; GitHub provides durability for data.
 
 ### Frontend Architecture
 
@@ -95,7 +107,27 @@ On finish reason `'stop'`, the agent turn is appended, the slice snapshot is sav
 | Memory System | `src/lib/memory/` | Manager (list, load, create nodes) + scorer (relevance ranking) |
 | Context Assembler | `src/lib/context/` | 5-layer prompt builder under token budget |
 | GitHub Tools | `src/lib/tools/` | Octokit-backed readFile/writeFile/listFiles with local-fs fallback |
+| Version & Sync | `src/lib/version/` | Version check against upstream releases, in-app code sync via Git Data API |
 | Episodic Subsystem | `src/lib/episodic/` | Time-slice management, unified Flash, strand indexing |
+
+### Skills System
+
+Skills are file-driven agent capabilities defined in `.claude/skills/` directories:
+
+- **Discovery** (`src/lib/skills/discovery.ts`) — scans directories for `SKILL.md` files, parses YAML frontmatter
+- **Loading** (`src/lib/skills/loader.ts`) — extracts the skill body, substitutes `$ARGUMENTS`
+- **Registry** (`src/lib/skills/registry.ts`) — merges programmatic and discovered skills into one lookup table
+
+A built-in `/create-memory` skill lets the agent create structured memory nodes in `memory/nodes/`. Skills are a lightweight extension point — no plugin system, no runtime compilation, just Markdown files with YAML metadata.
+
+### Version & Sync
+
+Previously includes a built-in version check and code sync mechanism:
+
+- **Version check** (`src/lib/version/actions.ts`) — a server action that fetches the latest release tag from the upstream template repository's GitHub Releases API and compares it with the running `APP_VERSION` using semver. Cached for 1 hour.
+- **Sync from upstream** (`src/lib/version/sync.ts`) — a server action that uses the Git Data API to construct a proper merge commit with two parents (the user's HEAD and the upstream HEAD). Only code directories (`src/`, `content/`, `public/`, etc.) are synced — user data in `memory/`, `tasks/`, and `sessions/` is never touched.
+
+The sync mechanism is triggered from Settings → Version & Updates. It creates a merge commit preserving git history, so subsequent syncs can build on the previous merge point.
 
 ### Defined but Not Wired into the Chat Route (Standalone / Experimental)
 

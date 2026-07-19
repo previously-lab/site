@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The official website and documentation for **Previously** — an open-source personal AI agent that organizes memory by time (a single timeline of episodic slices, not chat threads). Live at https://previously.ldwid.com.
 
-Related repos: the product itself lives in `LikeDreamwalker/previously`; this repo is the marketing site + docs only.
+Related repos: the product itself lives in `previously-lab/agent`; this repo is the marketing site + docs only.
 
 **Tech stack**: Next.js 16 · React 19 · TypeScript 6 · Tailwind CSS 4 · shadcn/ui (Base UI) · next-intl · next-themes · next-mdx-remote/rsc + Shiki
 

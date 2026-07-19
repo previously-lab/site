@@ -24,7 +24,7 @@ Previously 完全通过环境变量进行配置——六个内置变量，零个
 | `GITHUB_REPO_NAME` | 使用 GitHub 后端时必需 | 是 | `local` | 存储 memory 数据的仓库名称。与 `GITHUB_REPO_OWNER` 的消费点相同。 |
 | `DEMO_MODE` | 否 | 是 | `false` | 设置为字符串 `"true"` 时，将所有 `memory/` 读取重定向到预先填充好的角色数据集 `memory/demo/personal_14/`。写入操作会被接收但**在两个后端上都不会持久化**——应用返回成功响应但丢弃数据。locale 布局还会渲染 `<DemoBanner />` 组件。 |
 | `DEMO_REF` | 否 | 是（在 `.env.example` 中未记录） | — | Git ref（分支、标签或 SHA），demo 模式下 GitHub 读取操作会固定使用该 ref。使得带 token 的 demo 部署可以从 demo 分支读取数据，而不是从有意保持空状态的 main 分支读取。仅在 `DEMO_MODE=true` 时生效。 |
-| `ANTHROPIC_API_KEY` | 否 | 仅路线图 | — | 出现在 `README.md` 中，`@ai-sdk/anthropic` 依赖也已安装，但**已发布的代码中没有任何地方读取 `process.env.ANTHROPIC_API_KEY`** 或实例化 Anthropic 提供者。多提供者支持在模型注册表中已有类型定义（`provider: "deepseek" \| "anthropic" \| "openai"`），但 `DEFAULT_MODELS` 只包含 DeepSeek 条目。在 v0.1.0 中设置此变量没有任何运行时效果。 |
+| `ANTHROPIC_API_KEY` | 否 | 仅路线图 | — | 出现在 `README.md` 中，`@ai-sdk/anthropic` 依赖也已安装，但**已发布的代码中没有任何地方读取 `process.env.ANTHROPIC_API_KEY`** 或实例化 Anthropic 提供者。多提供者支持在模型注册表中已有类型定义（`provider: "deepseek" \| "anthropic" \| "openai"`），但 `DEFAULT_MODELS` 只包含 DeepSeek 条目。在 v0.3.0 中设置此变量没有任何运行时效果。 |
 
 > **关于 `GITHUB_TOKEN` 的说明：** 代码通过一个简单的表达式来决定后端——`const USE_GITHUB = !!process.env.GITHUB_TOKEN`——在七个模块中独立声明。没有专门的 `USE_GITHUB` 环境变量。存在 token = GitHub API，不存在 token = 本地文件系统。这是有意为之：最简单的切换方式，无需配置文件，没有额外的接口面。
 
@@ -82,7 +82,7 @@ DEMO_REF=demo-branch-name
 
 该 ref 在 `src/lib/tools/readFile.ts` 中被应用：`ref: ref ?? demoRef()`。`demoRef()` 辅助函数返回 `process.env.DEMO_REF || undefined`——仅在 `DEMO_MODE` 为 true 时生效。
 
-> `DEMO_REF` 存在于代码中，但**在 `.env.example` 中没有记录**——这是 v0.1.0 中的一个文档缺口。
+> `DEMO_REF` 存在于代码中，但**在 `.env.example` 中没有记录**——这是 v0.3.0 中的一个文档缺口。
 
 ### UI 横幅
 
@@ -166,7 +166,7 @@ defineRouting({
 | 你可能期望的变量 | 实际情况 |
 |---|---|
 | `USE_GITHUB` | 不存在。后端开关是 `!!process.env.GITHUB_TOKEN`——隐式、零配置、有意为之。 |
-| `LOG_LEVEL` | 未实现。v0.1.0 中日志功能较简单。 |
+| `LOG_LEVEL` | 未实现。v0.3.0 中日志功能较简单。 |
 | `DATABASE_URL` | 没有数据库。状态存储在 GitHub 文件中。 |
 | `PORT` | 应用不读取该变量；由 Next.js 处理。 |
 | `ANTHROPIC_API_KEY` | 依赖已安装，README 中提及，**但已发布的代码中没有读取它的地方**。属于路线图/储备性质。 |

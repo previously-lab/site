@@ -1,16 +1,16 @@
 ---
 title: 架构
-description: Previously 是部署在 Vercel 上的一个 HTTP 端点，它读取 GitHub 文件，调用两个 LLM，并将一个响应流式传回——没有数据库，没有定时任务，没有持久化服务器。
+description: Previously 每个聊天轮次都在一个持久化的 Vercel Workflow 运行中执行，读取 GitHub 文件，调用两个 LLM，并流式传回响应——没有数据库。
 order: 11
 ---
 
 # 架构
 
 <Callout variant="info">
-没有数据库，没有常驻 agent，没有持久连接。Previously 完全运行在 Vercel 的请求生命周期内。你发送一条消息，路由触发管道，响应流式传回。当响应结束时，没有后台进程，没有心跳，没有循环。
+每个聊天轮次都在一个持久化的 Vercel Workflow 运行中执行——连接断开后可恢复，每个 LLM 调用和工具调用都是独立重试的步骤。
 </Callout>
 
-Previously 是部署在 Vercel 上的一个 HTTP 端点，它读取 GitHub 文件，调用两个 LLM，并将一个响应流式传回——没有数据库，没有定时任务，没有持久化服务器。
+Previously 每个聊天轮次都在一个持久化的 Vercel Workflow 运行中执行——它读取 GitHub 文件，调用两个 LLM，并将一个响应流式传回。没有数据库。
 
 ## 三层架构
 
@@ -21,6 +21,18 @@ Previously 是部署在 Vercel 上的一个 HTTP 端点，它读取 GitHub 文�
 | **浏览器 / 手机** | Next.js App Router UI | 渲染聊天界面。捕获输入。流式输出响应。仅此而已——没有业务逻辑，没有状态机，没有本地记忆。 |
 | **Vercel 编排层** | 一个 `POST /api/chat` 处理器 | 读取 GitHub 状态，调用 DeepSeek-chat 进行 Flash 处理，调用 DeepSeek-chat（或客户端选择的模型）进行 Pro 处理，写回结果。没有定时任务。没有工作进程。没有队列。一个请求 = 一个响应。 |
 | **GitHub 私有仓库** | 单一事实来源 | 保存一切：`src/`（agent 只读）、`memory/`、`tasks/`、`sessions/`（agent 可读写）。代码和数据共存于一个仓库中。 |
+
+### 执行模型：Vercel Workflow
+
+每个聊天轮次在一个持久化的 Vercel Workflow 运行（`src/app/api/chat/turn-workflow.ts`）中执行：
+
+- **可恢复的流式响应** — 响应通过 `run.readable` 流式传输。如果用户连接断开，workflow 继续在 Vercel 基础设施上运行，客户端可以重新连接到同一个轮次。
+- **持久化步骤** — 每个 LLM 调用和每个工具调用都是独立持久化、自动重试的 workflow step。瞬时 API 故障会重试，不会丢失轮次进度。
+- **WorkflowAgent** — agent 循环使用 AI SDK 7 的 `WorkflowAgent`（`@ai-sdk/workflow`）。聊天轮次和后台循环共享同一个 agent 层（`src/app/api/agent/`——工厂、工具定义和独立的工具执行器）。
+
+后台循环（`src/app/api/loops/`）使用相同的 Workflow 基础设施。Agent 可以派生出持久化的后台任务，将进度写入仓库。GitHub 文件是唯一的真实来源——Workflow 只是执行容器，从不作为存储。
+
+系统有意不引入数据库或 KV 存储。状态完全存在于 GitHub 文件中。Workflow 为执行提供持久性，GitHub 为数据提供持久性。
 
 ### 前端架构
 
@@ -98,6 +110,7 @@ Pro 拥有五个工具：
 | 上下文组装器 | `src/lib/context/` | 在 token 预算内构建 5 层提示词 |
 | GitHub 工具 | `src/lib/tools/` | 基于 Octokit 的 readFile/writeFile/listFiles，带本地文件系统回退 |
 | 情节子系统 | `src/lib/episodic/` | 时间切片管理、统一 Flash、strand 索引 |
+| 版本与同步 | `src/lib/version/` | 版本检测与代码从上游同步机制 |
 
 ### 已定义但未接入聊天路由（独立/实验性）
 
@@ -117,6 +130,25 @@ Intent Router 仅贡献了 `classifyIntentKeywords`——一个关键字/回退�
 ### 多模型声明
 
 README 描述了"多模型支持（DeepSeek、Anthropic）"。在已发布的代码中，`src/lib/models/registry.ts` 只列出了 `deepseek-chat` 和 `deepseek-reasoner`。目前没有 Anthropic 模型被注册或可通过聊天路由访问。Provider 联合类型允许 Anthropic，但不存在任何条目。
+
+### 技能系统
+
+技能是文件驱动的 agent 能力，定义在 `.claude/skills/` 目录中：
+
+- **发现**（`src/lib/skills/discovery.ts`）——扫描目录中的 `SKILL.md` 文件，解析 YAML 前置元数据
+- **加载**（`src/lib/skills/loader.ts`）——提取技能正文，替换 `$ARGUMENTS`
+- **注册**（`src/lib/skills/registry.ts`）——将程序化技能和发现的技能合并到一个查找表中
+
+内置的 `/create-memory` 技能允许 agent 在 `memory/nodes/` 中创建结构化记忆节点。技能系统是一个轻量级的扩展点——没有插件系统，没有运行时编译，只有带 YAML 元数据的 Markdown 文件。
+
+### 版本与同步
+
+Previously 内置了版本检测和代码同步机制：
+
+- **版本检测**（`src/lib/version/actions.ts`）——一个 server action，从上游模板仓库的 GitHub Releases API 获取最新发布标签，使用 semver 与当前运行的 `APP_VERSION` 进行比较。缓存 1 小时。
+- **从上游同步**（`src/lib/version/sync.ts`）——一个 server action，使用 Git Data API 构建具有双 parent（用户 HEAD + 上游 HEAD）的合并提交。仅同步代码目录（`src/`、`content/`、`public/` 等）——`memory/`、`tasks/`、`sessions/` 中的用户数据不会被触碰。
+
+同步机制通过 Settings → Version & Updates 触发。它创建保留 git 历史的合并提交，后续同步可以在此合并点基础上继续。
 
 ## 无状态执行（有细微例外）
 

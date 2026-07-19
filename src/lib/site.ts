@@ -22,7 +22,7 @@ export const siteConfig: SiteConfig = {
     "an open-source personal AI agent that organizes memory by time - a single timeline of episodic slices, not chat threads",
   url: "https://previously.ldwid.com",
   demoUrl: "https://previously-demo.ldwid.com",
-  githubUrl: "https://github.com/LikeDreamwalker/previously",
+  githubUrl: "https://github.com/previously-lab/agent",
   devtoUrl:
     "https://dev.to/likedreamwalker/is-time-the-missing-dimension-in-ai-memory-2l9c",
   ogImage: "/opengraph-image",
