@@ -155,7 +155,7 @@ Previously 内置了版本检测和代码同步机制：
 README 将执行称为"无状态、事件驱动"。意图是正确的：GitHub 是持久化的事实来源，系统在每次请求时从磁盘恢复其状态。然而，存在两个内存变量：
 
 - **当前时间切片**是 `episodic/manager.ts` 中的模块级变量。在冷启动或页面刷新时，`tryLoadTodaySlice()` 从磁盘恢复它。
-- **会话（Sessions）**存储在 `session/manager.ts` 中的内存 `Map` 中。
+- **Sessions** 存储在 `session/manager.ts` 中的内存 `Map` 中。
 
 这些是缓存，而非权威状态。GitHub/磁盘是事实来源。如果进程重启，下一个请求会从文件系统中恢复所需内容。
 

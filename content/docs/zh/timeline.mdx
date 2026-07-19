@@ -101,7 +101,7 @@ Previously 中存在两个独立的按时间分组系统，服务于不同的受
 
 ## 数据流
 
-时间线通过服务端操作（server actions）填充：
+时间线通过 server actions 填充：
 
 1. **初始加载**——`getEpisodicState()` 返回最近的 slice 作为 `active`、一个 `recent` slice 数组（包含摘要和元数据），以及一个 `hasMore` 布尔值
 2. **分页**——`getMoreSlices(before: ISO 时间戳, limit: 10)` 获取更旧的 slice；结果追加到 `slices` 数组的末尾
