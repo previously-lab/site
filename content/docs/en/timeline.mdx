@@ -1,16 +1,16 @@
 ---
 title: The Timeline
-description: How the timeline serves as the primary interaction surface — a single vertical scroll of conversation history with date-grouped slices, pagination, and cinematic transitions.
+description: The timeline is Previously's core organizing principle — memory ordered by time, replacing chat thread lists with a single continuous chronicle.
 order: 0
 ---
 
 # The Timeline
 
 <Callout variant="info">
-You do not manage conversations. You scroll through your life. The timeline replaces the chat-list UI with a single vertical scroll of your history — oldest at the top, newest at the bottom, live chat at the bottom edge.
+Time is the natural organizing principle of memory. The timeline replaces chat-thread management with a single continuous chronicle — your history, ordered by when it happened, without folders or curation.
 </Callout>
 
-The timeline is the primary interaction surface of Previously — a single vertical scroll of your conversation history, read top-to-bottom, with the live chat at the bottom edge and the past behind you when you scroll up.
+The timeline is Previously's core organizing principle — memory ordered by time, replacing chat thread lists with a single continuous chronicle.
 
 ## Not a Chat List, Not a Search Bar
 
@@ -18,83 +18,7 @@ The timeline is the explicit alternative to two dominant UI patterns that most A
 
 Previously rejects that assumption. Instead, it presents a single vertical timeline — your story as an autobiography, oldest at the top, newest at the bottom, with the live conversation happening at the very bottom edge.
 
-## Three Regions, One Scroller
-
-The page is a single vertically stacked scroll surface with three regions in order: a server-rendered hero, the memory timeline (`TimelinePanel`), and the live chat messages — all inside one `MessageScroller`. The timeline sits **above** the messages, not inside the message list. They are sibling regions in one scroll container. Scroll up to revisit the past. Scroll down to continue where you left off.
-
-### Chronological Ordering
-
-Data arrives newest-first from the hook and is reversed for display. The code comment at the render site is explicit: "Timeline — oldest at top, newest at bottom." Both the date groups and the slices within each group are rendered in oldest-first order.
-
-## Date-Grouped UI
-
-The visible timeline groups slices by exact calendar date. The helper `formatSliceDate` returns:
-
-| Condition | Label |
-|-----------|-------|
-| Same day (diffDays 0) | "Today" |
-| Previous day (diffDays 1) | "Yesterday" |
-| Same year, older | `Intl.DateTimeFormat` with month + day (e.g., "June 14") |
-| Cross-year | `Intl.DateTimeFormat` with year + month + day (e.g., "March 10, 2025") |
-
-These labels are the grouping keys in `groupByDate`. Each date group renders:
-
-- **`DateGroupHeader`** — an animated header with `NumberTicker` components for year, month, and day. Locale-aware: Chinese renders as "2025 Year 11 Month 21 Day" with suffix labels; English renders as "November 21 [2025]" with the year shown only when cross-year.
-- **`SliceTimeMarker`** — each individual slice row shows an animated HH:MM via `NumberTicker`, rendered in the viewer's browser timezone.
-
-## The Now Marker
-
-At the very bottom of the timeline, a large animated "Now" word marks where the recorded past hands off to the present conversation. The i18n key is `timeline.panel.now`.
-
-Rendered with `TextGenerateEffect` at `text-5xl sm:text-6xl` (responsive), light weight (`font-light`), in a centered block with large top and bottom padding (`pt-24 pb-20`). This is the terminal point of the timeline: the timeline runs down and hands off here to the live chat below.
-
-## Time-Gap Title Cards (Cold Open)
-
-When you return to Previously after an absence and the chat is still empty, a cinematic gap title-card appears above the Now marker — a label that cuts forward from the last recorded moment to the present.
-
-The gap is computed by `getGapInfo`, which buckets the elapsed time between the last slice's `start` and `Date.now()`:
-
-| Elapsed | Renders as |
-|---------|------------|
-| < 5 minutes | "Moments later" |
-| 1–59 minutes | "{N} minute(s) later" |
-| 1–23 hours | "{N} hour(s) later" |
-| 1–6 days | "{N} day(s) later" |
-| 1–4 weeks | "{N} week(s) later" |
-| >= 5 weeks | "{N} month(s) later" |
-
-**Critical detail: there is no year unit.** A gap of roughly two years renders as "24 months later", not "2 years later". The gap is anchored on the last slice's `start`, not its end; the <=30-minute imprecision this introduces is invisible at hour/day granularity.
-
-The gap card is computed **after mount only** (inside a `useEffect`) to avoid SSR/hydration mismatch on the wall clock. It is shown only when `chatEmpty` is true — meaning the live chat has no messages yet. Once you speak, the gap card disappears.
-
-The i18n labels live in `timeline.gap.*` (messages/en.json): `moments`, `unit.minute`, `unit.hour`, `unit.day`, `unit.week`, `unit.month`, all with correct pluralisation via ICU syntax.
-
-## Pagination: "Earlier Memories"
-
-Scrolling upward reveals history via cursor-based pagination. An "Earlier memories" button (i18n key `timeline.panel.earlier`) sits at the top of the timeline panel. Clicking it calls `getMoreSlices(oldest.start, 10)` — loading 10 slices older than the current oldest loaded slice.
-
-Newer slices appear below existing ones; **older slices load in above** them, preserving the oldest-at-top invariant. A loading spinner replaces the button text while the request is in flight. The pagination cursor is the oldest loaded slice's `start` timestamp.
-
-## Slice Rows: Lazy-Loaded and Expandable
-
-Each slice in the timeline renders as a `TimeSliceRow`:
-
-- **Lazy content loading** — the full slice body is fetched on mount via `getSliceContent(slice.slice_id)`, with a spinner shown while it loads
-- **Default view** — shows the first user+agent exchange (`.slice(0, 2)`), typically one user message and the agent's reply
-- **Expand downward** — a "View more" button reveals later turns below the first exchange, maintaining the chronological reading direction
-- **Summary caption** — the slice's YAML `summary` field renders as an italic caption below the turn content
-- **Open loops and decisions** — shown as counts ("3 ongoing, 2 decided") that expand into labeled pills on click
-- **Character count** — individual turns longer than 300 characters are truncated with a "Expand all ({N} chars)" button
-
-## Two Distinct Time-Grouped Systems
-
-There are two separate time-grouping systems in Previously that serve different audiences. Do not conflate them.
-
-### 1. Visible UI (for you)
-
-The on-screen timeline groups by **exact calendar date** — Today, Yesterday, or a locale-formatted date — with animated year/month/day headers and HH:MM slice markers. This is what you see on the page.
-
-### 2. LLM Episodic Context (for the agent)
+## LLM Episodic Context
 
 When the route assembles the system prompt for Pro, it builds a `## Episodic Memory Timeline` section via `buildTimelineEpisodicContext`. This is a Markdown block **injected into the model's context**, not rendered on screen.
 
@@ -133,7 +57,7 @@ Each hit line shows the `slice_id`, a relative-time label (`formatRelativeTime`)
 The timeline is populated through server actions:
 
 1. **Initial load** — `getEpisodicState()` returns the most recent slice as `active`, an array of `recent` slices (with summaries and metadata), and a `hasMore` boolean
-2. **Pagination** — `getMoreSlices(before: ISO timestamp, limit: 10)` fetches older slices; results are appended to the end of the `slices` array (which renders above, since the array grows at the "old" end)
+2. **Pagination** — `getMoreSlices(before: ISO timestamp, limit: 10)` fetches older slices; results are appended to the `slices` array in chronological order
 3. **DEMO_MODE** — when `DEMO_MODE=true`, the scan depth expands to 48 months instead of the normal 1-2 months
 
 ## The Atomic Unit: The Slice
@@ -152,4 +76,4 @@ Each slice carries YAML frontmatter with structured metadata (`focus`, `summary`
 
 - [Memory Model](/docs/memory-model) — how slices fit into the full episodic + semantic memory architecture
 - [Recall](/docs/recall) — how Flash and Pro use the timeline for context retrieval
-- [Architecture](/docs/architecture) — the component tree that renders the timeline alongside live messages
+- [Architecture](/docs/architecture) — the system's complete module architecture
