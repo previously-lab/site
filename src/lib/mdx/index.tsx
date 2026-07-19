@@ -3,6 +3,8 @@ import remarkGfm from "remark-gfm";
 import rehypeSlug from "rehype-slug";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypeShiki from "@shikijs/rehype";
+import githubLight from "shiki/themes/github-light";
+import githubDark from "shiki/themes/github-dark";
 
 import { mdxComponents } from "@/components/mdx/mdx-components";
 
@@ -41,8 +43,8 @@ export async function MdxRenderer({
               rehypeShiki,
               {
                 themes: {
-                  light: "github-light",
-                  dark: "github-dark",
+                  light: githubLight,
+                  dark: githubDark,
                 },
               },
             ],
