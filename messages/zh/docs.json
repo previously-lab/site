@@ -17,6 +17,12 @@
     "copyMarkdown": "复制 Markdown",
     "copied": "已复制！",
     "openMenu": "打开菜单",
-    "closeMenu": "关闭菜单"
+    "closeMenu": "关闭菜单",
+    "sections": {
+      "overview": "概览",
+      "concepts": "概念",
+      "guides": "指南",
+      "reference": "参考"
+    }
   }
 }

@@ -169,3 +169,25 @@
   animation: slide-up-fade 0.3s ease-out;
 }
 
+/* ── Shiki dual-theme code blocks ── */
+/* Shiki renders light theme as default; we override with dark variables
+   when .dark is on the <html> element (set by next-themes). */
+
+html.dark .shiki,
+html.dark .shiki span {
+  color: var(--shiki-dark) !important;
+  background-color: var(--shiki-dark-bg) !important;
+  font-style: var(--shiki-dark-font-style, inherit) !important;
+  font-weight: var(--shiki-dark-font-weight, inherit) !important;
+  text-decoration: var(--shiki-dark-text-decoration, inherit) !important;
+}
+
+/* Code block background */
+pre.shiki {
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  font-size: 0.8125rem;
+  line-height: 1.625;
+}
+

@@ -90,7 +90,7 @@ The read/write path goes through `fsReadFile`/`fsWriteFile` wrappers that transp
 
 ## What Strands Are Not (Yet)
 
-As of v0.1.0 the strand index is **write-only**. It is built and maintained, but no recall code programmatically reads `strands.json` to drive Flash's recall scan. The only path that surfaces strands to the model is a prompt hint added to the Pro context:
+As of v0.3.1 the strand index is **write-only**. It is built and maintained, but no recall code programmatically reads `strands.json` to drive Flash's recall scan. The only path that surfaces strands to the model is a prompt hint added to the Pro context:
 
 > "Use readMemory to explore `memory/episodic/strands.json` if deeper context is needed."
 

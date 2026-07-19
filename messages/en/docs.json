@@ -17,6 +17,12 @@
     "copyMarkdown": "Copy markdown",
     "copied": "Copied!",
     "openMenu": "Open menu",
-    "closeMenu": "Close menu"
+    "closeMenu": "Close menu",
+    "sections": {
+      "overview": "Overview",
+      "concepts": "Concepts",
+      "guides": "Guides",
+      "reference": "Reference"
+    }
   }
 }

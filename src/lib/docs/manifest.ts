@@ -12,12 +12,16 @@ export type DocItem = {
 };
 
 export type DocSection = {
+  /** i18n key under Docs.sections — used to look up the translated section label. */
+  i18nKey: string;
+  /** Fallback English label (used when translations are unavailable). */
   title: string;
   items: DocItem[];
 };
 
 export const docsManifest: DocSection[] = [
   {
+    i18nKey: "overview",
     title: "Overview",
     items: [
       { slug: "introduction", title: "Introduction" },
@@ -25,6 +29,7 @@ export const docsManifest: DocSection[] = [
     ],
   },
   {
+    i18nKey: "concepts",
     title: "Concepts",
     items: [
       { slug: "timeline", title: "The Timeline" },
@@ -35,6 +40,7 @@ export const docsManifest: DocSection[] = [
     ],
   },
   {
+    i18nKey: "guides",
     title: "Guides",
     items: [
       { slug: "getting-started", title: "Getting Started" },
@@ -42,6 +48,7 @@ export const docsManifest: DocSection[] = [
     ],
   },
   {
+    i18nKey: "reference",
     title: "Reference",
     items: [
       { slug: "configuration", title: "Configuration" },

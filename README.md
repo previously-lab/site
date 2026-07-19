@@ -2,7 +2,7 @@
 
 > Previously on you.
 
-The official website and documentation for **[Previously](https://github.com/LikeDreamwalker/previously)** — an open-source personal AI agent that organizes memory by time: a single timeline of episodic slices, not chat threads.
+The official website and documentation for **[Previously](https://github.com/previously-lab/agent)** — an open-source personal AI agent that organizes memory by time: a single timeline of episodic slices, not chat threads.
 
 **Live**: [previously.ldwid.com](https://previously.ldwid.com)
 
@@ -12,7 +12,7 @@ The official website and documentation for **[Previously](https://github.com/Lik
 - **Docs** — 12 bilingual (English / 中文) documentation pages covering concepts, guides, and reference
 - **SEO / GEO** — hreflang sitemap, JSON-LD structured data, [llms.txt](https://previously.ldwid.com/llms.txt), AI-crawler-friendly robots
 
-Looking for the product itself? → [LikeDreamwalker/previously](https://github.com/LikeDreamwalker/previously)
+Looking for the product itself? → [previously-lab/agent](https://github.com/previously-lab/agent)
 
 ## Tech stack
 
