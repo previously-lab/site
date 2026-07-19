@@ -87,7 +87,7 @@ The server writes a `data-flash` part into the AI-SDK stream with `phase: "recal
 - **Collapsed summary**: duration rounded to seconds (minimum 1s)
 - **Expanded content**: recall text via `MarkdownRenderer`, each hit shown as `slice_id` (mono) + reason + `Math.round(relevance * 100)%`, italicized reasoning line, and tag pills
 
-The recall text reads either "Recalled N conversations related to <up-to-3 topics>" or "Scanned recent conversations — no directly relevant matches found".
+The recall text reads either "Recalled N conversations related to \{up-to-3 topics\}" or "Scanned recent conversations — no directly relevant matches found".
 
 Recall and Reasoning phases are **not real tool calls**. They reuse the shared `ToolLayout` expandable-card component with static completed/streaming states so they render visually like tools, but they sit **outside** the message bubble.
 
