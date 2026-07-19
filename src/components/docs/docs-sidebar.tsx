@@ -6,7 +6,14 @@ import { useTranslations } from "next-intl";
 import { usePathname, Link } from "@/i18n/navigation";
 import { docsManifest } from "@/lib/docs/manifest";
 
-export function DocsSidebar({ locale: _locale }: { locale: string }) {
+export function DocsSidebar({
+  locale: _locale,
+  itemTitles,
+}: {
+  locale: string;
+  /** Localized titles keyed by slug. Falls back to manifest's hardcoded title. */
+  itemTitles?: Record<string, string>;
+}) {
   const t = useTranslations("Docs");
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
@@ -14,13 +21,14 @@ export function DocsSidebar({ locale: _locale }: { locale: string }) {
   const sidebar = (
     <nav className="flex flex-col gap-6" role="navigation" aria-label="Documentation sections">
       {docsManifest.map((section) => (
-        <div key={section.title} className="flex flex-col gap-1">
+        <div key={section.i18nKey} className="flex flex-col gap-1">
           <h2 className="px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            {section.title}
+            {t(`sections.${section.i18nKey}`)}
           </h2>
           {section.items.map((item) => {
             const href = `/docs/${item.slug}`;
             const isActive = pathname === href;
+            const displayTitle = itemTitles?.[item.slug] ?? item.title;
             return (
               <Link
                 key={item.slug}
@@ -33,7 +41,7 @@ export function DocsSidebar({ locale: _locale }: { locale: string }) {
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 }`}
               >
-                {item.title}
+                {displayTitle}
               </Link>
             );
           })}

@@ -12,16 +12,22 @@ type Props = {
 };
 
 /**
- * Build a build-time search index from the manifest + doc frontmatter.
+ * Build a build-time search index from the manifest + doc frontmatter,
+ * plus a slug→title map for localized sidebar labels.
  * Runs at request time during dev; at build time during static generation.
  */
-async function buildSearchIndex(locale: string): Promise<SearchIndexRecord[]> {
+async function buildSearchIndex(locale: string): Promise<{
+  records: SearchIndexRecord[];
+  itemTitles: Record<string, string>;
+}> {
   const records: SearchIndexRecord[] = [];
+  const itemTitles: Record<string, string> = {};
 
   for (const section of docsManifest) {
     for (const item of section.items) {
       try {
         const { frontmatter } = await getDoc(locale, item.slug);
+        itemTitles[item.slug] = frontmatter.title;
         records.push({
           slug: item.slug,
           title: frontmatter.title,
@@ -36,7 +42,7 @@ async function buildSearchIndex(locale: string): Promise<SearchIndexRecord[]> {
     }
   }
 
-  return records;
+  return { records, itemTitles };
 }
 
 /**
@@ -49,12 +55,12 @@ export default async function DocsLayout({ children, params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
 
-  /* ---- build search index ---- */
-  const searchIndex = await buildSearchIndex(locale);
+  /* ---- build search index + localized titles ---- */
+  const { records: searchIndex, itemTitles } = await buildSearchIndex(locale);
 
   return (
     <div className="mx-auto flex w-full max-w-6xl gap-8 px-4 pt-16 pb-8 sm:px-6 lg:gap-12 lg:pt-20 lg:pb-12">
-      <DocsSidebar locale={locale} />
+      <DocsSidebar locale={locale} itemTitles={itemTitles} />
 
       <main className="min-w-0 flex-1">
         <DocsSearch index={searchIndex} />

@@ -141,6 +141,28 @@ export default async function DocPage({ params }: Props) {
   /* ---- prev / next ---- */
   const neighbors = getDocNeighbors(slug);
 
+  // Resolve localized titles for prev/next from their frontmatter
+  const localizedNeighbors = {
+    prev: null as { slug: string; title: string } | null,
+    next: null as { slug: string; title: string } | null,
+  };
+  if (neighbors.prev) {
+    try {
+      const { frontmatter: prevFm } = await getDoc(locale, neighbors.prev.slug);
+      localizedNeighbors.prev = { slug: neighbors.prev.slug, title: prevFm.title };
+    } catch {
+      localizedNeighbors.prev = neighbors.prev;
+    }
+  }
+  if (neighbors.next) {
+    try {
+      const { frontmatter: nextFm } = await getDoc(locale, neighbors.next.slug);
+      localizedNeighbors.next = { slug: neighbors.next.slug, title: nextFm.title };
+    } catch {
+      localizedNeighbors.next = neighbors.next;
+    }
+  }
+
   /* ---- translations for the copy button URL and breadcrumb ---- */
   const t = await getTranslations({ locale, namespace: "Docs" });
 
@@ -180,8 +202,8 @@ export default async function DocPage({ params }: Props) {
 
       {/* ---- prev / next navigation ---- */}
       <DocsPager
-        prev={neighbors.prev}
-        next={neighbors.next}
+        prev={localizedNeighbors.prev}
+        next={localizedNeighbors.next}
         locale={locale}
       />
     </>
