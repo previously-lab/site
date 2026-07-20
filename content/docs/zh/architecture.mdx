@@ -36,7 +36,9 @@ Previously 每个聊天轮次都在一个持久化的 Vercel Workflow 运行中�
 
 ### 前端架构
 
-Next.js App Router 强制执行严格的服务器组件/客户端组件边界。`page.tsx` 是一个服务器组件，它通过 `getEpisodicState` 服务端获取所有情节数据和用户资料，然后将两者作为 props 传递——初始加载无需客户端数据获取。`ChatPage` 是一个轻量的客户端外壳，只负责 AI SDK 的 `useChat` hook 和 flex 布局。Hero 区域和时间线面板作为 React children 从 `page.tsx` 传入，从而保持 React Server Component 边界的狭窄。
+页面采用基于 React Server Components 搭配 Suspense 边界的流式渲染结构。页面的关键部分——如时间线面板和聊天消息区域——分别包裹在 `<Suspense>` 中并配有加载占位符，使页面外壳能够立即渲染，而数据相关部分则在解析完成后流式加载。这取代了之前在服务器组件中同步获取所有数据的旧模式。
+
+Next.js App Router 强制执行严格的服务器组件/客户端组件边界。`page.tsx` 是一个拥有流式布局的服务器组件。`ChatPage` 是一个轻量的客户端外壳，只负责 AI SDK 的 `useChat` hook 和 flex 布局。Hero 区域和时间线面板作为 React children 从 `page.tsx` 传入，从而保持 React Server Component 边界的狭窄。
 
 `LoadedIdsProvider` context 取代了旧的 `onLoadedIdsChange` 回调属性链。`TimelinePanel` 通过这个 context 读取和写入已加载的 slice ID，而不再通过中间组件层层传递回调。
 
@@ -91,7 +93,7 @@ Pro 拥有五个工具：
 - **writeMemory** — 创建或更新记忆笔记/节点（受路径白名单和受保护系统路径检查保护）
 - **updateUserProfile** — 通过 `applyProfilePatch` 修补 `memory/user/profile.md`
 
-当设置 `GITHUB_TOKEN` 时，这些工具使用 Octokit，否则回退到本地文件系统访问。
+当设置 `GITHUB_TOKEN` 时，这些工具使用 Octokit 操作用户的 GitHub 仓库。数据源层（`resolveDataSource()`）自动检测应用是运行在 GitHub 连接模式、本地开发模式还是 demo 模式（从基准测试仓库远程获取）。
 
 ### 6. 快照 + 索引更新
 
@@ -108,7 +110,8 @@ Pro 拥有五个工具：
 | 路径白名单 | `src/lib/whitelist/` | 安全边界：仅 `memory/ tasks/ sessions/` |
 | 记忆系统 | `src/lib/memory/` | 管理器（列出、加载、创建节点）+ 评分器（相关性排序） |
 | 上下文组装器 | `src/lib/context/` | 在 token 预算内构建 5 层提示词 |
-| GitHub 工具 | `src/lib/tools/` | 基于 Octokit 的 readFile/writeFile/listFiles，带本地文件系统回退 |
+| GitHub 工具 | `src/lib/tools/` | 基于 Octokit 的 readFile/writeFile/listFiles，本地开发时回退到文件系统；Demo 模式使用远程获取 |
+| 数据源 | `src/lib/data-source/` | 通过 `resolveDataSource()` 自动检测 GitHub（用户数据）与远程 demo 获取（20 个基准测试人物） |
 | 情节子系统 | `src/lib/episodic/` | 时间切片管理、统一 Flash、strand 索引 |
 | 版本与同步 | `src/lib/version/` | 版本检测与代码从上游同步机制 |
 
@@ -195,6 +198,10 @@ memory/   tasks/   sessions/
 ### GitHub Token 作用域
 
 `GITHUB_TOKEN` 限定于单个仓库的 contents 读/写权限。Agent 只能操作一个仓库：由 `GITHUB_REPO_OWNER` / `GITHUB_REPO_NAME` 定义的仓库。不存在跨仓库访问。
+
+### 数据源自动检测（v0.4.0）
+
+Previously v0.4.0 移除了 `DEMO_MODE` 环境变量及其关联的路径重定向。取而代之的是 `src/lib/data-source/resolve.ts` 中的 `resolveDataSource()` 函数，它在运行时自动检测当前数据源。当设置 `GITHUB_TOKEN` 时，系统使用 GitHub。无 token 时，系统检查是否应激活 demo 模式：demo 数据（20 个 WorldMemArena 基准测试人物，通过 `?persona=` URL 参数切换）从由 `BENCHMARK_BASE_URL` 定义的公共基准测试仓库获取，而本地开发则直接使用文件系统。AppHeader 中的 demo 徽章指示 demo 模式已激活。
 
 所有路径验证都在服务端执行——客户端是不可信的。浏览器从不构造文件路径或做出存储决策。
 

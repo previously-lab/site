@@ -68,24 +68,26 @@ pnpm dev
 # 必填——DeepSeek API 密钥（同时驱动 Flash 召回和 Pro 推理）
 DEEPSEEK_API_KEY=sk-...
 
-# 必填——你上面创建的 GitHub token
+# GitHub 后端必填——你上面创建的 token
 GITHUB_TOKEN=github_pat_...
 
-# 必填——你的 GitHub 用户名和仓库名
+# GitHub 后端必填——你的 GitHub 用户名和仓库名
 GITHUB_REPO_OWNER=your-username
 GITHUB_REPO_NAME=agent
 
-# 可选——将记忆读取重定向到预置的 demo 角色
-# DEMO_MODE=true
+# 可选——基准测试数据仓库的 URL（demo 模式，当 GITHUB_TOKEN 未设置时）
+# BENCHMARK_BASE_URL=https://github.com/example/benchmark-data
 ```
+
+> **不使用 `GITHUB_TOKEN`：** 应用会自动以 demo 模式运行，提供 20 个内置角色的远程基准测试数据。无需 GitHub token 即可评估。写入操作会被接收但不持久化。
 
 | 变量 | 必填 | 说明 | 获取方式 |
 |---|---|---|---|
 | `DEEPSEEK_API_KEY` | 是 | 对 DeepSeek 的请求进行身份验证，用于快速召回模型（Flash）和深度推理模型（Pro）。 | [platform.deepseek.com](https://platform.deepseek.com) ——创建账号并生成 API 密钥。 |
-| `GITHUB_TOKEN` | 是 | 细粒度个人访问令牌。所有 GitHub 读写操作都通过其进行。 | 在 token 设置步骤中[如上创建](#创建-github-token)。 |
-| `GITHUB_REPO_OWNER` | 是 | 拥有存放记忆数据仓库的 GitHub 用户名或组织。 | 你的 GitHub 用户名。 |
-| `GITHUB_REPO_NAME` | 是 | 存放记忆数据的仓库名称。默认为你的私有仓库，但你可以指向你拥有的任何仓库。 | 你的私有仓库在 GitHub 上的名称。 |
-| `DEMO_MODE` | 否 | 设为 `"true"` 将记忆读取重定向到预置的 demo 角色。写入操作仍写入真实的记忆目录。适用于评估。 | — |
+| `GITHUB_TOKEN` | GitHub 后端必填 | 细粒度个人访问令牌。所有 GitHub 读写操作都通过其进行。未设置时，应用以 demo 模式运行（远程基准测试数据，20 个角色）。 | 在 token 设置步骤中[如上创建](#创建-github-token)。 |
+| `GITHUB_REPO_OWNER` | GitHub 后端必填 | 拥有存放记忆数据仓库的 GitHub 用户名或组织。 | 你的 GitHub 用户名。 |
+| `GITHUB_REPO_NAME` | GitHub 后端必填 | 存放记忆数据的仓库名称。默认为你的私有仓库，但你可以指向你拥有的任何仓库。 | 你的私有仓库在 GitHub 上的名称。 |
+| `BENCHMARK_BASE_URL` | 否 | 公共基准测试数据仓库的 URL，用于 demo 模式。仅在 `GITHUB_TOKEN` 未设置时生效。默认为 WorldMemArena 基准测试仓库。 | — |
 
 ## 同步上游更新
 

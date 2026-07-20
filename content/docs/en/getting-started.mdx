@@ -69,20 +69,36 @@ The message itself renders in three phases, matching the agent's internal execut
 
 ## First-Run Experience: Demo Mode
 
-Previously does not have an in-app onboarding wizard. Instead, it ships a **DEMO_MODE** environment flag that transforms the deployment into a read-only tour.
+Previously does not have an in-app onboarding wizard. Instead, it auto-detects your environment: if you have a GitHub token configured, you are using your own timeline; if not, you land in demo mode — no setup required.
 
-Set `DEMO_MODE=true` in your environment and every `memory/` read is redirected to `memory/demo/personal_14/` — a seeded fictional persona spanning 30+ slices and several years of conversations. A fixed banner at the top of the screen tells you nothing written is saved. Writes appear to succeed but never hit the repository; refresh the page and the slate resets.
+The live site at [previously.ldwid.com](https://previously.ldwid.com) **is** the demo. Visit without a GitHub token and you are automatically exploring 20 personas from the [WorldMemArena](https://github.com/WorldMemArena/worldmemarena) benchmark (CC BY-NC 4.0), each with 30+ slices spanning years of conversations. No separate demo subdomain, no env vars, no configuration.
 
-The live demo is at [previously-demo.ldwid.com](https://previously-demo.ldwid.com). It runs the full two-tier recall system (Flash + Pro), so you can browse the timeline, scroll through past slices, chat freely, and watch recall work — all without setting up your own deployment.
+A small **"Demo" badge** (or "体验" in Chinese) appears in the header to remind you that you are in read-only mode. Click it for a popover explaining demo mode and linking to the setup guide. Messages you send are not persisted — refresh the page and the slate resets.
 
-> **Important: the demo dataset is not in the `main` branch of the repository.** It lives on the `DEMO_REF` branch and is served by GitHub reads pinned to that branch when `DEMO_MODE` is on. Trying to browse `memory/demo/personal_14/` locally on `main` will find nothing.
+### Exploring the Personas
+
+The hero at the top of the page shows "Previously on {persona name}". Click the persona name to open a dialog with a grid of 20 persona cards. Each card shows the persona's name and a short blurb describing their life story. Click any card to switch personas — the page does a hard refresh with `?persona=personal_07` in the URL, and the timeline reloads with that persona's conversations.
+
+Every persona runs the full two-tier recall system (Flash + Pro), so you can browse their timeline, scroll through past slices, chat freely, and watch recall work — all without setting up your own deployment.
+
+### Streaming Page Structure
+
+The page streams in three layers so nothing flashes or jumps:
+
+- **"Previously on" title** — static, never re-renders
+- **Persona name** — wrapped in a Suspense boundary, loads after the title
+- **Timeline** — in its own Suspense boundary, loads independently
+
+### Data Source
+
+The benchmark data is not bundled in the agent repository. It is fetched remotely from a configurable public GitHub repository (see `BENCHMARK_BASE_URL`). This keeps the agent repo lean and allows the dataset to be updated independently.
 
 ### Starting Your Own Timeline
 
 To move from demo to your own timeline:
 
 1. Deploy Previously with your own GitHub repository and a GitHub personal access token (contents read/write scope).
-2. Leave `DEMO_MODE` unset or set to `false`.
+2. Once `GITHUB_TOKEN` is set, demo mode auto-disables — no env var to toggle.
 3. That's it. The first message you type opens your first slice.
 
 There is no account creation, no database setup, and no seed data. The timeline starts empty. Memory accumulates from your first conversation forward.
@@ -108,7 +124,7 @@ That's the loop. No setup, no cleanup, no thread management. Just one continuous
 
 ## Project Status
 
-**Previously is in active early development and not yet ready for personal or production use** (status: experimental). This guide documents v0.3.1 as it exists in the code. The core architecture is functional, but many subsystems are still being designed and built. The Getting Started docs frame it as a personal self-hosted deployment, not a SaaS signup.
+**Previously is in active early development and not yet ready for personal or production use** (status: experimental). This guide documents v0.4.0 as it exists in the code. The core architecture is functional, but many subsystems are still being designed and built. The Getting Started docs frame it as a personal self-hosted deployment, not a SaaS signup.
 
 ## Related
 
