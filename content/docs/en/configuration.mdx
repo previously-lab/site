@@ -1,16 +1,16 @@
 ---
 title: Configuration
-description: How Previously is configured through environment variables — six shipped vars, zero config files, and one implicit backend switch.
+description: How Previously is configured through environment variables — six shipped vars, zero config files, and one centralized data-source resolver.
 order: 0
 ---
 
 # Configuration
 
 <Callout variant="info">
-Four environment variables are required for the GitHub backend: DEEPSEEK_API_KEY, GITHUB_TOKEN, GITHUB_REPO_OWNER, and GITHUB_REPO_NAME. Without GITHUB_TOKEN, the app reads and writes the local filesystem instead.
+Four environment variables are required for the GitHub backend: DEEPSEEK_API_KEY, GITHUB_TOKEN, GITHUB_REPO_OWNER, and GITHUB_REPO_NAME. Without GITHUB_TOKEN, the app runs in demo mode and serves remote benchmark data with 20 built-in personas — no additional configuration needed for evaluation.
 </Callout>
 
-Previously is configured exclusively through environment variables — six shipped vars, zero config files, one implicit backend switch that determines whether reads hit GitHub's API or your local filesystem.
+Previously is configured exclusively through environment variables — six shipped vars, zero config files, and a single centralized data-source resolver that determines whether reads hit GitHub's API or a remote benchmark repository.
 
 ## Environment Variable Reference
 
@@ -19,74 +19,61 @@ Every variable the runtime actually reads, in one table:
 | Variable | Required | Shipped | Default | Runtime effect |
 |---|---|---|---|---|
 | `DEEPSEEK_API_KEY` | Yes | Yes | — | Powers both Flash and Pro tiers. The `@ai-sdk/deepseek` provider reads it automatically from the environment — no source file references `process.env.DEEPSEEK_API_KEY` directly. |
-| `GITHUB_TOKEN` | See note | Yes | — | Presence of this variable **is the backend switch**. When set, the app uses the Octokit/GitHub API backend; when absent, the app falls back to the local filesystem. Leave unset or commented out for local development. An empty string `GITHUB_TOKEN=` will now correctly fall back to local filesystem. A fine-grained PAT with Contents read/write scoped to a single repository. |
-| `GITHUB_REPO_OWNER` | When using GitHub backend | Yes | `local` | GitHub username or organization that owns the memory repository. Read at multiple modules including the chat route, flush endpoint, episodic manager, and identity/profile. |
-| `GITHUB_REPO_NAME` | When using GitHub backend | Yes | `local` | The repository name for your private repository. Same consumption points as `GITHUB_REPO_OWNER`. |
-| `DEMO_MODE` | No | Yes | `false` | When set to the string `"true"`, redirects all `memory/` reads to a pre-seeded persona dataset at `memory/demo/personal_14/`. Writes are accepted but never persisted on **both** backends — the app returns a success response but discards the data. The locale layout also renders a `<DemoBanner />` component. |
-| `DEMO_REF` | No | Yes (undocumented in `.env.example`) | — | Git ref (branch, tag, or SHA) that demo-mode GitHub reads are pinned to. Lets a token-backed demo deployment read from a demo branch instead of the intentionally-empty main branch. Only active when `DEMO_MODE=true`. |
-| `ANTHROPIC_API_KEY` | No | Roadmap only | — | Appears in `README.md` and the `@ai-sdk/anthropic` dependency is installed, but **no shipped code reads `process.env.ANTHROPIC_API_KEY`** or instantiates an Anthropic provider. Multi-provider support is typed in the model registry (`provider: "deepseek" | "anthropic" | "openai"`) but `DEFAULT_MODELS` ships only DeepSeek entries. Setting this variable has zero runtime effect in v0.3.1. |
+| `GITHUB_TOKEN` | See note | Yes | — | Determines the data source via `resolveDataSource()` (`src/lib/data-source/resolve.ts`). When set → `"github"` mode (Octokit/GitHub API). When absent → `"demo"` mode (remote benchmark data from the WorldMemArena repository with 20 personas). This is now centralized in a single function rather than scattered across seven modules. A fine-grained PAT with Contents read/write scoped to a single repository. |
+| `GITHUB_REPO_OWNER` | When using GitHub backend | Yes | `local` | GitHub username or organization that owns the memory repository. Read at the centralized data-source layer. |
+| `GITHUB_REPO_NAME` | When using GitHub backend | Yes | `local` | The repository name for your private repository. Same consumption point as `GITHUB_REPO_OWNER`. |
+| `BENCHMARK_BASE_URL` | No | Yes | WorldMemArena benchmark repo | URL pointing to the public benchmark data repository for demo mode. Only consulted when `resolveDataSource()` returns `"demo"` (i.e., `GITHUB_TOKEN` is absent). Override to point at a custom benchmark dataset. |
+| `ANTHROPIC_API_KEY` | No | Roadmap only | — | Appears in `README.md` and the `@ai-sdk/anthropic` dependency is installed, but **no shipped code reads `process.env.ANTHROPIC_API_KEY`** or instantiates an Anthropic provider. Multi-provider support is typed in the model registry (`provider: "deepseek" \| "anthropic" \| "openai"`) but `DEFAULT_MODELS` ships only DeepSeek entries. Setting this variable has zero runtime effect in v0.4.0. |
 
-> **Note on `GITHUB_TOKEN`:** The code decides its backend with a single expression — `const USE_GITHUB = !!process.env.GITHUB_TOKEN` — declared independently in seven modules (chat route, flush route, episodic manager, user profile, profile writer, maintenance, and the identity/profile endpoint). There is no dedicated `USE_GITHUB` environment variable. Token present = GitHub API. Token absent = local filesystem. This is intentional: the simplest possible toggle, no config file, no extra surface area.
+> **Note on `GITHUB_TOKEN`:** The code now determines its data source through `resolveDataSource()` (`src/lib/data-source/resolve.ts`), a single centralized function that replaces the old per-module `USE_GITHUB` checks. When `GITHUB_TOKEN` is present → `"github"` mode. When absent → `"demo"` mode (remote benchmark data with 20 personas). One function, one decision point, no config file.
 
-## Backend Switch: GitHub API vs Local Filesystem
+## Data Source Auto-Detection
 
-The storage backend is implicit by design. No env var, no config toggle — just the presence or absence of `GITHUB_TOKEN`:
+v0.4.0 replaces both the old `DEMO_MODE` env var and the scattered `!!process.env.GITHUB_TOKEN` checks with a single centralized function:
 
 ```typescript
-const USE_GITHUB = !!process.env.GITHUB_TOKEN;
+// src/lib/data-source/resolve.ts
+function resolveDataSource(): 'github' | 'demo'
 ```
 
-| Backend | When selected | How reads work | How writes work |
+| Mode | Trigger | How reads work | How writes work |
 |---|---|---|---|
-| **GitHub API** | `GITHUB_TOKEN` is set | `octokit.rest.repos.getContent`, base64-decoded. Requires `GITHUB_REPO_OWNER` and `GITHUB_REPO_NAME`. | `createOrUpdateFileContents` on the same repo. |
-| **Local filesystem** | `GITHUB_TOKEN` is not set | `fs.readFileSync` from `DATA_ROOT = join(process.cwd())`. Reads physical files from the project root. | `fs.writeFileSync` to the same root. |
+| **GitHub** (`"github"`) | `GITHUB_TOKEN` is set | Octokit API calls against your private repository. Requires `GITHUB_REPO_OWNER` and `GITHUB_REPO_NAME`. | `createOrUpdateFileContents` on the same repo. Persisted to GitHub. |
+| **Demo** (`"demo"`) | `GITHUB_TOKEN` is absent | Remote fetch from the benchmark repository at `BENCHMARK_BASE_URL` (defaults to WorldMemArena). 20 personas (`personal_01` through `personal_20`), each with pre-seeded episodic memory slices and memory nodes. | Accepted but discarded — returns success but data is never persisted. Touch neither the GitHub API nor your local filesystem. |
 
-Both backends enforce the same security boundary:
+### Persona Selection
+
+In demo mode, the default persona is `personal_14` (Caleb). Switch between 20 benchmark personas via the `persona` URL query parameter:
+
+```
+https://your-instance.vercel.app/?persona=personal_07
+https://your-instance.vercel.app/?persona=personal_14
+```
+
+Persona data is fetched from the repository configured in `BENCHMARK_BASE_URL` (defaults to the official WorldMemArena benchmark repo).
+
+### Write Behavior
+
+In demo mode, writes are accepted but never persisted. The agent sees a successful write response, but the data is silently discarded. This applies to all write operations: memory nodes, episodic slices, tasks, and session state.
+
+### UI Indicator
+
+When running in demo mode, the AppHeader displays a compact demo badge (primary-colored pill). This replaces the old full-width `<DemoBanner />` and `<DemoToast />` components from v0.3.1 — no screen real estate consumed beyond a single badge.
+
+### Legacy Migration
+
+If you were using `DEMO_MODE=true` in v0.3.1:
+
+- **Remove** `DEMO_MODE` from your environment — it is no longer read
+- **Remove** `DEMO_REF` from your environment — it is no longer read
+- **Optionally set** `BENCHMARK_BASE_URL` to point at a custom benchmark dataset
+- Without `GITHUB_TOKEN`, the app now auto-selects demo mode with 20 personas (up from a single hardcoded Caleb persona)
+
+### Security Boundary
+
+Both modes enforce the same security boundary:
 - **Path whitelist**: only `memory/`, `tasks/`, and `sessions/` are read-write; `src/` is agent read-only
 - **Size cap**: `MAX_FILE_SIZE_BYTES = 1_000_000` (1 MB) on all file reads
-
-The local-filesystem backend is what you use during development (`pnpm dev`). It reads and writes real files on disk — no GitHub, no network, no rate limits. The GitHub backend is what you deploy to Vercel. The code paths diverge at the route handlers, but the interface is identical.
-
-## DEMO_MODE Behavior
-
-`DEMO_MODE=true` puts the entire memory layer into a read-only demonstration mode against a bundled persona dataset. Here is exactly what changes:
-
-### Path Redirection
-
-Every `memory/` read path is rewritten by `resolveDemoPath` (`src/lib/demo/paths.ts`):
-
-```
-memory/episodic/slices/...  ->  memory/demo/personal_14/episodic/slices/...
-memory/nodes/some-node.md   ->  memory/demo/personal_14/nodes/some-node.md
-```
-
-The rewrite is guarded to fire only for paths starting with `memory/` that do not already carry the `memory/demo/personal_14/` prefix (idempotent). A companion `unresolveDemoPath` reverses the mapping so callers stay in the original namespace.
-
-### Writes: Accepted, Never Persisted
-
-DEMO_MODE makes writes a no-op on **both** storage backends:
-
-- **Local-filesystem** (`src/lib/tools/local-fs.ts`): returns `{ path, created: false }` without writing to disk
-- **GitHub API** (`src/lib/tools/writeFile.ts`): returns the same early-success response, never calls `createOrUpdateFileContents`
-
-The agent sees a successful write. The data is silently discarded.
-
-### Demo Ref for GitHub Deployments
-
-When deploying with `DEMO_MODE=true` and `GITHUB_TOKEN` set, you also need `DEMO_REF`. Without it, the GitHub API reads from the repository's default branch (`main`) — which is intentionally empty in the demo scenario. Set `DEMO_REF` to the branch, tag, or SHA where the demo dataset lives:
-
-```bash
-DEMO_MODE=true
-DEMO_REF=demo-branch-name
-```
-
-The ref is applied at `src/lib/tools/readFile.ts`: `ref: ref ?? demoRef()`. The `demoRef()` helper returns `process.env.DEMO_REF || undefined` — only active when `DEMO_MODE` is true.
-
-> `DEMO_REF` is present in the code but **not documented in `.env.example`** — a documentation gap in v0.3.1.
-
-### UI Banner
-
-The locale layout conditionally renders `<DemoBanner />` when `DEMO_MODE=true`. Users see a visual indicator that the instance is running in demo mode.
 
 ## Model Registry and DeepSeek Routing
 
@@ -165,8 +152,10 @@ A few environment variables you might expect, and why they do not exist:
 
 | You might expect | Reality |
 |---|---|
-| `USE_GITHUB` | Does not exist. The backend switch is `!!process.env.GITHUB_TOKEN` — implicit, zero-config, intentional. |
-| `LOG_LEVEL` | Not implemented. Logging is thin in v0.3.1. |
+| `DEMO_MODE` | Removed in v0.4.0. Replaced by automatic detection — `resolveDataSource()` returns `"demo"` when `GITHUB_TOKEN` is absent. |
+| `DEMO_REF` | Removed in v0.4.0. Benchmark data is fetched via `BENCHMARK_BASE_URL` instead of pinned git refs. |
+| `USE_GITHUB` | Does not exist. The backend switch is `resolveDataSource()` — one function, not seven modules. |
+| `LOG_LEVEL` | Not implemented. Logging is thin in v0.4.0. |
 | `DATABASE_URL` | There is no database. State lives in GitHub files. |
 | `PORT` | Not read by the app; Next.js handles it. |
 | `ANTHROPIC_API_KEY` | Installed dependency, README mentions it, **but no shipped code reads it**. Roadmap/aspirational. |

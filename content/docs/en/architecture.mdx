@@ -36,7 +36,9 @@ There is intentionally no database or KV store. State lives in GitHub files. Wor
 
 ### Frontend Architecture
 
-The Next.js App Router enforces a strict server-component/client-component boundary. `page.tsx` is a Server Component that fetches all episodic data via `getEpisodicState` and the user profile server-side, then passes both as props — no client-side data fetching for the initial load. `ChatPage` is a thin client shell that owns only the AI SDK `useChat` hook and the flex layout. The hero section and timeline panel are passed as React children from `page.tsx`, keeping the React Server Component boundary narrow.
+The page uses a streaming structure built on React Server Components with Suspense boundaries. Key sections of the page — such as the timeline panel and the chat message area — are wrapped in `<Suspense>` with loading fallbacks, enabling the page shell to render immediately while data-dependent sections stream in as they resolve. This replaces the older pattern of fetching all data synchronously in the server component before rendering.
+
+The Next.js App Router enforces a strict server-component/client-component boundary. `page.tsx` is a Server Component that owns the streaming layout. `ChatPage` is a thin client shell that owns only the AI SDK `useChat` hook and the flex layout. The hero section and timeline panel are passed as React children from `page.tsx`, keeping the React Server Component boundary narrow.
 
 A `LoadedIdsProvider` context replaces the older `onLoadedIdsChange` callback prop chain. `TimelinePanel` reads and writes loaded slice IDs through this context instead of drilling a callback through intermediate components.
 
@@ -91,7 +93,7 @@ Pro has five tools at its disposal:
 - **writeMemory** — create or update memory notes/nodes (guarded by path whitelist and protected-system-path checks)
 - **updateUserProfile** — patch `memory/user/profile.md` via `applyProfilePatch`
 
-When `GITHUB_TOKEN` is set, these tools use Octokit. Otherwise they fall back to local filesystem access.
+When `GITHUB_TOKEN` is set, these tools use Octokit against the user's GitHub repo. The data-source layer (`resolveDataSource()`) auto-detects whether the app is running in GitHub-connected mode, local development mode, or demo mode (remote fetch from benchmark repo).
 
 ### 6. Snapshot + Index Update
 
@@ -106,7 +108,8 @@ On finish reason `'stop'`, the agent turn is appended, the slice snapshot is sav
 | Path Whitelist | `src/lib/whitelist/` | Security boundary: `memory/ tasks/ sessions/` only |
 | Memory System | `src/lib/memory/` | Manager (list, load, create nodes) + scorer (relevance ranking) |
 | Context Assembler | `src/lib/context/` | 5-layer prompt builder under token budget |
-| GitHub Tools | `src/lib/tools/` | Octokit-backed readFile/writeFile/listFiles with local-fs fallback |
+| GitHub Tools | `src/lib/tools/` | Octokit-backed readFile/writeFile/listFiles with local-fs fallback for local dev; demo mode uses remote fetch from benchmark repo |
+| Data Source | `src/lib/data-source/` | Auto-detects GitHub (user data) vs remote demo fetch (20 benchmark personas) via `resolveDataSource()` |
 | Version & Sync | `src/lib/version/` | Version check against upstream releases, in-app code sync via Git Data API |
 | Episodic Subsystem | `src/lib/episodic/` | Time-slice management, unified Flash, strand indexing |
 
@@ -193,6 +196,10 @@ The `src/` directory simply does not appear in the whitelist. No agent tool can 
 ### GitHub Token Scope
 
 The `GITHUB_TOKEN` is scoped to a single repository with contents read/write. The agent operates on exactly one repo: the one defined by `GITHUB_REPO_OWNER` / `GITHUB_REPO_NAME`. There is no cross-repo access.
+
+### Data-Source Auto-Detection (v0.4.0)
+
+Previously v0.4.0 removes the `DEMO_MODE` environment variable and its associated path redirection. Instead, `resolveDataSource()` in `src/lib/data-source/resolve.ts` auto-detects the active data source at runtime. When `GITHUB_TOKEN` is set, the system uses GitHub. Without a token, it checks whether demo mode should activate: demo data (20 WorldMemArena benchmark personas, switched via `?persona=` URL parameter) is fetched from a public benchmark repo defined by `BENCHMARK_BASE_URL`, while local development uses the filesystem directly. A demo badge in the AppHeader indicates demo mode is active.
 
 All path validation is server-side — the client is untrusted. The browser never constructs file paths or makes storage decisions.
 

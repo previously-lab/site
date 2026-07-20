@@ -51,7 +51,7 @@ The episodic / semantic split is not arbitrary. It is grounded in Endel Tulving'
 
 ## Status
 
-Previously is **EXPERIMENTAL** — early development, not yet ready for personal or production use. It is a one-person research project, but intended to be maintained long-term. What works today: streaming chat with tool-call visibility, time-slice storage with automatic 30-minute-silence slicing, Flash recall scan plus deep recall, per-round metadata maintenance, timeline UI with historical fade, memory nodes, GitHub file tools with path whitelist, multi-model support, and English-plus-Chinese internationalization.
+Previously is **EXPERIMENTAL** — early development, not yet ready for personal or production use. It is a one-person research project, but intended to be maintained long-term. What works today: streaming chat with tool-call visibility, time-slice storage with automatic 30-minute-silence slicing, Flash recall scan plus deep recall, per-round metadata maintenance, timeline UI with historical fade, memory nodes, multi-persona demo mode (20 WorldMemArena personas switchable via `?persona=` URL parameter), GitHub file tools with path whitelist, multi-model support, and English-plus-Chinese internationalization.
 
 The strand index is built at slice-close and Pro can read it on demand, but the Flash scan does not yet automatically use the strand index — it scans recent slice summaries. A first-class strand with its own rolling summary and recall integration is a future milestone.
 
