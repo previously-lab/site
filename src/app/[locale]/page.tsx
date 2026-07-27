@@ -1,34 +1,19 @@
-import { setRequestLocale, getTranslations } from "next-intl/server";
+import { setRequestLocale, getTranslations, getMessages } from "next-intl/server";
 import type { Metadata } from "next";
 import { siteConfig } from "@/lib/site";
 import { Link } from "@/i18n/navigation";
-import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
-import { NameCycler } from "@/components/landing/name-cycler";
-import {
-  ConceptTitle,
-  ConceptDescription,
-  ConceptContent,
-} from "@/components/landing/concept";
-import {
-  RecallTitle,
-  RecallDescription,
-} from "@/components/landing/recall";
-import {
-  DeeperReadingTitle,
-  DeeperReadingCard,
-} from "@/components/landing/deeper-reading";
-import {
-  OpenSourceHeader,
-  OpenSourceDescription,
-} from "@/components/landing/open-source";
-import { JsonLd } from "@/components/landing/json-ld";
-import { ScrollReveal } from "@/components/landing/scroll-reveal";
-import { TickerLabel } from "@/components/landing/ticker-label";
-import {
-  TimelineShell,
-  TimelineRow,
-} from "@/components/landing/timeline-section";
 import { buttonVariants } from "@/components/ui/button";
+import { HeroSection } from "@/components/landing/hero-section";
+import { ProductSection } from "@/components/landing/product-section";
+import { TimelineVisual } from "@/components/landing/timeline-visual";
+import { SelfModelVisual } from "@/components/landing/self-model-visual";
+import { ThinkingVisual } from "@/components/landing/thinking-visual";
+import { TimeTravelVisual } from "@/components/landing/time-travel-visual";
+import { GitHubRepoVisual } from "@/components/landing/github-repo-visual";
+import { BackgroundLoopVisual } from "@/components/landing/background-loop-visual";
+import { OpenSourceVisual } from "@/components/landing/open-source-visual";
+import { ScrollReveal } from "@/components/landing/scroll-reveal";
+import { JsonLd } from "@/components/landing/json-ld";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -55,127 +40,159 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+/** Extract a nested array value from next-intl messages without type gymnastics. */
+function getArray(messages: unknown, path: string): string[] {
+  try {
+    const keys = path.split(".");
+    let current: any = messages;
+    for (const key of keys) {
+      current = current?.[key];
+    }
+    return Array.isArray(current) ? current : [];
+  } catch {
+    return [];
+  }
+}
+
+function getString(messages: unknown, path: string): string {
+  try {
+    const keys = path.split(".");
+    let current: any = messages;
+    for (const key of keys) {
+      current = current?.[key];
+    }
+    return typeof current === "string" ? current : "";
+  } catch {
+    return "";
+  }
+}
+
 export default async function HomePage({
   params,
 }: Props): Promise<React.ReactElement> {
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "Landing" });
+  const messages = await getMessages();
 
   return (
     <>
-      {/* ── Hero ────────────────────────────────────────── */}
-      <section className="relative flex min-h-screen flex-col items-center justify-center px-4 text-center sm:px-6 lg:px-8">
-        <h1 className="sr-only">{siteConfig.tagline}</h1>
-        <div aria-hidden="true">
-          <TextGenerateEffect
-            words="Previously on"
-            className="text-6xl font-light leading-none tracking-tighter text-foreground sm:text-7xl md:text-8xl lg:text-9xl"
-            filter
-            duration={0.5}
-            delay={0.3}
-            staggerDelay={0.25}
+      {/* ── Screen 1: Hero ──────────────────────────────── */}
+      <HeroSection
+        ctaDemo={t("Hero.ctaDemo")}
+        ctaDocs={t("Hero.ctaDocs")}
+        ctaGithub={t("Hero.ctaGithub")}
+        demoUrl={siteConfig.demoUrl}
+        githubUrl={siteConfig.githubUrl}
+      />
+
+      {/* ── Screen 2: Timeline ──────────────────────────── */}
+      <ProductSection
+        title={t("Screen2.title")}
+        description={t("Screen2.description")}
+        docsHref="/docs/timeline"
+        docsLabel={t("Screen2.cta")}
+        visual={
+          <TimelineVisual
+            beforeCardLabels={getArray(messages, "Landing.Screen2.beforeCardLabels")}
+            afterCardLabels={getArray(messages, "Landing.Screen2.afterCardLabels")}
+            beforeLabel={getString(messages, "Landing.Screen2.beforeLabel")}
+            afterLabel={getString(messages, "Landing.Screen2.afterLabel")}
           />
-        </div>
-        <NameCycler />
-        <div className="mt-10 flex flex-col items-center justify-center gap-2 sm:flex-row sm:gap-3">
+        }
+        variant="muted"
+      />
+
+      {/* ── Screen 3: Self-Model ────────────────────────── */}
+      <ProductSection
+        title={t("Screen3.title")}
+        description={t("Screen3.description")}
+        docsHref="/docs/memory-model"
+        docsLabel={t("Screen3.cta")}
+        visual={<SelfModelVisual />}
+      />
+
+      {/* ── Screen 4: Transparency ──────────────────────── */}
+      <ProductSection
+        title={t("Screen4.title")}
+        description={t("Screen4.description")}
+        docsHref="/docs/architecture"
+        docsLabel={t("Screen4.cta")}
+        visual={<ThinkingVisual />}
+        variant="muted"
+      />
+
+      {/* ── Screen 5: Time Travel ───────────────────────── */}
+      <ProductSection
+        title={t("Screen5.title")}
+        description={t("Screen5.description")}
+        docsHref="/docs/slices"
+        docsLabel={t("Screen5.cta")}
+        visual={<TimeTravelVisual />}
+      />
+
+      {/* ── Screen 6: GitHub-native ─────────────────────── */}
+      <ProductSection
+        title={t("Screen6.title")}
+        description={t("Screen6.description")}
+        docsHref="/docs/architecture"
+        docsLabel={t("Screen6.cta")}
+        visual={<GitHubRepoVisual />}
+        variant="dark"
+      />
+
+      {/* ── Screen 7: Background Loops ──────────────────── */}
+      <ProductSection
+        title={t("Screen7.title")}
+        description={t("Screen7.description")}
+        docsHref="/docs/configuration"
+        docsLabel={t("Screen7.cta")}
+        visual={<BackgroundLoopVisual />}
+        variant="muted"
+      />
+
+      {/* ── Screen 8: Open Source ───────────────────────── */}
+      <ProductSection
+        title={t("Screen8.title")}
+        description={t("Screen8.description")}
+        docsHref="/docs/getting-started"
+        docsLabel={t("Screen8.cta")}
+        visual={<OpenSourceVisual />}
+      />
+
+      {/* ── Screen 9: CTA ───────────────────────────────── */}
+      <ScrollReveal className="relative flex min-h-screen w-full flex-col items-center justify-center px-4 text-center sm:px-6 lg:px-8">
+        <h2 className="max-w-2xl text-balance text-4xl font-semibold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
+          {t("Screen9.title")}
+        </h2>
+        <p className="mt-6 max-w-lg text-balance text-sm leading-relaxed text-muted-foreground sm:text-base">
+          {t("Screen9.description")}
+        </p>
+        <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <a
             href={siteConfig.demoUrl}
             target="_blank"
             rel="noopener noreferrer"
             className={cn(
-              buttonVariants({ variant: "default", size: "sm" }),
+              buttonVariants({ variant: "default", size: "lg" }),
               "w-full sm:w-auto",
             )}
           >
-            {t("Hero.ctaDemo")}
+            {t("Screen9.ctaDemo")}
           </a>
-          <Link
-            href="/docs/introduction"
-            className={cn(
-              buttonVariants({ variant: "outline", size: "sm" }),
-              "w-full sm:w-auto",
-            )}
-          >
-            {t("Hero.ctaDocs")}
-          </Link>
           <a
             href={siteConfig.githubUrl}
             target="_blank"
             rel="noopener noreferrer"
             className={cn(
-              buttonVariants({ variant: "ghost", size: "sm" }),
+              buttonVariants({ variant: "outline", size: "lg" }),
               "w-full sm:w-auto",
             )}
           >
-            {t("Hero.ctaGithub")}
+            {t("Screen9.ctaGithub")}
           </a>
         </div>
-      </section>
-
-      {/* ── Timeline ────────────────────────────────────── */}
-      <TimelineShell>
-        {/* 01 — Concept */}
-        <ScrollReveal className="relative flex min-h-screen w-full flex-col items-center justify-center">
-          <TimelineRow
-            number={<TickerLabel value="01" />}
-            level="section"
-            className="mb-4"
-          >
-            <ConceptTitle locale={locale} />
-          </TimelineRow>
-          <TimelineRow
-            className="mb-8 sm:mb-10"
-          >
-            <ConceptDescription locale={locale} />
-          </TimelineRow>
-          <TimelineRow>
-            <ConceptContent locale={locale} />
-          </TimelineRow>
-        </ScrollReveal>
-
-        {/* 02 — Recall: tinted, page-turn rhythm */}
-        <ScrollReveal className="relative flex min-h-screen w-full flex-col items-center justify-center bg-muted/20">
-          <TimelineRow
-            number={<TickerLabel value="02" />}
-            level="section"
-            className="mb-4"
-          >
-            <RecallTitle locale={locale} />
-          </TimelineRow>
-          <TimelineRow>
-            <RecallDescription locale={locale} />
-          </TimelineRow>
-        </ScrollReveal>
-
-        {/* 03 — Deeper Reading */}
-        <ScrollReveal className="relative flex min-h-screen w-full flex-col items-center justify-center">
-          <TimelineRow
-            number={<TickerLabel value="03" />}
-            level="section"
-            className="mb-8 sm:mb-10"
-          >
-            <DeeperReadingTitle locale={locale} />
-          </TimelineRow>
-          <TimelineRow>
-            <DeeperReadingCard locale={locale} />
-          </TimelineRow>
-        </ScrollReveal>
-
-        {/* 04 — Open Source: tinted, page-turn rhythm */}
-        <ScrollReveal className="relative flex min-h-screen w-full flex-col items-center justify-center bg-muted/20">
-          <TimelineRow
-            number={<TickerLabel value="04" />}
-            level="section"
-            className="mb-8 sm:mb-10"
-          >
-            <OpenSourceHeader locale={locale} />
-          </TimelineRow>
-          <TimelineRow>
-            <OpenSourceDescription locale={locale} />
-          </TimelineRow>
-        </ScrollReveal>
-      </TimelineShell>
+      </ScrollReveal>
 
       <JsonLd locale={locale} />
     </>

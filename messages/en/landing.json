@@ -12,29 +12,64 @@
       "ctaDocs": "Read the docs",
       "ctaGithub": "View on GitHub"
     },
-    "Concept": {
-      "title": "Episodic memory, organized by time",
-      "description": "Previously keeps a single timeline of your AI interactions instead of scattering them across chat threads. Every conversation, task, and event lives in chronological order — just like your own memory.",
-      "slices": "Slices are time-bound snapshots — hours, days, or weeks of activity grouped into cohesive episodes you can browse, search, and revisit.",
-      "strands": "Strands weave related slices together across time, connecting the dots between conversations, projects, and ideas that thread through your day.",
-      "labelThreads": "Scattered threads",
-      "labelTimeline": "Single timeline"
+    "Screen2": {
+      "title": "Time, not conversations.",
+      "description": "Most AI agents organize your content by conversation threads. Previously organizes everything chronologically — a single, continuous timeline where every moment has its place.",
+      "cta": "How the timeline works",
+      "beforeLabel": "Chat threads — isolated conversations",
+      "afterLabel": "Previously — one continuous timeline",
+      "beforeCardLabels": [
+        "Work progress update",
+        "Planning a weekend trip",
+        "Recent books I'm reading",
+        "Where to have dinner",
+        "Learning to cook",
+        "Fitness goals"
+      ],
+      "afterCardLabels": [
+        "Work progress update",
+        "Planning a weekend trip",
+        "Job change notice",
+        "Picked the destination",
+        "Dinner venue decided",
+        "Tech stack discussion"
+      ]
     },
-    "Recall": {
-      "title": "How recall works",
-      "description": "Recall happens in two phases. First, a broad temporal search surfaces candidate slices across your timeline. Then, semantic matching within those slices pinpoints the exact memory you need — without digging through endless threads.",
-      "cta": "Learn more about recall"
+    "Screen3": {
+      "title": "An agent that grows with you.",
+      "description": "It doesn't just store conversations. It forms an understanding of who you are — your identity, your patterns, your preferences — and refines that understanding every time you talk. Like a friend who gets to know you better over time.",
+      "cta": "Explore the memory model"
     },
-    "DeeperReading": {
-      "title": "Deeper reading",
-      "articleTitle": "Is time the missing dimension in AI memory?",
-      "cta": "Read the article"
+    "Screen4": {
+      "title": "See every thought. Trust every answer.",
+      "description": "Most AI is a black box. Previously shows you exactly what it's thinking — every phase, every decision, every reason — in real time. Because trust isn't given. It's built, step by visible step.",
+      "cta": "Explore the architecture"
     },
-    "OpenSource": {
-      "title": "Open source, self-host",
-      "description": "Previously is MIT-licensed and designed to be self-hosted. No cloud lock-in, no telemetry, no surprises. Deploy on your own infrastructure or contribute on GitHub.",
-      "ctaGithub": "View on GitHub",
-      "ctaGettingStarted": "Get started"
+    "Screen5": {
+      "title": "Travel back to any moment.",
+      "description": "Click any point on your timeline and you're there — reliving that conversation, seeing what the agent was thinking, picking up exactly where you left off. Not search. Not scroll. Time travel.",
+      "cta": "Understanding slices"
+    },
+    "Screen6": {
+      "title": "Your memory. Your repository.",
+      "description": "Every conversation is a Markdown file in your own GitHub repo. No proprietary database. No cloud lock-in. No one else's server. Your data, your format, your control — forever.",
+      "cta": "See the architecture"
+    },
+    "Screen7": {
+      "title": "It works while you're away.",
+      "description": "Close the tab. Walk away. Previously keeps working — running background tasks, evolving its understanding, preparing for your next conversation. 'I come after you're done' isn't just a tagline. It's how it works.",
+      "cta": "Configure background loops"
+    },
+    "Screen8": {
+      "title": "Open source. Self-host. No lock-in.",
+      "description": "MIT licensed. Run it on your own machine. Modify it. Extend it. Contribute back. Previously belongs to the community, not a corporation.",
+      "cta": "Get started"
+    },
+    "Screen9": {
+      "title": "Previously on you.",
+      "description": "Your AI, organized by time — not by threads. Open source. Self-hosted. Always yours.",
+      "ctaDemo": "Try the live demo",
+      "ctaGithub": "View on GitHub"
     }
   }
 }
