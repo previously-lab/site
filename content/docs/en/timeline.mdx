@@ -1,79 +1,117 @@
 ---
 title: The Timeline
-description: The timeline is Previously's core organizing principle — memory ordered by time, replacing chat thread lists with a single continuous chronicle.
+description: The timeline is Previously's core interaction model — a horizontal scrollable line where every dot is a conversation, from the past stretching to NOW. Click any dot and you're back in that moment.
 order: 0
 ---
 
 # The Timeline
 
 <Callout variant="info">
-Time is the natural organizing principle of memory. The timeline replaces chat-thread management with a single continuous chronicle — your history, ordered by when it happened, without folders or curation.
+Your memory is not a folder of chat threads. It is a single continuous line. Every dot is a conversation. Click any dot and you're there — not searching, not scrolling through a sidebar, but traveling to a specific moment in time.
 </Callout>
 
-The timeline is Previously's core organizing principle — memory ordered by time, replacing chat thread lists with a single continuous chronicle.
+The timeline is Previously's core navigation model — a horizontal, scrollable line where every conversation becomes a visible point. It replaces the chat-thread list entirely. There is no sidebar full of named conversations. There is no search bar. There is one line, from your earliest memory to right now.
 
 ## Not a Chat List, Not a Search Bar
 
-The timeline is the explicit alternative to two dominant UI patterns that most AI chat products adopt. It is **not** a list of conversation threads that you must manually manage, rename, delete, and search through. It is **not** a search bar where you type keywords hoping the right memory surfaces. Both of these patterns impose overhead on the human — they assume you will curate your own memory.
+Most AI products give you one of two things: a vertical list of named conversation threads, or a search bar. Both assume you will manage your own memory — name things, delete things, remember what you called something three weeks ago.
 
-Previously rejects that assumption. Instead, it presents a single vertical timeline — your story as an autobiography, oldest at the top, newest at the bottom, with the live conversation happening at the very bottom edge.
+Previously rejects that assumption. Your memory is organized by time because time is the one axis you never have to curate. You don't name moments. You experience them, in order. The timeline reflects that.
 
-## LLM Episodic Context
+## How It Looks
 
-When the route assembles the system prompt for Pro, it builds a `## Episodic Memory Timeline` section via `buildTimelineEpisodicContext`. This is a Markdown block **injected into the model's context**, not rendered on screen.
-
-It contains:
+The timeline lives at the top of the page, just below the navigation bar. It stays visible as you scroll through the content below — sticky, always in reach.
 
 ```
-### Now — Current Session
-- Slice: `{slice_id}` . {N} turns
-- Focus: {focus}
-- Summary: {summary}
-- Open loops: ["..."]
-- Decisions: ["..."]
+[← Load earlier] ●──●──●──●──●──●──●──●──●──●──●──●──●──●──●──○ [NOW]
+                  7/20  7/21  7/22  7/23  7/24  7/25  7/26  7/27
+                  14:30 09:15 11:00 15:45 10:30 16:00 08:00 13:30
 ```
 
-Followed by:
+Each node on the timeline is three elements stacked vertically:
+
+- **Date** (top) — the day the conversation happened, in short format
+- **Dot** (center) — a filled circle for past conversations, a hollow circle for NOW
+- **Time** (bottom) — the hour and minute the conversation started
+
+A single thin horizontal line runs through all the dots, connecting them. It says: these moments are not isolated. They belong to one continuous story.
+
+The selected node glows — the dot enlarges slightly with a halo ring around it. Unselected nodes are quieter, semi-transparent gray. The visual hierarchy is clear: one moment is in focus, the rest are accessible but not demanding attention.
+
+Newer conversations are on the right. Older ones are on the left. You read left to right, from past to present — the natural reading direction for most of the world.
+
+## NOW
+
+The rightmost node is different. It is hollow — an empty circle where a filled one should be. Its label is not a date. It says **NOW**.
+
+This is the boundary between the past and the present. Clicking NOW takes you to the live conversation — the active slice, the input bar, the present moment. It is always there, always available, a single click away from any point in your history.
+
+The NOW node is also a visual promise: this timeline is not complete. There is always room for what comes next.
+
+## Click Any Dot — Time Travel
+
+This is where the timeline stops being decoration and becomes interaction.
+
+Click any dot on the timeline. The current view doesn't flash, doesn't go blank, doesn't show a loading spinner. The old content stays exactly where it is. A subtle pulse bar appears at the very top of the content area — a thin line, barely noticeable — to tell you something is loading. When the new content is ready, it replaces the old. No flicker. No whiplash.
+
+This is **stable slice switching**. A `SliceCache` in the browser keeps recently viewed conversations warm for 5 minutes, so clicking back to a dot you just visited is instant.
+
+What loads is the full conversation — every exchange, every reply, exactly as it happened. And next to every agent message, there's a small link that says **Thoughts.** Click it, and a dialog opens showing what the agent was thinking during that exact turn. Not what it *said*. What it was *thinking* while it said it. The tool calls it made. The reasoning it went through. The decisions it considered and rejected.
+
+This is possible because every slice stores two parallel records: `core.md` (the conversation) and `agent.md` (the cognition). The "Thoughts" link reads the cognition record for that specific turn. You are looking at the agent's internal monologue from that moment in the past.
+
+## Scrolling Through Your Past
+
+The timeline is horizontal. Your mouse wheel — which normally scrolls vertically — scrolls the timeline horizontally. This is a deliberate choice: the timeline is not a list you scan up and down. It is a line you travel along, left to right.
+
+On a touch device, you swipe horizontally. On a desktop, you scroll with the wheel or drag with the trackpad.
+
+A "Load earlier" button sits at the far left. Click it to fetch older slices — further back in time. The timeline extends, new dots appear, and the line grows longer.
+
+## What's Behind Each Dot
+
+Every dot on the timeline is backed by a **slice directory** — not just a single file, but a small folder containing everything from that moment:
 
 ```
-### Recall Results
-Flash found these potentially relevant past conversations:
+memory/episodic/slices/2026/07/27/1430/
+  timeline/
+    core.md       ← the conversation (what was said)
+    agent.md      ← the cognition (what the agent was thinking)
+  previously.md   ← the agent's self-model at that moment
 ```
 
-Each recall hit is bucketed by age and relevance-sorted, capped at 12 hits (`MAX_RECALL_HITS`):
+The dual timeline (`core.md` + `agent.md`) is a v0.5 innovation. In earlier versions, the agent's thinking was ephemeral — it existed during the conversation and then disappeared. Now it is preserved alongside the conversation, making the "Thoughts" link possible and giving the agent the ability to reflect on its own past reasoning.
 
-| Bucket Label | Days Ago | Code Range |
-|---|---|---|
-| "Today / This Week" | <= 7 | `daysAgo <= 7` |
-| "This Month" | <= 30 | `daysAgo <= 30` |
-| "A Few Months Ago" | <= 180 | `daysAgo <= 180` |
-| "Last Year" | <= 365 | `daysAgo <= 365` |
-| "Earlier" | > 365 | else |
+The `previously.md` snapshot captures the agent's understanding of you at that exact moment. You can see how its impression of you evolved over time — what it believed after your third conversation versus your thirtieth.
 
-Each hit line shows the `slice_id`, a relative-time label (`formatRelativeTime`), the Flash reason, and the relevance score. When Flash finds nothing, the section says so explicitly and points Pro to `memory/episodic/strands.json` for deeper exploration.
+## The Global Timeline Index
+
+Behind the visual timeline is a single flat file: `memory/episodic/timeline.md`. It contains a summary of every closed slice in your history — one entry per conversation. This is the recall system's starting point. When the agent needs to search your past, it reads this one file and immediately knows everything that's available, without scanning directories or opening multiple indexes.
+
+The index is regenerated when new slices close. If it's more than 6 hours old when the agent reads it, it auto-regenerates. You never need to think about it.
 
 ## Data Flow
 
-The timeline is populated through server actions:
+The timeline is populated from your GitHub repository (or local filesystem in development):
 
-1. **Initial load** — `getEpisodicState()` returns the most recent slice as `active`, an array of `recent` slices (with summaries and metadata), and a `hasMore` boolean
-2. **Pagination** — `getMoreSlices(before: ISO timestamp, limit: 10)` fetches older slices; results are appended to the `slices` array in chronological order
-3. **DEMO_MODE** — when `DEMO_MODE=true`, the scan depth expands to 48 months instead of the normal 1-2 months
+1. **Initial load** — the page fetches the global timeline index and renders it as a horizontal strip of dots
+2. **Pagination** — clicking "Load earlier" fetches older entries, extending the line leftward
+3. **Slice selection** — clicking a dot loads that slice's full content (core.md for the conversation, agent.md for the cognition)
+4. **NOW** — returns to the live, active conversation
 
-## The Atomic Unit: The Slice
+## The Interaction Model
 
-Every row on the timeline represents one **slice** — a single conversation burst stored as a Markdown file at:
+The timeline is not a decorative element or a sidebar you occasionally glance at. It is the primary navigation surface of the product:
 
-```
-memory/episodic/slices/2025/11/21/0825.md
-```
+- **Scan** — scroll horizontally to survey your past at a glance
+- **Jump** — click any dot to teleport to that moment
+- **Reflect** — click "Thoughts" on any historical agent message to see what it was thinking
+- **Return** — click NOW to come back to the present
 
-The path encodes the full timestamp: year/month/day/hour-minute. A calendar day is a directory that may hold multiple slices. A slice opens when you start talking and closes automatically after 30 minutes of silence. There is no capacity limit and no topic-shift rule — slicing is purely time-driven.
-
-Each slice carries YAML frontmatter with structured metadata (`focus`, `summary`, `open_loops`, `decisions`, `tags`, `emotional_tone`, `status`, `start`/`end` timestamps), making it machine-readable without proprietary tooling.
+No folders. No naming. No search queries. Just a line through time, and you decide where to stop.
 
 ## Related
 
-- [Memory Model](/docs/memory-model) — how slices fit into the full episodic + semantic memory architecture
-- [Recall](/docs/recall) — how Flash and Pro use the timeline for context retrieval
-- [Architecture](/docs/architecture) — the system's complete module architecture
+- [Slices](/docs/slices) — the dual-timeline structure behind each dot
+- [Memory Model](/docs/memory-model) — how previously.md evolves across the timeline
+- [Recall](/docs/recall) — how the agent searches across the timeline

@@ -1,97 +1,136 @@
 ---
 title: Getting Started
-description: How to use Previously — the interface, memory formation, recall in action, and what day-to-day interaction looks like.
+description: How to use Previously — the two-screen layout, horizontal timeline, transparent thinking, self-evolution, and what day-to-day interaction looks like.
 order: 0
 ---
 
 # Getting Started
 
 <Callout variant="info">
-There is no conversation list, no thread management, no "new chat" button. The timeline IS the conversation list. You show up, talk, and ask about the past — and memory forms automatically.
+There is no conversation list, no thread management, no "new chat" button. The timeline IS the conversation list — a horizontal line of dots from your earliest memory to NOW. You show up, talk, and memory forms automatically.
 </Callout>
 
-Previously replaces chat threads with a single, continuous relationship organized on a vertical timeline — you just show up and talk, and the agent decides what past context is relevant per message.
+Previously replaces chat threads with a single, continuous relationship organized on a horizontal timeline. The agent forms a persistent understanding of you. It shows you its thinking in real time. It self-evolves after every conversation. You just show up and talk.
 
 ## The Interface
 
-A fixed **AppHeader** spans the top of every page: the "Previously" logo on the left, with GitHub, Docs, Settings, theme toggle, and language toggle on the right. Always visible regardless of scroll position.
+The page is built as two full-height sections, one after the other in a natural scroll:
 
-The page is one vertical scroller in three sections, top to bottom:
+**Screen 1: Hero.** Your name appears in a cinematic text-reveal animation: "Previously on {your name}." The hero fills your entire screen. It is immersive, clean, and deliberate — a visual statement that you are entering a relationship, not opening a tool. Navigation links live in the fixed header above, keeping the hero focused entirely on the moment.
 
-1. **Full-screen hero** — "Previously on {your name}" rendered in a cinematic text-reveal animation. Navigation links and appearance controls have moved to the AppHeader, keeping the hero clean and focused.
-2. **Memory timeline** — your past slices, oldest at the top, newest at the bottom, grouped by date with per-slice timestamps and a "load more" button for older history.
-3. **Live chat messages** — the ongoing conversation, streaming in real time.
+**Screen 2: Timeline + Content.** Scroll down past the hero, and the horizontal timeline snaps into view just below the header, where it stays — sticky, always visible as you scroll further. Below it flows the conversation area: either the live chat (if you're in the present) or a historical conversation (if you clicked a past dot).
 
-Below all three, **pinned to the bottom of the screen**, sits a sticky input bar: a textarea that auto-resizes from 24 px to 72 px max. Enter submits; Shift+Enter adds a newline. When the agent is streaming, the submit arrow becomes a square stop button. The toolbar offers image attachment (paste, drag-drop, or file picker; `image/*` only, 10 MB per file).
+At the very bottom, the chat input sits on a translucent backdrop — `bg-background/90 backdrop-blur-md` — floating above the content without breaking the visual flow. It auto-resizes as you type, from a single line up to three. Enter sends. Shift+Enter adds a newline. When the agent is responding, the send arrow becomes a stop button.
 
-The whole layout lives inside a single `MessageScroller` — scroll up to revisit the past, scroll down to continue where you left off.
+### The Horizontal Timeline
 
-## How Memory Forms as You Talk
+This is your primary navigation. A thin line runs horizontally across the screen. Every dot on it is a conversation:
+
+```
+[← Load earlier] ●──●──●──●──●──●──●──●──●──●──●──●──●──●──●──○ [NOW]
+                  7/20  7/21  7/22  7/23  7/24  7/25  7/26  7/27
+                  14:30 09:15 11:00 15:45 10:30 16:00 08:00 13:30
+```
+
+Date above, dot in the middle, time below. The selected dot glows — enlarged, with a subtle halo. Other dots are quieter, semi-transparent. The rightmost dot is always hollow: **NOW**. It represents the present moment, always one click away from any point in your past.
+
+Scroll your mouse wheel to traverse the timeline horizontally. On a touch device, swipe. Click "Load earlier" at the far left to go further back in time.
+
+Click any dot. The content below doesn't flash or blank out — the old view stays visible. A barely-noticeable pulse bar appears at the top while the new content loads. When it's ready, it replaces the old view. This is **stable slice switching** — no flicker, no whiplash, no moment of disorientation while your memory loads.
+
+## Watching the Agent Think
+
+When you send a message, you don't see a spinner with "Thinking..." You see a **Phase Indicator** — a staged, timed, transparent view of exactly what the agent is doing:
+
+```
+🌀 Slicing time… 3s              →  ✓ Time sliced
+🔍 Scanning memory… 2s           →  ✓ 3 conversations found
+🧠 Updating understanding…       →  +1 observed · +1 reinforced
+```
+
+Each phase has a label, an elapsed timer, and a completion state. You can see how long each phase took and what it found.
+
+While the agent is reasoning — during the "Thinking" phase — you don't see a wall of text. You see the **current line** it's working on, displayed like a subtitle track. A new line fades in as the old one fades out. A cursor blinks at the last character. It's subtle, but it makes the agent's thinking feel real — not a black box, but a mind at work.
+
+### Loading Tips
+
+While the agent thinks, the space above the subtitle shows a rotating tip — one of 16 educational messages that teach you how the product works as you wait:
+
+- "Every conversation is a Markdown file in your GitHub repo"
+- "The agent self-evolves after every conversation — check the Previously Bar"
+- "Click any dot on the timeline to travel back to that moment"
+
+Tips rotate every 4 seconds with a smooth crossfade. They start from a random point each time, so you don't see the same tip first every session. It's a small touch, but it turns waiting into learning.
+
+## The Previously Bar: Watching the Agent Evolve
+
+At the bottom of the screen, just above the input bar, sits the **Previously Bar** — a permanent status line that shows the state of your agent's self-model:
+
+| State | What you see |
+|-------|-------------|
+| 🌀 Evolving | "Self-evolving… reading memories…" — brain icon with spinner |
+| ✅ Changed | "Evolved: +2 observed · ↑1 reinforced · ↓1 demoted" |
+| ✓ No change | A muted "Checked" — evolution ran but found nothing new |
+| ❌ Failed | Red error message — evolution failed, chat is unaffected |
+
+When the evolution has changes, the bar is interactive. Click it to open a dialog showing the full `previously.md` — your agent's complete understanding of you, with every belief, its evidence trail, and its confidence level. You can see exactly what the agent thinks it knows about you, and why.
+
+After every conversation, the evolution bar updates. The agent is learning in front of you, visibly, one conversation at a time.
+
+## How Memory Forms
 
 Memory is not something you manage — it forms automatically while you talk.
 
-A **slice** is one conversation burst. It opens when you start typing, stays active while you're engaged, and closes after 30 minutes of silence. That's the only rule. No capacity limits, no topic-shift detection, no ML-driven false splits. Pure time-driven slicing.
+A **slice** opens when you send your first message in a session. It stays active as long as you keep talking. After 30 minutes of silence, it closes automatically. That's the only rule. No capacity limits, no topic-shift detection. Pure time-driven slicing.
 
-Every close slice writes a Markdown file at:
+When a slice closes, the system writes a directory at:
 
 ```
-memory/episodic/slices/2025/11/21/0825.md
+memory/episodic/slices/2026/07/27/1430/
+  timeline/
+    core.md       ← the conversation (what was said)
+    agent.md      ← the cognition (what the agent was thinking)
+  previously.md   ← the agent's self-model snapshot at this moment
 ```
 
-The path is the timestamp: year, month, day, and the hour-minute of the first message. The file carries YAML frontmatter — focus, summary, decisions, open loops, emotional tone, and tags — all maintained by the agent per round. You never annotate anything by hand.
+You never annotate anything by hand. The system maintains the metadata — focus, summary, tags, decisions, open loops — automatically as the conversation progresses. At close, the global timeline index updates, the strand index weaves in new tags, and the evolution workflow fires to update the agent's self-model.
 
-Read top to bottom across months and years, the slice directory is your autobiography. Git-diffable, human-readable, portable.
+Read top to bottom across months and years, the slice directory tree is your autobiography. Git-diffable, human-readable, portable.
 
-## Asking About Your Past: Watching Recall Work
+## Traveling Through Time
 
-When you ask something that touches the past — "What did I decide about the housing project?" or "Remind me when I last talked to Sarah" — Previously runs a visible two-tier recall that renders as expandable cards above the answer.
+Click any dot on the timeline. The historical view loads — the full conversation, rendered exactly as it happened:
 
-1. **Flash recall** (~500 ms, DeepSeek-chat) — scans recent slice summaries and the strand index (`memory/episodic/strands.json`). It returns **pointers** to relevant slices: slice IDs, relevance scores, and a reason for each hit. This is the fast, approximate pass. It also maintains the active slice's metadata (summary, tags, open loops) as a side effect — no separate post-processing step.
+- **Your messages** appear in one style of bubble
+- **The agent's messages** appear in another
+- **Next to every agent message**, a small link says **Thoughts.** — click it
 
-2. **Deep recall** (Pro, the main model) — receives Flash's pointers and decides which slices to read in full via the `readMemory` tool. The tool call shows as an inline card labeled "Recalling in detail...". If Flash found nothing, the model can explore the directory on its own.
+The Thoughts link opens a **Cognition Popover** — a dialog showing the agent's internal monologue from that exact turn. The tool calls it made, the reasoning it went through, what it considered and rejected. You are reading the agent's mind, retroactively, for any moment in your history.
 
-The recall results render inside a shared `ToolLayout` card with a History icon:
+Above the historical conversation, the slice's Previously On block shows the agent's self-model as it existed at that moment — what it believed about you then. Below, you'll see any open loops or decisions that were carried forward.
 
-- **Collapsed**: shows the elapsed time (e.g. "1s").
-- **Expanded**: shows Flash's reasoning text, a list of recall hits (slice ID, reason, relevance percentage), and the tags it found relevant.
+To return to the present, click the NOW dot at the right end of the timeline.
 
-Tool calls during deep recall render as inline cards with human-friendly labels:
+## Asking About Your Past
 
-| Tool | You See |
-|------|---------|
-| `readMemory` | Recalling in detail... |
-| `listMemory` | Recalling more... |
-| `readIndex` | Scanning timeline... |
+When your question touches on something from before, the agent doesn't search automatically. It **decides** whether to search. If the question is simple or self-contained, it responds directly. If it needs more context, you'll see it call the `recall` tool:
 
-Each card has five visual states: **running** (spinning loader), **completed** (green dot), **error** (red), **interrupted** (yellow), **denied** (red). Click or press Enter/Space to expand and see the full tool output — no JS height measurement, just a CSS `grid-template-rows` transition.
+1. **Phase Indicator shows "Scanning memory…"** — the Flash sub-agent is reading the global timeline and strand index
+2. **A card appears** — "Found 3 conversations about housing project" with relevance reasons
+3. **The agent reads specific slices** — you'll see "Reading conversation from July 25…" with real dates
+4. **The agent responds** — now informed by the actual content of those past conversations
 
-The message itself renders in three phases, matching the agent's internal execution order: **Recall** -> **Reasoning** -> **Response**. You see the agent scan the timeline, think, and then answer — all in one message.
+The tool labels are human-friendly because they're rendered with real data. You don't see `readSlice("2026-07-25-0915")` — you see "Reading conversation from July 25, 9:15 AM." The agent is searching your memory in language you understand.
 
-## First-Run Experience: Demo Mode
+## Demo Mode: Try It Without Setup
 
-Previously does not have an in-app onboarding wizard. Instead, it auto-detects your environment: if you have a GitHub token configured, you are using your own timeline; if not, you land in demo mode — no setup required.
+Previously auto-detects your environment. If you have a GitHub token configured, you're using your own timeline. If not, you land in **demo mode** — no setup required.
 
-The live site at [previously.ldwid.com](https://previously.ldwid.com) **is** the demo. Visit without a GitHub token and you are automatically exploring 20 personas from the [WorldMemArena](https://github.com/WorldMemArena/worldmemarena) benchmark (CC BY-NC 4.0), each with 30+ slices spanning years of conversations. No separate demo subdomain, no env vars, no configuration.
+The live site at [previously.ldwid.com](https://previously.ldwid.com) **is** the demo. Visit without a GitHub token and you're automatically exploring 20 personas from the [WorldMemArena](https://github.com/WorldMemArena/worldmemarena) benchmark, each with dozens of pre-seeded conversation slices spanning years. No separate demo subdomain, no env vars, no configuration.
 
-A small **"Demo" badge** (or "体验" in Chinese) appears in the header to remind you that you are in read-only mode. Click it for a popover explaining demo mode and linking to the setup guide. Messages you send are not persisted — refresh the page and the slate resets.
+A small **"Demo"** badge appears in the header. Click it for an explanation. Messages you send in demo mode are not persisted — refresh the page and the slate resets. But everything else works: the horizontal timeline, the Phase Indicator, recall, the Previously Bar, time travel, the Thoughts dialog.
 
-### Exploring the Personas
-
-The hero at the top of the page shows "Previously on {persona name}". Click the persona name to open a dialog with a grid of 20 persona cards. Each card shows the persona's name and a short blurb describing their life story. Click any card to switch personas — the page does a hard refresh with `?persona=personal_07` in the URL, and the timeline reloads with that persona's conversations.
-
-Every persona runs the full two-tier recall system (Flash + Pro), so you can browse their timeline, scroll through past slices, chat freely, and watch recall work — all without setting up your own deployment.
-
-### Streaming Page Structure
-
-The page streams in three layers so nothing flashes or jumps:
-
-- **"Previously on" title** — static, never re-renders
-- **Persona name** — wrapped in a Suspense boundary, loads after the title
-- **Timeline** — in its own Suspense boundary, loads independently
-
-### Data Source
-
-The benchmark data is not bundled in the agent repository. It is fetched remotely from a configurable public GitHub repository (see `BENCHMARK_BASE_URL`). This keeps the agent repo lean and allows the dataset to be updated independently.
+Click the persona name in the hero to open a grid of 20 persona cards. Each card shows a name and a short life story. Click any card to switch — the page reloads with that persona's timeline. Every persona runs the full system: timeline navigation, recall, evolution.
 
 ### Starting Your Own Timeline
 
@@ -99,34 +138,29 @@ To move from demo to your own timeline:
 
 1. Deploy Previously with your own GitHub repository and a GitHub personal access token (contents read/write scope).
 2. Once `GITHUB_TOKEN` is set, demo mode auto-disables — no env var to toggle.
-3. That's it. The first message you type opens your first slice.
+3. The first message you type opens your first slice.
 
-There is no account creation, no database setup, and no seed data. The timeline starts empty. Memory accumulates from your first conversation forward.
-
-## Strands: The Semantic Layer Over Time
-
-As slices accumulate, the agent builds a lightweight keyword index called **strands**. A strand is a topic keyword — like `work`, `family`, `housing` — that recurs across multiple slices. The file `memory/episodic/strands.json` maps each strand to every slice that carries it.
-
-Flash scans the strand index during recall to find slices by topic, not just by recency. If you've talked about "housing" across 30 slices across three years, Flash finds them through the strand index, then Pro reads the actual content.
-
-> **Roadmap:** Strands today are a thin keyword-to-slice index. A richer first-class strand with rolling summaries and deep recall integration is a future milestone. For now, the index is lossless — it points to every relevant slice, and Pro reads what it needs.
+There is no account creation, no database setup, no seed data. The timeline starts empty. Memory accumulates from your first conversation forward.
 
 ## What This Means Day to Day
 
 There are no rituals. You don't open a "new conversation." You don't tag or classify anything. You don't manage memory.
 
-- **Show up** — open the page. The timeline is there, pre-loaded with your recent past. The hero says "Previously on {your name}."
-- **Talk** — type and press Enter. If it's been more than 30 minutes, a new slice opens. The agent reads the timeline, scans for relevant context, and responds.
-- **Ask about the past** — "What did I decide about X?" or "When did Y happen?" Flash scans the summaries and strand index, Pro reads the full slices, and you see the tool cards appear and resolve.
-- **Scroll** — the timeline above the live chat is your full history. Date-grouped, paginated, with cinematic "N minutes/hours/days later" title-cards that fill the gap between the last recorded moment and now.
+- **Show up** — open the page. The hero says "Previously on {your name}." Scroll down. The timeline is there, pre-loaded with your recent past.
+- **Talk** — type and press Enter. If it's been more than 30 minutes, a new slice opens. The agent checks its understanding of you (previously.md) and responds. If it needs more context, it searches.
+- **Watch it think** — the Phase Indicator shows each step, timed, labeled. The subtitle scrolls the agent's current line of reasoning. The Previously Bar updates after the conversation ends.
+- **Scroll through your past** — the timeline above the chat is your full history. Horizontal, scrollable, clickable. Every dot is a conversation. Every agent message has a "Thoughts" link.
+- **Ask about the past** — "What did I decide about X?" or "When did Y happen?" The agent decides whether to search. If it does, you see the search happen — Flash returns pointers, the agent reads the slices, the answer comes back informed by the actual content.
 
-That's the loop. No setup, no cleanup, no thread management. Just one continuous conversation with memory that works.
+That's the loop. No setup, no cleanup, no thread management. Just one continuous relationship with an agent that learns.
 
 ## Project Status
 
-**Previously is in active early development and not yet ready for personal or production use** (status: experimental). This guide documents v0.4.0 as it exists in the code. The core architecture is functional, but many subsystems are still being designed and built. The Getting Started docs frame it as a personal self-hosted deployment, not a SaaS signup.
+**Previously is in active early development and not yet ready for personal or production use** (status: experimental, v0.5). This guide documents v0.5 as it exists in the code. The core architecture is functional, but many subsystems are still evolving. The Getting Started docs frame it as a personal self-hosted deployment, not a SaaS signup.
 
 ## Related
 
-- [Memory Model](/docs/memory-model) — slices, strands, nodes, the whitelist, and context assembly under a token budget
-- [Architecture](/docs/architecture) — three-layer separation, the agent loop, and the edge deployment model
+- [The Timeline](/docs/timeline) — horizontal navigation in depth
+- [Memory Model](/docs/memory-model) — how previously.md works
+- [Recall](/docs/recall) — the Pull-based retrieval engine
+- [Architecture](/docs/architecture) — the full system design

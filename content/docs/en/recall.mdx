@@ -1,73 +1,111 @@
 ---
 title: Recall
-description: Two-tier retrieval engine where a fast Flash pass returns lightweight pointers and Pro reads the slices it chooses — all in a single request-response cycle.
+description: How the agent searches your memory on demand — a Flash sub-agent scans the timeline and returns pointers, then the main model reads what it needs. The agent decides when to search, not the system.
 order: 4
 ---
 
 # Recall
 
 <Callout variant="info">
-Flash answers "where to look." Pro answers "what does it mean." Neither replaces the other. The two-tier engine combines a fast, fallible scan with deliberate, deep reasoning.
+In v0.5, the agent decides when to search your past. It calls the `recall` tool on its own — a fast Flash sub-agent scans the global timeline and strand index, returns pointers to relevant slices, and the main model reads what it needs. No context is force-fed before every reply.
 </Callout>
 
-Recall is how Previously retrieves relevant past conversations — a two-tier engine where a fast Flash pass returns lightweight pointers, then the main Pro model reads the slices it chooses, all in a single request-response cycle.
+Recall is how the agent finds relevant past conversations — not by the system pre-loading context before every turn, but by the agent deciding, autonomously, when it needs to look something up.
 
-## The Two-Tier Recall Engine
+This shift — from "push" to "pull" — is the deepest architectural change in v0.5.
 
-Episodic memory in Previously is stored as **slices** — Markdown files at paths like `memory/episodic/slices/2025/11/21/0825.md`, one per conversation burst, opened when you talk and closed after 30 minutes of silence. Over weeks and months these accumulate into a deep archive. The challenge: how does the agent find what matters without reading everything every time?
+## Push → Pull: Why It Matters
 
-Previously splits the problem into two reflexes:
+In v0.4, every turn worked like this:
 
-| Layer | Model | Cost | What it does |
-|-------|-------|------|-------------|
-| **Flash** (conditioned reflex) | DeepSeek-chat | Fast, temperature 0.1 | Scans recent slice summaries, returns **pointers** — `{ slice_id, relevance, reason }` — never full content |
-| **Pro** (deliberate reasoning) | User's chosen model (default DeepSeek-chat) | Slower, may enable thinking | Receives pointers, reads full slices on demand via `readMemory`, explores the directory when Flash finds nothing |
+```
+Flash (must run) → assemble context → Pro (passively receives it)
+```
 
-Flash is fallible by design. It trades completeness for speed: it reads summaries, not full bodies. Pro is the safety net — it can dig deeper wherever Flash's pointers lead, or start from scratch and explore the directory tree.
+Before the agent could respond to anything — even a simple "hello" — the system ran a mandatory Flash call. It classified the intent, scanned recent slice summaries, assembled a context block, and fed everything to the main model. The agent had no choice in the matter. Context was pushed to it.
 
-### Step 1: Flash Recall (~500ms observed)
+In v0.5:
 
-Flash runs **before** the response stream opens. Each user request triggers one unified call (`runUnifiedFlash` in `src/lib/episodic/maintenance.ts`) that does three jobs in a single round-trip:
+```
+You send a message → Pro receives it with your previously.md → Pro decides:
+  "Do I need more context?"
+    ├─ NO → respond immediately
+    └─ YES → call recall → Flash searches → Pro reads results → respond
+```
 
-1. **Intent classification** — what kind of request is this (chat, task, memory, etc.)
-2. **Recall scan** — read recent closed-slice summaries (up to 15, from monthly `_index.json` files) and judge relevance
-3. **Metadata maintenance** — propose updates to the active slice's focus, summary, decisions, and tags
+The system prompt contains `previously.md` — the agent's understanding of who you are. That is the only context pre-loaded. Everything else is pulled by the agent, on demand, when it decides the conversation actually needs it.
 
-Flash returns a structured `flashOutput` with a `recall_hits` array. Each hit is a pointer — a slice id, a relevance score (0-1), and a one-line reason why it matches. The model is prompted to return up to 5; `MAX_RECALL_HITS` (12) caps the number injected into context.
+**Why this matters:**
 
-The output is deterministic (tool choice: required, temperature 0.1) and reliability-critical. If the call fails, it retries once after 300ms, then falls back to safe defaults — intent `chat`, confidence 0.3, empty recall hits — so the conversation never stalls.
+- **Latency** — conversations that don't touch on the past (greetings, simple questions, quick follow-ups) skip the Flash call entirely. The agent responds faster.
+- **Token cost** — context that isn't needed doesn't consume prompt budget. The agent doesn't pay to read about your housing project when you're asking for the weather.
+- **Autonomy** — the agent decides when to search, what to search for, and how deep to read. It is not a passive recipient of pre-assembled context. It is an active participant in its own memory retrieval.
 
-**What Flash does NOT read**: the strand index (`strands.json`). Despite appearing in earlier roadmap descriptions, the shipped code only scans slice summaries. The strand index — a keyword-to-slice-paths map built at slice-close — is present on disk but not wired into recall yet. Pro can reach it manually via `readMemory` if needed.
+This is the difference between a system that feeds a model and a model that uses tools.
 
-### Step 2: Deep Recall
+## How Recall Works
 
-Flash's pointer list is injected into Pro's system prompt. Pro decides which slices to open in full by calling the `readMemory` tool on specific file paths. It has three tools for recall exploration:
+When the agent decides it needs to look something up, it calls the `recall` tool. This launches a **Flash sub-agent** — a fast, lightweight DeepSeek model that executes a multi-step exploration:
 
-| Tool | Purpose |
-|------|---------|
-| `readMemory` | Read the full body of any file inside `memory/` |
-| `listMemory` | List contents of a directory inside `memory/` |
-| `readIndex` | Read a monthly `_index.json` to browse slice summaries by month |
+### Step 1: Read the Global Timeline
 
-When Flash found hits, Pro receives guidance: "These summaries are usually enough — only `readMemory` a specific slice if you need a detail they don't carry." When Flash found nothing, Pro is told to explore the directory directly — starting with `strands.json` if it wants a keyword index, or browsing monthly indices.
+The Flash agent starts by reading `memory/episodic/timeline.md` — a single flat file containing a summary of every closed slice in your history. One read, everything visible. No directory scanning, no multiple index files. The agent immediately knows what's available.
 
-Consecutive memory-read tool calls (readMemory + readIndex or listMemory) are grouped internally into timeline exploration and directory browsing modes.
+### Step 2: Trace Relevant Strands
 
-### Step 3: Metadata Maintenance
+If the question cuts across time by topic ("everything I've discussed about Rust"), the agent reads relevant entries from `memory/episodic/strands.json` — the global keyword-to-slice index. Each strand maps a topic to every slice that carries it. The agent traces the topic across time, finding connections that pure recency-based search would miss.
 
-The same Flash call that performs recall also proposes metadata updates for the **active slice** — the one currently being written in this conversation. Every round, Flash suggests new values for:
+### Step 3: Read Promising Slices
 
-- `focus` — what the conversation is about right now
-- `summary` — a one-line recap
-- `decisions` — decisions reached
-- `open_loops` — unresolved threads to revisit
-- `tags` — keyword labels
-- `emotional_tone` — the conversational mood
+Based on the timeline overview and strand traces, the agent picks the most promising slices and reads them in full using `readSlice`. It is looking for the specific conversation content that matches your question — not just summaries, not just metadata, but the actual exchange.
 
-The route applies these in place each round (`applyMetadataUpdates`), so the index stays fresh without a separate post-processing pass. This is the third job folded into the unified Flash call, and it is why a single round-trip replaces the old split-classifier architecture.
+### Step 4: Return Pointers, Not Summaries
+
+The Flash agent produces a structured report — not a summary of what it found, but a list of **pointers**: slice IDs, turn numbers, and relevance scores. Flash is fast and approximate. It is not trusted to summarize content accurately. Its job is to answer one question: "Where should the main model look?"
+
+The main model then reads those slices directly via `readSlice`. The actual content goes to the main model unsummarized, unfiltered, exactly as it was recorded. Flash provides the map; the main model walks the territory.
+
+## The Tools
+
+The agent has a set of memory-concept tools for navigating your past. These replace the old filesystem-concept tools (`readFile`, `writeFile`, etc.) from v0.4:
+
+| Tool | What it does | The agent sees |
+|------|-------------|---------------|
+| `recall` | Launch a Flash search across the timeline | "Searching for conversations about..." |
+| `readSlice` | Read one time slice in full | "Reading conversation from July 25..." |
+| `readTimeline` | Read the global timeline index | "Browsing the timeline..." |
+| `readStrand` | Trace a topic keyword across slices | "Tracing the 'rust' strand..." |
+| `listStrands` | List all known topic keywords | "Browsing all topics..." |
+| `readAgentTimeline` | Read the agent's own cognition record | "Reviewing past thinking..." |
+| `readPreviously` | Read historical self-model snapshots | "Reading past impressions..." |
+
+These are not renamed versions of `readFile`. They are semantically different tools. `readSlice` constructs the path to the slice directory, reads both `core.md` and `agent.md`, and returns them in a structured format. `readStrand` reads the strand index, finds the right entry, and follows the paths to the actual slices. The agent navigates **memory concepts**, not file systems. It never sees or constructs a file path.
+
+## What the User Sees
+
+When the agent calls `recall`, you see it happen. The Phase Indicator shows a "Scanning memory…" stage with a timer. When recall results arrive, a card appears showing how many conversations were found and why they're relevant. When the agent reads a specific slice, you see "Reading conversation from July 25…" — with the actual date, not a generic label.
+
+The tool names are human-friendly because the tool cards render with real data from the tool's output. `readSlice("2026-07-25-0915")` displays as "Reading conversation from July 25, 9:15 AM." The agent is searching your memory, and you can watch it work.
+
+## Metadata Maintenance
+
+In v0.4, the mandatory Flash call handled metadata maintenance — updating the active slice's focus, summary, tags, and other frontmatter — as a side effect of the unified Flash pass.
+
+In v0.5, metadata maintenance is **decoupled from recall**. The system maintains slice metadata through the normal slice lifecycle: the slicer updates the active slice's frontmatter periodically, and the close process finalizes it. The recall system is purely about retrieval — it searches, it returns pointers, it reads. It does not also maintain metadata during the search.
+
+This separation keeps recall fast and focused. Metadata maintenance happens through the slice lifecycle, not as a side effect of memory search.
+
+## Why Flash Returns Pointers, Not Answers
+
+There is a deliberate design choice here: Flash is fast, cheap, and approximate. It reads summaries and indexes — not the full content of conversations. If Flash were asked to summarize what it found, it would be working from summaries of summaries. Errors would compound.
+
+Instead, Flash returns **pointers**. It says "these three slices are probably relevant, here's why." The main model — which is more capable and more expensive — reads the actual content. Flash provides the map. The main model walks the territory.
+
+This split — fast approximate search followed by thorough deep reading — mirrors the human memory process. You don't remember everything at once. First you get a rough sense of *when* something happened and *what* it was about. Then you focus on the specific memory and recall the details. The two-tier design is not an optimization hack. It is a model of how recall actually works.
 
 ## Related
 
-- [Slices](/docs/slices) — how slices are created, closed, and indexed
-- [Strands](/docs/strands) — the semantic keyword index across slices (experimental)
-- [Architecture](/docs/architecture) — the system's complete module architecture
+- [Slices](/docs/slices) — the dual-timeline structure that recall searches
+- [Strands](/docs/strands) — the semantic index used during recall
+- [Memory Model](/docs/memory-model) — how previously.md provides the baseline context
+- [Architecture](/docs/architecture) — the full system including the evolution workflow

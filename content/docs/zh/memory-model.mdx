@@ -1,168 +1,212 @@
 ---
 title: 记忆模型
-description: Previously 摒弃了数据库和向量存储。记忆是 git 仓库中的纯 Markdown 文件——情景时间片记录发生了什么、何时发生，语义 strand 和知识节点记录事物是什么。
-order: 6
+description: Previously 如何构建记忆——带有长期和短期记忆的 previously.md 自我模型、七种变更操作，以及每次对话后通过纯函数进化来应用这些变更。
+order: 3
 ---
 
 # 记忆模型
 
 <Callout variant="info">
-时间线是由时间驱动的，而非主题驱动的。有对话时 slice 开启，静默时关闭。没有容量限制，也没有主题切换规则。你的对话历史是无损且按时间顺序排列的。
+v0.5 的核心是 previously.md——一个活体自我模型，你的 Agent 在其中形成、完善并自我纠正对你的理解。长期印象保持稳定。短期上下文自然过期。进化在每次对话后作为独立工作流运行。
 </Callout>
 
-Previously 摒弃了数据库和向量存储。记忆是 git 仓库中的纯 Markdown 文件——情景时间片记录发生了什么、何时发生，语义 strand 和知识节点记录事物是什么——在推理时根据 token 预算进行组装。
+Previously 将记忆存储为 git 仓库中的纯文件——没有数据库，没有向量存储。但 v0.5 真正的创新不是存储格式，而是**自我模型**：一个结构化的、不断进化的文档，捕获你的 Agent 对你是谁、你如何工作以及如何最好地帮助你的理解。
 
-## 情景记忆：时间线
+## 自我模型：previously.md
 
-Previously 将每次对话爆发记录为一个 **slice**：个人时间线上的一篇 Markdown 文件。路径精确告诉你它发生在何时：
+你的 Agent 维护着一个名为 `previously.md` 的文件。它不是你填写的静态档案，也不是 Agent 死记硬背的事实列表。它是一份**活文档**，Agent 自己编写和重写——观察、强化、纠正，有时遗忘——在每次对话之后。
 
-```
-memory/episodic/slices/2025/11/21/0825.md
-```
+把它想象成 Agent 对你的心智模型。在第一次对话后，它几乎是空的——几条尝试性的观察。十次对话后，它已经形成了关于你身份和模式的稳定印象。五十次后，它对你的了解足够深，可以在你开口之前预判你需要什么。
 
-一个日历天是一个目录，可能包含多个 slice 文件。Slice 在你开始说话时开启，在你保持参与期间持续活跃，并在静默 30 分钟后自动关闭。跨月跨年地自上而下阅读，slices 构成了你的自传——发生了什么、何时发生，按时间顺序排列。
+### 长期记忆与短期记忆
 
-每个 slice 都带有包含结构化元数据的 YAML frontmatter：
+文件分为两个部分，适用不同的规则：
 
-```yaml
----
-focus: Planning the M8 flash overhaul
-summary: Reviewed slicer architecture, decided on time-only slicing
-open_loops: [strand integration, demo mode scope]
-decisions: [Slice by time only; no topic-based splitting]
-tags: [m8, episodic, architecture]
-related_slices: [2025/11/20/1430.md]
-emotional_tone: focused
-status: closed
-start: 2025-11-21T08:25:00Z
-end: 2025-11-21T09:10:00Z
----
-```
+**长期记忆**——稳定、持久、设计上难以改变：
+- **身份**（你是谁）——最多 20 条信念。你的名字、角色、背景、偏好、价值观。
+- **模式**（你做事情的方式）——最多 8 条信念。你的沟通风格、决策倾向、重复的习惯。
+- **策略**（如何最好地帮助你）——最多 15 条信念。什么方法有效、什么要避免、你偏好如何呈现信息。
 
-对话轮次以 `## Turn N -- ISO_TIMESTAMP (role)` 标题的形式呈现在 Markdown 正文中。此格式由 gray-matter 库管理——每个 git 客户端、每个编辑器以及每个 LLM 都能解析它，无需专有工具。
+长期信念不会衰减。只有在你明确纠正 Agent 时（"不对，不是那样"）——这会触发**contradict**操作——或者当 Agent 积累了足够多的相反证据来将一条信念 **demote** 到短期记忆时，它们才会改变。
 
-## 语义记忆，第一层：Strands
+**短期记忆**——临时的、上下文相关的、自然过期：
+- **当前上下文**——最多 10 条信念。你当前正在做什么、最近的决策、未解决的问题、你当前的心情或状态。
 
-**Strand** 是一个关键词——比如 `work`、`family`、`health`、`housing`——贯穿所有携带它的 slice。文件 `memory/episodic/strands.json` 将每个 strand 映射到其 slice 路径：
+短期信念默认 7 天过期。如果一条信念在多个切片中被反复强化，它可以被 **promote** 到长期记忆。
 
-```json
-{
-  "strands": {
-    "housing": [
-      "memory/episodic/slices/2025/03/10/0915.md",
-      "memory/episodic/slices/2025/04/02/1400.md",
-      "memory/episodic/slices/2025/06/18/1100.md"
-    ],
-    "work": [
-      "memory/episodic/slices/2025/06/18/1100.md",
-      "memory/episodic/slices/2025/07/01/0800.md"
-    ]
-  }
-}
+### 信念的解剖
+
+previously.md 中的每条信念都带有结构化元数据：
+
+```markdown
+- Prefers concise, direct answers over lengthy explanations
+  evidence: [2026/07/22/1430-T1], [2026/07/25/0915-T3]
+  confidence: high
+  updated: 2026-07-27
+  obs: 3
+  expires: 2026-08-03   ← 仅适用于短期信念
 ```
 
-Strands 在 slice 关闭时通过 `updateStrands` 构建。Slice = 发生了什么；strand = 它关于什么。Strands 构成了情景时间线上薄而无损的语义索引——某个主题跨时间的完整历史，无需复制内容。
+每条信念都有书面记录。你可以追溯它首次被观察的时间、被强化了多少次、上次更新的时间，以及——对短期信念——何时过期。没有任何断言是无凭无据的。
 
-> **路线图：** Strands 目前不含滚动摘要。更丰富的第一类 strand（带有自己的叙事摘要和召回集成）是未来的里程碑。
+## 进化如何工作
 
-## 语义记忆，第二层：记忆节点
+每次对话后，一个专门的**进化工作流**会运行。它是一个与聊天完全独立的系统——一个拥有自己模型、自己步骤和自己重试逻辑的独立 Vercel Workflow。聊天和进化并行运行。它们仅通过磁盘上的 `previously.md` 文件耦合。
 
-**记忆节点** 是 `memory/nodes/` 下独立的结构化知识单元，由 Previously 自己（Pro 模型，通过 `writeFile`）在对话揭示出关于你的真正值得注意的信息时编写。与自动构建的关键词索引 strands 不同，nodes 是手动或代理撰写的知识单元，具有类型化 schema：
+### 进化 Agent
 
-| 字段 | 用途 |
-|-------|---------|
-| `type` | `concept`、`experience`、`project`、`people` 或 `personality` |
-| `priority` | 1–10，默认为 5 |
-| `domain` | 分类领域，默认为 `general` |
-| `tags` | 用于匹配的关键词标签 |
-| `related` | 链接到其他节点 ID |
-| `backlinks` | 来自 YAML frontmatter 的反向链接（静态） |
-| `status` | `active` 或 `deprecated` |
-| `access_count` | 尚未实现（scorer 会读取但从未写入） |
-| `last_accessed` | 仅日期字符串（YYYY-MM-DD） |
-| `superseded_by` | 取代此节点的节点 ID |
+进化工作流运行一个 Pro 模型（DeepSeek V4 Pro，不启用思考模式——这是结构化审查，而非创造性工作）。它读取三样东西：
 
-节点相关性在召回时进行评分：
+1. **当前的 previously.md**——Agent 目前对你的信念
+2. **刚刚发生的对话**——`core.md`（说了什么）+ `agent.md`（Agent 想了什么）
+3. **最近的对话历史**——最近 6 个轮次作为即时上下文
+
+模型然后自主决定做什么。它有三条路径：
+
+1. **无事可做**——对话没有揭示任何新东西。进化返回空并退出。
+2. **浅层编辑**——变化从当前数据中显而易见。模型直接应用变更。
+3. **深度探索**——模型调用工具（`readSlice`、`readAgentTimeline`、`readPreviously`）在决定前进一步调查。
+
+这种三道闸门的设计在常见情况下保持进化的速度，同时在出现真正新的或矛盾的信息时给模型留出调查的空间。
+
+### 七种变更操作
+
+当进化 Agent 决定改变它对你的理解时，它不是仅仅编辑文件。它通过一个纯函数引擎（`previously-updater.ts`）应用七种结构化的**变更操作**之一：
+
+| 操作 | 作用 | 示例 |
+|----------|-------------|---------|
+| **observe** | 添加一条新信念 | "用户提到在医疗行业工作" → 新的身份信念 |
+| **reinforce** | 强化一条已有信念 | "用户再次偏好简短回答" → 增加 obs 计数，更新日期 |
+| **contradict** | 纠正一条错误信念 | "不，我不是经理——我是一线工程师" → 降低置信度，添加纠正注释 |
+| **discard** | 完全移除一条信念 | 用户明确说"忘了那个，那是错的" |
+| **expire** | 移除一条过期的短期信念 | 7 天已过，上下文不再相关 |
+| **promote** | 短期 → 长期 | 一个模式在 3 个以上切片中出现——足够稳定，值得保留 |
+| **demote** | 长期 → 短期 | 置信度降至低且仅有 1 次观察 |
+
+每次变更都是一种特定的、可审计的操作。updater 是一个纯函数：它接收当前的 previously.md 和一个变更操作列表，返回更新后的版本。updater 内部没有 I/O，没有 LLM 调用。进化模型做出决策；updater 机械地执行它们。这种分离使系统可预测、可测试和可调试。
+
+### 容量管理
+
+每个类别有硬性上限（身份 ≤ 20，模式 ≤ 8，策略 ≤ 15，上下文 ≤ 10）。当类别已满且需要添加新信念时，系统按综合分数对已有信念进行排名：
 
 ```
-score = (priority
-         + keyword-tag-match[+5 each]
-         + graph_bonus[+2 per already-selected linked node]
-         + freq_bonus[min(access_count * 0.3, 3)])
-         * time_decay
-
-where time_decay = 0.9^(daysSinceAccess / 7)  ~10% decay per week
+score = confidence × recency
 ```
 
-已弃用的节点始终得分为 0。此评分为上下文组装器的选择提供依据。
+最低分数的信念被淘汰。置信度是一个三级枚举（high/medium/low）。新鲜度是信念最近被观察或强化的程度。同时低置信度且长时间未被看到的信念是首先被淘汰的。
 
-## 分层记忆：L0/L1 与 L2
+这是有意为之：Agent 的自我模型有固定的大小预算。它不能无限增长。它必须决定什么足够重要以保留下来。
 
-记忆按加载时机分为三个层级：
+## Previously Bar：进化，可见的
 
-| 层级 | 内容 | 加载时机 | 可变？ |
-|------|------|----------|--------|
-| **L0** | 代理宪法（SOUL） | 构建时打包 | 运行时不可变 |
-| **L1** | 代理指令（DIRECTIVES） | 构建时打包 | 运行时不可变 |
-| **L2** | 情景 slices + strands + nodes | 运行时按需获取 | 工具可写 |
+Agent 的自我进化不隐藏在日志文件中。它始终可见，位于屏幕底部，通过 **Previously Bar** 展示：
 
-L0 和 L1 由 `scripts/generate-identity.mjs` 在构建时生成并编译为字符串。它们的源文件位于工具白名单之外——代理无法重写自己的灵魂。L2 通过工具从文件系统实时读取，情景记忆、strands 和 nodes 就存在于此。
+| 状态 | 你看到什么 |
+|-------|-------------|
+| 🌀 进化中 | "Self-evolving… reading memories…"——大脑图标带旋转动画 |
+| ✅ 已更改 | "Evolved: +2 observed · ↑1 reinforced · ↓1 demoted"——已应用的变更操作 |
+| ✓ 无变化 | 一个低调的"Checked"——进化运行了但没找到任何需要更新的内容 |
+| ❌ 失败 | 红色 "Self-evolution failed: {reason}"——出了点问题，聊天不受影响 |
+| 📜 历史 | "Previously archive · Click to view"——在对话框中打开完整的 previously.md |
 
-用户档案（`memory/user/profile.md`）是一种混合体：它从 `memory/` 实时加载（运行时 L2），但通用的 `writeFile` 工具被阻止编辑它——只有专用的 `updateUserProfile` 工具才能修改它。
+Previously Bar 是产品对一个简单问题的回答："我的 Agent 真的了解我吗？"你不必猜测。你可以看着它学习。
+
+## previously.md 格式 v2
+
+文件本身是结构化的 Markdown：
+
+```markdown
+# Previously On
+
+## Long-term memory
+*Stable impressions. Change only on user correction or strong contradictory evidence.*
+
+### User identity
+- Software engineer focused on Rust and systems programming
+  evidence: [2026/07/22/1430-T1], [2026/07/25/0915-T3]
+  confidence: high
+  updated: 2026-07-27
+  obs: 5
+
+### User patterns
+- Prefers concise, direct answers over lengthy explanations
+  evidence: [2026/07/22/1430-T2], [2026/07/24/1100-T1]
+  confidence: high
+  updated: 2026-07-26
+  obs: 3
+
+### Agent strategies
+- Use code examples when explaining technical concepts
+  evidence: [2026/07/25/0915-T4]
+  confidence: medium
+  updated: 2026-07-25
+  obs: 1
+
+## Short-term memory
+*Transient context. Default expiration: 7 days.*
+
+### Current context
+- Working on the Previously v0.5 documentation update
+  evidence: [2026/07/27/1430-T1]
+  confidence: high
+  updated: 2026-07-27
+  obs: 1
+  expires: 2026-08-03
+```
+
+这是格式的 v2 版本。v1（在 v0.4 中使用）是一个扁平的信念列表，没有长期/短期的区分，没有过期机制，也没有结构化的证据链。v2 与专门的进化工作流和 Previously Bar 一同引入。
+
+## 什么取代了什么
+
+v0.5 将 v0.4 中的三个独立系统合并为一个：
+
+| v0.4 系统 | v0.5 替代 |
+|-------------|-----------------|
+| `profile.md` —— 手动编辑的身份文件 | previously.md 用户身份部分 —— Agent 维护，有证据支持 |
+| 记忆节点（`memory/nodes/`）—— Agent 编写的知识卡片 | previously.md 信念 —— 结构化、可评分、带容量管理 |
+| `updateUserProfile` 工具 —— 模型调用的档案修补 | 进化工作流 —— 独立、自主、机械执行 |
+
+这次合并是一次哲学转向：Agent 对你的理解应该是**一个东西**，由**一个流程**维护，在**一个地方**可见。而不是分散在三种文件格式和两种更新机制中。
+
+## 上下文组装：Agent 看到什么
+
+当你发送一条消息时，Agent 的系统提示包含完整的 `previously.md`——它对你的全部理解。这是基础。其他一切按需检索。
+
+如果对话涉及过去，Agent 会调用 `recall` 工具——一个快速的 Flash 子 Agent，扫描全局时间线索引和 strand 索引，返回相关切片的指针，然后让主模型完整读取那些切片。这就是 Pull 架构：上下文在需要时获取，而非在每次回复前强制注入。
+
+上下文保持有界，因为 previously.md 是紧凑的（所有类别加起来最多 53 条信念），而且切片读取是有目标的。Agent 永远不会将你的全部历史加载到上下文窗口中——它只检索对当前对话重要的内容。
 
 ## 白名单边界
 
-代理工具被限制在三个可写目录内：
+Agent 工具被限制在三个可写目录内：
 
 ```
 memory/   tasks/   sessions/
 ```
 
-`src/` 目录是代理**只读**的，任何工具都不可修改。路径验证会规范化输入——解码 URI 组件、将反斜杠转为正斜杠、解析 `./` 和 `../`、去除前导斜杠——然后在匹配允许的前缀之前拒绝空路径、绝对路径（`/`）和驱动器字母路径（`A:`）。
+`src/` 目录是 Agent 只读的——任何工具都不可修改。路径验证会规范化输入、解析遍历尝试，并在匹配允许的前缀之前拒绝绝对路径和驱动器字母路径。
 
 在白名单内，某些路径可读但禁止写入：
 
-- `memory/episodic/`——系统拥有的 slices 和索引
+- `memory/episodic/`——系统拥有的切片和索引
 - 任何 `_index.json` 文件
 - `strands.json`
-- `memory/user/profile.md`——只能通过其专用工具编辑
 
 这可以防止意外或恶意损坏情景时间线和结构索引。
 
-## 基于 Token 预算的上下文组装
-
-当 Previously 构建提示词时，`src/lib/context/assembler.ts` 在默认 8,000 token 预算下打包 5 层负载：
-
-| 层 | 内容 | 预算规则 |
-|-----|---------|-------------|
-| 0 | 系统提示词（宪法 + 指令） | 完整，始终包含 |
-| 1 | 核心记忆节点（完整内容） | 上限为 budget × 0.7（为后续层预留 30%） |
-| 2 | 会话摘要 + 最近轮次 | 每轮截断至 300 字符 |
-| 3 | 扩展节点（仅摘要） | 第一段 ≤ 200 字符；到达 budget − 500 时停止 |
-| 4 | 引用节点 | 仅 `[[wikilink]]` 标题 |
-
-Token 估算采用启发式方法（`ceil(chars / 4)`）——不是真正的 tokenizer。随着预算填满，详细程度逐步下降：完整节点内容让位于摘要，摘要再让位于纯标题。这保证了每个请求都适合模型的上下文窗口，而不会硬性截断关键层。
-
 ## 为什么选择纯 Markdown + YAML
 
-没有数据库，没有向量存储，也没有专有格式。每一段记忆都是一个带 YAML frontmatter 的 Markdown 文件。这个选择是经过深思熟虑的：
+没有数据库，没有向量存储，没有专有格式。每一段记忆都是带有 YAML frontmatter 的 Markdown 文件：
 
-- **可移植** —— `git clone` 到任何地方，在任何设备上阅读，无需服务器。
-- **Git 可比较** —— 对 slice、node 或 strand 的每次更改都记录在版本历史中。你可以看到 Previously 学习了什么以及何时学习的。
-- **人类可编辑** —— 在 VS Code 中打开任意 slice，修正摘要，添加标签。无需管理 UI，无需 SDK。
-- **任何工具都能读取** —— Previously 编写，Claude Code 读取，Codex 扩展。无锁定，无集成成本，无 schema 迁移。
+- **可移植** —— `git clone` 到任何地方，在任何设备上阅读，无需服务器
+- **Git 可比较** —— 对 previously.md、切片和 strands 的每次更改都记录在版本历史中
+- **人类可读** —— 在 VS Code 中打开任何文件，立即理解。无需管理 UI
+- **任何工具都能读取** —— Previously 编写，Claude Code 读取，任何编辑器扩展。无锁定
 
 文件即接口。
 
-## 两层召回
+## 相关文档
 
-召回遵循 Tulving 奠基的情景优先、语义其次的顺序：先扫描何时发生，再检索发生了什么。
-
-1. **Flash**（DeepSeek-chat）——扫描最近的 slice 摘要和 strand 索引，返回指向相关 slice 的指针。每轮元数据维护（tags、strands、summaries）通过 `runUnifiedFlash()` 折叠到这一轮往返中，该方法在 300ms 后重试一次，并回退到安全默认值。
-2. **Pro**（主模型）——调用 `readMemory` 工具读取完整的 slice 内容以进行深度召回。这是昂贵、彻底的传递，从原始时间线中重建上下文。
-
-这种分工让快速操作保持快速，同时将模型容量保留给需要它的工作。
-
-## 相关
-
-- [架构概览](/docs/architecture)
+- [时间线](/docs/timeline) —— 跨时间的水平导航
+- [Recall](/docs/recall) —— Agent 如何按需搜索记忆
+- [架构](/docs/architecture) —— 完整的系统设计，包括进化工作流

@@ -1,83 +1,84 @@
 ---
 title: Why Previously
-description: Why time-based memory organization matters for AI agents and how fixing the memory model fixes the interaction model.
+description: Why time-based memory matters, why agents need a self-model that evolves, and how fixing the memory model fixes the interaction model.
 order: 1
 ---
 
 # Why Previously
 
 <Callout variant="info">
-The chat-thread model is fundamentally broken for long-term interaction. Previously replaces it with a timeline because the conversation is a UI artifact, and the timeline is a cognitive model.
+Chat threads are a UI artifact inherited from messaging apps. A timeline is a cognitive model. And an agent that forms a persistent understanding of you — and evolves it — is the difference between a tool and a relationship.
 </Callout>
 
-Previously rethinks AI interaction from the ground up: fix the memory model, and the interaction model fixes itself.
+Previously rethinks AI interaction from the ground up: fix the memory model, and the interaction model fixes itself. Give the agent a self-model that evolves, and it stops being a tool you manage — it becomes something that grows with you.
 
-## Two Problems, One Root
+## Three Problems, One Root
 
-Current AI assistants share a pair of linked failures that most people experience as one frustration.
+Current AI assistants share a set of linked failures that most people experience as one frustration.
 
 **Problem 1: memory is siloed per conversation.** Every new chat starts from zero. The agent cannot see what you discussed yesterday, last week, or in a different thread about an adjacent topic. Cross-conversation recall requires stitching together vector databases, RAG pipelines, and prompt engineering — and even then the result feels like talking to someone with amnesia.
 
 **Problem 2: the conversation list is the wrong cognitive container.** Humans do not organize memories into "Chat #47 with Mom." You remember by *when* something happened and *what* it was about. The flat list of chat threads is a UI artifact inherited from messaging apps, not a model of how people actually think and recall.
 
-These are two faces of the same mistake: building the product around the conversation UI instead of around memory.
+**Problem 3: agents don't learn who you are.** Even when an agent has access to your history, it treats every conversation as a fresh retrieval problem. It doesn't form a stable impression of you. It doesn't update that impression when you correct it. It doesn't carry forward what it learned last time. There is no *self-model* — no persistent understanding that deepens over time. This is why AI assistants feel like strangers every time you open them, even after months of use.
+
+These are three faces of the same mistake: building the product around the conversation UI instead of around memory and understanding.
 
 ## Memory Model Fixes Interaction Model
 
 If an agent genuinely remembers you — across time, across topics, across gaps of days or weeks — then conversation management becomes unnecessary. You do not need to choose or create the right thread. You do not need to remind the agent who you are and what you were doing. You just show up and talk.
 
-Previously replaces the chat-thread list with a **timeline**: a vertical, top-to-bottom view of time slices. Each slice is one uninterrupted conversation burst — opened when you start talking, closed automatically after 30 minutes of silence. The path tells you exactly when it happened:
+Previously replaces the chat-thread list with a **horizontal timeline**: a scrollable line where every dot is a conversation, from the past stretching to NOW. Each slice is one uninterrupted conversation burst — opened when you start talking, closed automatically after 30 minutes of silence. Click any dot and you're back in that moment, full conversation rendered, including what the agent was thinking at the time.
 
-```
-memory/episodic/slices/YYYY/MM/DD/HHMM.md
-```
+There are no conversations to name, organize, or search through — just one continuous relationship, navigated by time.
 
-A calendar day is a directory that can hold multiple slices. There are no conversations to name, organize, or search through — just one continuous relationship, scrolled up to revisit the past or down to continue.
+Context stays bounded per request because the agent decides what to retrieve. It calls the `recall` tool only when the conversation actually needs it. Conversations that don't touch on the past don't pay the latency or token cost. This is the shift from "push" (system force-feeds context) to "pull" (agent decides what to look up) — and it's what turns a passive LLM into an actual agent.
 
-Context stays bounded per request because the prompt is assembled from relevant slices on the timeline, not from an ever-growing conversation window. The agent does not forget the start of a long history because the start was never in the window — only the pieces that matter, assembled fresh each time.
-
-> The conversation is a UI artifact. The timeline is a cognitive model.
+> The conversation is a UI artifact. The timeline is a cognitive model. The self-model is the relationship.
 
 *The name "Previously" comes from television: "Previously on..." — a brief recap of last time, just enough context to pick up where you left off.*
 
 ## Design Principles
 
-### A full agent, not just a memory tool
+### An agent with a self-model
 
-Previously reads, writes, reasons, and acts. Memory is what makes interaction feel continuous, but it is not the only capability. The agent runs tools against your GitHub repository, uses a multi-model architecture (DeepSeek V4 Flash for fast recall and metadata maintenance, DeepSeek V4 Pro for deep reasoning and response generation), and operates within a whitelist security boundary that restricts agent writes to `memory/`, `tasks/`, and `sessions/` — the `src/` directory is read-only.
+The centerpiece of v0.5 is `previously.md` — a structured file that captures your agent's understanding of you. It is not a static profile. It is a living document split into long-term memory (your identity, your patterns, how to best help you) and short-term memory (what you're doing right now). Long-term impressions are stable — they only change when you explicitly correct the agent. Short-term context naturally expires after 7 days.
 
-### Memory is the hard problem
+After every conversation, a dedicated evolution workflow runs — a separate model that reviews what the agent observed, compares it to its existing understanding, and applies one of seven operations: observe (new information), reinforce (strengthen an existing belief), contradict (correct a wrong impression), discard, expire, promote (short-term → long-term), or demote (long-term → short-term). This is not a metaphor. This is running code.
 
-Storing conversations is trivial. Retrieving the *right* memory at the *right* moment with the *right* depth is the genuinely hard part — and that is where the effort goes. The architecture reflects this priority: a single Flash round-trip per request combines intent classification, recall scanning, and metadata maintenance. The complexity budget goes to the core store-index-recall loop, not to configuration knobs or edge cases.
+### Transparent thinking
+
+Trust comes from transparency. Previously shows you exactly what the agent is doing — not a spinner, but a staged, labeled, timed view of its thinking process. "Slicing time… 3s → ✓ Time sliced." "Scanning memory… 2s → ✓ 3 conversations found." "Updating understanding… → +1 observed · +1 reinforced." When the agent is reasoning, you see the current line it's working on, scrolling in real time like a subtitle track.
 
 ### Your memory belongs to you
 
-Memory is plain Markdown with YAML frontmatter, stored in your own GitHub repository. Every file is readable by any tool, portable to any system, and version-controlled through git. There is no cloud database, no vector store, no proprietary format. The storage backend switches between the local filesystem (development) and the GitHub API (production), but the format is identical either way.
+Memory is plain Markdown with YAML frontmatter, stored in your own GitHub repository. Every file is readable by any tool, portable to any system, and version-controlled through git. There is no cloud database, no vector store, no proprietary format. The path whitelist enforces this: agent tools can only write to `memory/`, `tasks/`, and `sessions/`. Code stays read-only.
 
-The whitelist security layer enforces this ownership. Agent tools can write only to `memory/`, `tasks/`, and `sessions/`. Code — the agent's runtime and capabilities — stays read-only in `src/`.
+This is not a "your data is safe with us" promise — it is a structural guarantee. You own the repo. You can clone it, back it up, or move it. The format is Markdown. The interface is git.
 
 ### Simplicity over sophistication
 
-One slicing rule governs when a conversation burst becomes a new slice: 30 minutes of silence. Earlier iterations had capacity checks and Flash continuity checks; those were removed. A single hard-coded threshold — that is the whole rule. One Flash call per request handles recall, intent routing, and metadata maintenance in a single round-trip, with one retry (300 ms) and a fallback to safe defaults.
+One slicing rule governs when a conversation becomes a new slice: 30 minutes of silence. That's the whole rule. No capacity checks, no topic-shift detection, no ML-driven false splits.
 
-Simplicity is a deliberate choice: every configurable knob, every edge-case handler, every stored flag is a tax on future reasoning. Previously pays that tax only where it earns out — in the core loop.
+The agent's understanding is managed by a pure function — `previously-updater.ts` — that takes the current previously.md, new observations, and returns an updated version. No I/O, no LLM calls inside the updater. The evolution model makes the decisions; the updater applies them mechanically. This separation keeps the system predictable and testable.
+
+### Push → Pull: the agent decides
+
+In v0.4, every turn ran a mandatory Flash call that force-fed context to the model. In v0.5, Flash is an on-demand tool. The agent calls `recall` when it needs to look something up. It calls `readSlice` when it needs to read a past conversation. It decides how deep to go. This is the difference between a system that feeds a model and a model that uses tools.
 
 ### Human memory is the right metaphor
 
 The architecture maps directly to cognitive science. Endel Tulving's 1972 distinction between **episodic memory** (events tied to a time and place) and **semantic memory** (abstract knowledge, facts, concepts) is the blueprint:
 
 - **Slices** are episodic — "what happened" organized by when.
-- **Strands and memory nodes** are semantic — "what it was about." A strand is a keyword woven across every slice that carries it; `memory/episodic/strands.json` maps each strand to its slice paths. (Experimental: strands are written at slice-close but not yet scanned at recall time.)
+- **Strands** are semantic — "what it was about," a keyword woven across slices.
+- **previously.md** is the self-model — "who you are," the agent's evolving mental model.
 
-Recall follows this layered pattern. **Flash** (the fast, lightweight, intentionally fallible model) scans recent slice summaries and returns pointers with relevance scores — a quick conditioned reflex. **Pro** (the main model) receives those pointers and decides which slices to read in full via `readMemory` — deliberate, deep, and resourceful. If Flash finds nothing, Pro explores the slice directory directly.
-
-Context-dependent memory research (Godden & Baddeley, 1975; Smith & Vela, 2001) shows that recall improves when retrieval context matches encoding context. The timeline preserves temporal context, and recall uses it.
-
-*Flash recall and deep recall are shipped for the live demo at [previously-demo.ldwid.com](https://previously-demo.ldwid.com) (read-only, memory writes disabled, resets on refresh). Richer strand-based recall — scanning `strands.json` actively at query time — is an explicit future milestone.*
+Recall follows this order: scan *when* first, then retrieve *what*, all informed by *who*.
 
 ## Status
 
-Previously is **experimental**. It is a one-person research project, not yet ready for personal or production use. Everything described here reflects design intent and working code as of v0.4.0 — features marked as roadmap are actively evolving, not finalized guarantees.
+Previously is **experimental** (v0.5). It is a one-person research project, not yet ready for personal or production use. Everything described here reflects design intent and working code as of v0.5 — features marked as roadmap are actively evolving.
 
 ## Further Reading
 
@@ -85,5 +86,6 @@ Previously is **experimental**. It is a one-person research project, not yet rea
 
 ## Related
 
-- [Memory Model](/docs/memory-model) — slices, strands, nodes, and the whitelist
-- [Recall](/docs/recall) — two-tier recall engine
+- [Memory Model](/docs/memory-model) — how previously.md works
+- [Recall](/docs/recall) — the on-demand retrieval engine
+- [The Timeline](/docs/timeline) — horizontal memory navigation

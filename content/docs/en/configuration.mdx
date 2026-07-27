@@ -1,166 +1,109 @@
 ---
 title: Configuration
-description: How Previously is configured through environment variables — six shipped vars, zero config files, and one centralized data-source resolver.
+description: How Previously is configured — a capabilities module replaces manual env-var checks, reasoning effort is user-adjustable, and data-source auto-detection requires zero configuration for demo mode.
 order: 0
 ---
 
 # Configuration
 
 <Callout variant="info">
-Four environment variables are required for the GitHub backend: DEEPSEEK_API_KEY, GITHUB_TOKEN, GITHUB_REPO_OWNER, and GITHUB_REPO_NAME. Without GITHUB_TOKEN, the app runs in demo mode and serves remote benchmark data with 20 built-in personas — no additional configuration needed for evaluation.
+Four environment variables are required for the GitHub backend: DEEPSEEK_API_KEY, GITHUB_TOKEN, GITHUB_REPO_OWNER, and GITHUB_REPO_NAME. Without GITHUB_TOKEN, the app auto-detects demo mode — no DEMO_MODE variable needed (it was removed in v0.4 and replaced by the centralized capabilities module in v0.5).
 </Callout>
 
-Previously is configured exclusively through environment variables — six shipped vars, zero config files, and a single centralized data-source resolver that determines whether reads hit GitHub's API or a remote benchmark repository.
+Previously is configured through environment variables and a centralized capabilities module. The capabilities module (`src/lib/capabilities.ts`) is the single source of truth for what the app can do — replacing the scattered `process.env` checks that characterized earlier versions.
 
 ## Environment Variable Reference
 
-Every variable the runtime actually reads, in one table:
+| Variable | Required | Default | Runtime effect |
+|---|---|---|---|
+| `DEEPSEEK_API_KEY` | Yes | — | Powers both Flash and Pro tiers. The `@ai-sdk/deepseek` provider reads it automatically from the environment. |
+| `GITHUB_TOKEN` | For production | — | Determines the data source. When set → GitHub mode (reads/writes your private repo). When absent → demo mode (benchmark data with 20 personas). A fine-grained PAT with Contents read/write scoped to a single repository. |
+| `GITHUB_REPO_OWNER` | For production | `local` | GitHub username or organization that owns the memory repository. |
+| `GITHUB_REPO_NAME` | For production | `local` | The repository name for your memory data. |
+| `BENCHMARK_BASE_URL` | No | WorldMemArena repo | URL for the public benchmark data repository used in demo mode. Only consulted when `GITHUB_TOKEN` is absent. |
 
-| Variable | Required | Shipped | Default | Runtime effect |
-|---|---|---|---|---|
-| `DEEPSEEK_API_KEY` | Yes | Yes | — | Powers both Flash and Pro tiers. The `@ai-sdk/deepseek` provider reads it automatically from the environment — no source file references `process.env.DEEPSEEK_API_KEY` directly. |
-| `GITHUB_TOKEN` | See note | Yes | — | Determines the data source via `resolveDataSource()` (`src/lib/data-source/resolve.ts`). When set → `"github"` mode (Octokit/GitHub API). When absent → `"demo"` mode (remote benchmark data from the WorldMemArena repository with 20 personas). This is now centralized in a single function rather than scattered across seven modules. A fine-grained PAT with Contents read/write scoped to a single repository. |
-| `GITHUB_REPO_OWNER` | When using GitHub backend | Yes | `local` | GitHub username or organization that owns the memory repository. Read at the centralized data-source layer. |
-| `GITHUB_REPO_NAME` | When using GitHub backend | Yes | `local` | The repository name for your private repository. Same consumption point as `GITHUB_REPO_OWNER`. |
-| `BENCHMARK_BASE_URL` | No | Yes | WorldMemArena benchmark repo | URL pointing to the public benchmark data repository for demo mode. Only consulted when `resolveDataSource()` returns `"demo"` (i.e., `GITHUB_TOKEN` is absent). Override to point at a custom benchmark dataset. |
-| `ANTHROPIC_API_KEY` | No | Roadmap only | — | Appears in `README.md` and the `@ai-sdk/anthropic` dependency is installed, but **no shipped code reads `process.env.ANTHROPIC_API_KEY`** or instantiates an Anthropic provider. Multi-provider support is typed in the model registry (`provider: "deepseek" \| "anthropic" \| "openai"`) but `DEFAULT_MODELS` ships only DeepSeek entries. Setting this variable has zero runtime effect in v0.4.0. |
+## Capabilities Module: Centralized Detection
 
-> **Note on `GITHUB_TOKEN`:** The code now determines its data source through `resolveDataSource()` (`src/lib/data-source/resolve.ts`), a single centralized function that replaces the old per-module `USE_GITHUB` checks. When `GITHUB_TOKEN` is present → `"github"` mode. When absent → `"demo"` mode (remote benchmark data with 20 personas). One function, one decision point, no config file.
+v0.5 consolidates all capability checks into `src/lib/capabilities.ts`:
 
-## Data Source Auto-Detection
-
-v0.4.0 replaces both the old `DEMO_MODE` env var and the scattered `!!process.env.GITHUB_TOKEN` checks with a single centralized function:
-
-```typescript
-// src/lib/data-source/resolve.ts
-function resolveDataSource(): 'github' | 'demo'
+```
+DEEPSEEK_API_KEY exists?
+├─ NO  → App unavailable
+└─ YES → GITHUB_TOKEN exists?
+          ├─ NO  → Demo mode: chat works, writes are discarded, loops are disabled
+          └─ YES → Production mode: full functionality
 ```
 
-| Mode | Trigger | How reads work | How writes work |
-|---|---|---|---|
-| **GitHub** (`"github"`) | `GITHUB_TOKEN` is set | Octokit API calls against your private repository. Requires `GITHUB_REPO_OWNER` and `GITHUB_REPO_NAME`. | `createOrUpdateFileContents` on the same repo. Persisted to GitHub. |
-| **Demo** (`"demo"`) | `GITHUB_TOKEN` is absent | Remote fetch from the benchmark repository at `BENCHMARK_BASE_URL` (defaults to WorldMemArena). 20 personas (`personal_01` through `personal_20`), each with pre-seeded episodic memory slices and memory nodes. | Accepted but discarded — returns success but data is never persisted. Touch neither the GitHub API nor your local filesystem. |
+This replaces the v0.4 pattern where 8+ files independently read `process.env`. The capabilities module is for engineering code only — the AI model layer never imports it. The model learns its limitations through tool executor return values (e.g., the `startLoop` tool returns a model-readable rejection message in demo mode).
+
+### Data Source Auto-Detection
+
+| Mode | Trigger | Reads | Writes |
+|------|---------|-------|--------|
+| **GitHub** | `GITHUB_TOKEN` is set | Octokit API calls against your private repository | Persisted to GitHub |
+| **Demo** | `GITHUB_TOKEN` is absent | Remote fetch from benchmark repo at `BENCHMARK_BASE_URL` (20 personas) | Accepted but discarded |
 
 ### Persona Selection
 
-In demo mode, the default persona is `personal_14` (Caleb). Switch between 20 benchmark personas via the `persona` URL query parameter:
+In demo mode, the default persona is `personal_14`. Switch between 20 benchmark personas via the `persona` URL query parameter:
 
 ```
 https://your-instance.vercel.app/?persona=personal_07
-https://your-instance.vercel.app/?persona=personal_14
 ```
 
-Persona data is fetched from the repository configured in `BENCHMARK_BASE_URL` (defaults to the official WorldMemArena benchmark repo).
-
-### Write Behavior
-
-In demo mode, writes are accepted but never persisted. The agent sees a successful write response, but the data is silently discarded. This applies to all write operations: memory nodes, episodic slices, tasks, and session state.
+Each persona has pre-seeded episodic slices spanning years of simulated conversations.
 
 ### UI Indicator
 
-When running in demo mode, the AppHeader displays a compact demo badge (primary-colored pill). This replaces the old full-width `<DemoBanner />` and `<DemoToast />` components from v0.3.1 — no screen real estate consumed beyond a single badge.
+In demo mode, the header displays a compact "Demo" badge. This replaces the older full-width demo banner — minimal screen real estate, clear state indication.
 
-### Legacy Migration
+## Model Configuration
 
-If you were using `DEMO_MODE=true` in v0.3.1:
+Previously uses a two-tier model architecture:
 
-- **Remove** `DEMO_MODE` from your environment — it is no longer read
-- **Remove** `DEMO_REF` from your environment — it is no longer read
-- **Optionally set** `BENCHMARK_BASE_URL` to point at a custom benchmark dataset
-- Without `GITHUB_TOKEN`, the app now auto-selects demo mode with 20 personas (up from a single hardcoded Caleb persona)
+| Tier | Model | Purpose | Configuration |
+|------|-------|---------|--------------|
+| **Flash** | DeepSeek V4 Flash | Recall search (sub-agent), fast and approximate | Hardcoded — not user-configurable |
+| **Pro** | DeepSeek V4 Pro | Main conversation, deep reasoning, evolution decisions | User-selectable |
 
-### Security Boundary
+### Reasoning Effort
 
-Both modes enforce the same security boundary:
-- **Path whitelist**: only `memory/`, `tasks/`, and `sessions/` are read-write; `src/` is agent read-only
-- **Size cap**: `MAX_FILE_SIZE_BYTES = 1_000_000` (1 MB) on all file reads
+The Pro model supports a **reasoning effort** control, adjustable from the Settings panel:
 
-## Model Registry and DeepSeek Routing
+| Setting | Effect |
+|---------|--------|
+| **Low** | Minimal thinking budget — faster responses, suitable for simple exchanges |
+| **Medium** | Balanced (default) — enough thinking for most conversations |
+| **High** | Maximum thinking budget — for complex reasoning, code generation, and deep analysis |
 
-Previously ships with a DeepSeek-only model registry. Two tiers, one model family:
-
-| Tier | Purpose | Model | Temperature | Tool mode |
-|---|---|---|---|---|
-| **Flash** | Unified intent classification + recall scanning + metadata maintenance | `deepseek-chat` | 0.1 | `toolChoice: 'required'` |
-| **Pro** | Deep reasoning, full-slice reads, response generation | `deepseek-chat` (default, not `deepseek-reasoner`) | SDK default | User choice |
-
-### Flash Is Hardcoded
-
-The Flash pass runs **before** the response stream opens. It makes one `generateText` call to `deepseek-chat` (temperature 0.1, `toolChoice: 'required'`) that performs three jobs in a single round-trip: intent classification, recall scanning, and metadata maintenance. There is no configuration for Flash — it always uses `deepseek-chat`.
-
-### Pro Model Selection
-
-The Pro model is selected per-request from the client:
-
-```typescript
-const model = (body.model as string) ?? 'deepseek-chat';
-```
-
-The client default is `deepseek-chat` as well (`getClientSetting('PREVIOUSLY_MODEL', 'deepseek-chat')`). The model registry defines exactly two models:
-
-| Model ID | Display name | Supports thinking | Vision | Max tokens |
-|---|---|---|---|---|
-| `deepseek-chat` | DeepSeek Chat | Yes | No | 65536 |
-| `deepseek-reasoner` | DeepSeek Reasoner | Yes | No | 65536 |
-
-`deepseek-reasoner` exists in the registry and is available as a user-selectable option, but it is **not the default** and is **not auto-selected** by the thinking toggle. The shipped path stays on `deepseek-chat`.
+The reasoning effort is a provider-level option on the DeepSeek model, not a model swap. It controls the thinking token budget allocated per turn.
 
 ### Thinking Toggle
 
-The thinking toggle is a request-level boolean (`body.thinking`, default `true`) that is **not** a model switch. When enabled, the server adds provider options to the `deepseek-chat` call:
-
-```typescript
-providerOptions: {
-  deepseek: {
-    thinking: { type: 'enabled' },
-    reasoningEffort: 'medium',
-  },
-}
-```
-
-When disabled, no `providerOptions` are sent. The thinking duration is measured server-side (wall-clock time between the first reasoning chunk and the first text chunk) and emitted as a `data-reasoning` event — not tracked client-side via timers.
-
-> **Nuance:** `deepseek-reasoner` exists in the registry but the thinking toggle does not switch to it. Both the route code and the client default are `deepseek-chat`. The toggle is a **provider-level option on deepseek-chat**, not a model swap.
+The thinking toggle is a request-level boolean. When enabled, the server adds `thinking: { type: 'enabled' }` provider options. The thinking duration is measured server-side and emitted as a `data-reasoning` event in the stream — not tracked client-side via timers.
 
 ## Internationalization
 
-i18n uses `next-intl` with exactly two locales:
+i18n uses `next-intl` with two locales:
 
 | Locale | Code | Default |
 |---|---|---|
 | English | `en` | Yes |
 | Chinese | `zh` | No |
 
-Configuration lives in `src/i18n/routing.ts`:
+Configuration lives in `src/i18n/routing.ts`. Translation files in `messages/{en,zh}/*.json`. Navigation must use utilities from `@/i18n/navigation` instead of `next/navigation`.
 
-```typescript
-defineRouting({
-  locales: ['en', 'zh'],
-  defaultLocale: 'en',
-});
-```
-
-Translation files:
-- `messages/en.json`
-- `messages/zh.json`
-
-Navigation must use utilities from `@/i18n/navigation` instead of `next/navigation` (enforced by project convention). The locale layout wraps content in `NextIntlClientProvider`.
-
-## The Omitted Vars
-
-A few environment variables you might expect, and why they do not exist:
+## Variables That Don't Exist
 
 | You might expect | Reality |
 |---|---|
-| `DEMO_MODE` | Removed in v0.4.0. Replaced by automatic detection — `resolveDataSource()` returns `"demo"` when `GITHUB_TOKEN` is absent. |
-| `DEMO_REF` | Removed in v0.4.0. Benchmark data is fetched via `BENCHMARK_BASE_URL` instead of pinned git refs. |
-| `USE_GITHUB` | Does not exist. The backend switch is `resolveDataSource()` — one function, not seven modules. |
-| `LOG_LEVEL` | Not implemented. Logging is thin in v0.4.0. |
+| `DEMO_MODE` | Removed in v0.4. The capabilities module auto-detects demo mode. |
 | `DATABASE_URL` | There is no database. State lives in GitHub files. |
+| `LOG_LEVEL` | Not implemented. Logging is minimal. |
 | `PORT` | Not read by the app; Next.js handles it. |
-| `ANTHROPIC_API_KEY` | Installed dependency, README mentions it, **but no shipped code reads it**. Roadmap/aspirational. |
 
 ## Related
 
-- [Deployment](/docs/deployment) — deployment walkthrough with the full `.env.local` template
+- [Deployment](/docs/deployment) — deployment walkthrough with `.env.local` template
+- [Architecture](/docs/architecture) — the full system design
 - [Recall](/docs/recall) — how Flash and Pro use the configured models
