@@ -164,9 +164,19 @@
   }
 }
 
-
 .animate-slide-up-fade {
   animation: slide-up-fade 0.3s ease-out;
+}
+
+/* Reduced motion — disable all CSS animations for vestibular safety */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* ── Shiki dual-theme code blocks ── */

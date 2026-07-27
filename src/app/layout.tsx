@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Raleway, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/providers/theme-provider";
+import { MotionConfig } from "motion/react";
 import { siteConfig } from "@/lib/site";
 import "./globals.css";
 
@@ -36,7 +37,9 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <MotionConfig reducedMotion="user">
+            {children}
+          </MotionConfig>
         </ThemeProvider>
       </body>
     </html>

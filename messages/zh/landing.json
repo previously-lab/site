@@ -12,29 +12,89 @@
       "ctaDocs": "阅读文档",
       "ctaGithub": "在 GitHub 查看"
     },
-    "Concept": {
-      "title": "情景记忆，按时间组织",
-      "description": "Previously 将你的 AI 互动以单一时间线的形式保存，而非分散在各个聊天线程中。每一次对话、任务和事件都按时间顺序排列——就像你自己的记忆一样。",
-      "slices": "时间切片是按时间范围划分的快照——数小时、数天或数周的活动被归入连贯的片段，供你浏览、搜索和回顾。",
-      "strands": "线索将相关的时间切片跨时间编织在一起，连接贯穿你一天中的对话、项目和想法。",
-      "labelThreads": "散落的线程",
-      "labelTimeline": "单一时间线"
+    "Screen2": {
+      "title": "时间，而非对话。",
+      "description": "绝大多数 AI agent 按对话线程组织你的内容。Previously 将所有对话按时间顺序归入一条连续的时间线——每一个瞬间，都在它该在的位置。",
+      "cta": "了解时间线如何工作",
+      "beforeLabel": "聊天线程 — 彼此孤立的对话",
+      "afterLabel": "Previously — 一条连续的时间线",
+      "beforeCardLabels": [
+        "讨论工作进展",
+        "规划周末旅行",
+        "聊最近在读的书",
+        "商量去哪儿聚餐",
+        "学习烹饪技巧",
+        "讨论健身计划"
+      ],
+      "afterCardLabels": [
+        "讨论工作进展",
+        "规划周末旅行",
+        "工作变动通知",
+        "确定旅行目的地",
+        "聚餐地点敲定",
+        "技术选型讨论"
+      ],
+      "strandWork": "工作",
+      "strandTravel": "旅行",
+      "earlierLabel": "← 更早",
+      "nowLabel": "现在",
+      "legendText": "线索将时间上相关的话题串联起来"
     },
-    "Recall": {
-      "title": "回忆如何工作",
-      "description": "回忆分两个阶段进行。首先，广泛的时序搜索在你的时间线上找到候选切片。然后，在这些切片内进行语义匹配，精确定位你需要的具体记忆——无需在无尽的线程中翻找。",
-      "cta": "了解更多关于回忆"
+    "Screen3": {
+      "title": "与你一起成长。",
+      "description": "Previously 根据你的每一次对话和它自己的反思，持续优化它思考和回忆的方式。它会自己迭代、自己调整，一次比一次更懂怎么帮你。",
+      "cta": "探索记忆模型",
+      "legend": "进化的认知 — 观察、强化、纠正、过期"
     },
-    "DeeperReading": {
-      "title": "深度阅读",
-      "articleTitle": "时间是否是 AI 记忆缺失的维度？",
-      "cta": "阅读全文"
+    "Screen4": {
+      "title": "每一个字，都在。",
+      "description": "Previously 保留每一次对话的原始情景，原原本本。当需要的时候，动态调取、动态拼接上下文。",
+      "cta": "探索架构设计",
+      "terminalTitle": "phase-indicator",
+      "phase1Label": "正在切分时间…",
+      "phase1Detail": "识别当前对话的时间窗口",
+      "phase2Label": "正在扫描记忆…",
+      "phase2Detail": "在此时间范围内找到 12 个历史切片",
+      "phase3Label": "正在更新认知…",
+      "phase3Detail": "+2 新增 · ↑1 强化",
+      "cursorText": "观察到模式：偏好简洁的回答…"
     },
-    "OpenSource": {
-      "title": "开源，可自托管",
-      "description": "Previously 采用 MIT 许可，设计为可自托管。无云锁定、无遥测、无意外。在你自己的基础设施上部署，或在 GitHub 上贡献代码。",
-      "ctaGithub": "在 GitHub 查看",
-      "ctaGettingStarted": "开始使用"
+    "Screen5": {
+      "title": "穿越到任何一个瞬间。",
+      "description": "点击时间线上的任意一点，你就到了那里——重温那次对话，看到 Agent 当时在想什么，从上次停下的地方继续。不是搜索，不是滚动。是时间旅行。",
+      "cta": "理解时间切片",
+      "nowLabel": "现在"
+    },
+    "Screen6": {
+      "title": "你的记忆。你的仓库。",
+      "description": "每一次对话都是你 GitHub 仓库中的一个 Markdown 文件。没有私有数据库。没有云锁定。没有别人的服务器。你的数据，你的格式，你的控制——永远如此。",
+      "cta": "了解架构",
+      "repoName": "your-username/memory",
+      "repoVisibility": "公开",
+      "lockText": "你的 GitHub 仓库。你的数据。"
+    },
+    "Screen7": {
+      "title": "你不在的时候，它也在工作。",
+      "description": "关闭标签页。走开。Previously 继续工作——运行后台任务、进化它的理解、为你的下一次对话做准备。「话后功成」不只是一句口号，而是它的工作方式。",
+      "cta": "配置后台循环",
+      "tagline": "话后功成。"
+    },
+    "Screen8": {
+      "title": "开源。自托管。无锁定。",
+      "description": "MIT 许可。在你自己的机器上运行。修改它。扩展它。回馈社区。Previously 属于社区，不属于任何公司。",
+      "cta": "开始使用",
+      "badgeMIT": "MIT 许可",
+      "badgeSelfHost": "可自托管",
+      "badgeNoTelemetry": "无遥测",
+      "badgeCommunity": "社区驱动",
+      "githubStars": "GitHub 星标",
+      "githubMIT": "MIT 开源"
+    },
+    "Screen9": {
+      "title": "Previously on you.",
+      "description": "你的 AI，按时间组织——而非按对话线程。开源。自托管。永远属于你。",
+      "ctaDemo": "体验在线演示",
+      "ctaGithub": "在 GitHub 查看"
     }
   }
 }

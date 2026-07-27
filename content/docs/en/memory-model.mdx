@@ -1,116 +1,180 @@
 ---
 title: Memory Model
-description: How Previously structures memory across episodic slices, semantic strands, and knowledge nodes — all stored as plain Markdown files in a git repository.
+description: How Previously structures memory — the previously.md self-model with long-term and short-term memory, seven mutation operations, and pure-function evolution applied after every conversation.
 order: 3
 ---
 
 # Memory Model
 
 <Callout variant="info">
-Previously eschews databases and vector stores. Memory is plain Markdown files in a git repository — episodic time slices for what happened when, semantic strands and knowledge nodes for what things are — assembled under a token budget at inference time.
+The centerpiece of v0.5 is previously.md — a living self-model where your agent forms, refines, and self-corrects its understanding of you. Long-term impressions stay stable. Short-term context naturally expires. Evolution runs as an independent workflow after every conversation.
 </Callout>
 
-Previously eschews databases and vector stores. Memory is plain Markdown files in a git repository — episodic time slices for what happened when, semantic strands and knowledge nodes for what things are — assembled under a token budget at inference time.
+Previously stores memory as plain files in a git repository — no database, no vector store. But the real innovation in v0.5 is not the storage format. It is the **self-model**: a structured, evolving document that captures your agent's understanding of who you are, how you work, and how to best help you.
 
-## Episodic Memory: The Timeline
+## The Self-Model: previously.md
 
-Previously records every conversation burst as a **slice**: a single Markdown file on your personal timeline. The path tells you exactly when it happened:
+Your agent maintains a file called `previously.md`. It is not a static profile you fill out. It is not a list of facts the agent memorized. It is a **living document** that the agent writes and rewrites itself — observing, reinforcing, correcting, and sometimes forgetting — after every conversation.
 
-```
-memory/episodic/slices/2025/11/21/0825.md
-```
+Think of it as the agent's mental model of you. After your first conversation, it is nearly empty — a few tentative observations. After ten conversations, it has formed stable impressions about your identity and patterns. After fifty, it knows you well enough to anticipate what you need before you ask.
 
-A calendar day is a directory that may hold multiple slice files. A slice opens when you start talking, stays active while you stay engaged, and closes automatically after 30 minutes of silence. Read top-to-bottom across months and years, slices are your autobiography — what happened, when it happened, in chronological order.
+### Long-Term and Short-Term Memory
 
-Every slice carries YAML frontmatter with structured metadata:
+The file is split into two sections with different rules:
 
-```yaml
----
-focus: Planning the M8 flash overhaul
-summary: Reviewed slicer architecture, decided on time-only slicing
-open_loops: [strand integration, demo mode scope]
-decisions: [Slice by time only; no topic-based splitting]
-tags: [m8, episodic, architecture]
-related_slices: [2025/11/20/1430.md]
-emotional_tone: focused
-status: closed
-start: 2025-11-21T08:25:00Z
-end: 2025-11-21T09:10:00Z
----
-```
+**Long-term memory** — stable, durable, hard to change by design:
+- **Identity** (who you are) — up to 20 beliefs. Your name, role, background, preferences, values.
+- **Patterns** (how you do things) — up to 8 beliefs. Your communication style, decision-making tendencies, recurring habits.
+- **Strategies** (how to best help you) — up to 15 beliefs. What approach works well, what to avoid, how you prefer information presented.
 
-Conversation turns are rendered as `## Turn N -- ISO_TIMESTAMP (role)` headers in the Markdown body. This format is managed by the gray-matter library — every git client, every editor, and every LLM can parse it without proprietary tooling.
+Long-term beliefs do not decay. They only change when you explicitly correct the agent ("no, that's not right") — which triggers a **contradict** operation — or when the agent accumulates enough contrary evidence to **demote** a belief to short-term.
 
-> **Key takeaway: the timeline is time-driven, not topic-driven.** A slice opens on talk and closes on silence. There is no capacity limit and no topic-shift rule. Your conversation history is lossless and chronological.
+**Short-term memory** — transient, contextual, naturally expires:
+- **Current context** — up to 10 beliefs. What you're working on right now, recent decisions, open questions, your current mood or situation.
 
-## Semantic Memory, Layer 1: Strands
+Short-term beliefs have a default expiration of 7 days. If a belief keeps being reinforced across multiple slices, it can be **promoted** to long-term memory.
 
-A **strand** is a keyword — like `work`, `family`, `health`, `housing` — woven through every slice that carries it. The file `memory/episodic/strands.json` maps each strand to its slice paths:
+### The Anatomy of a Belief
 
-```json
-{
-  "strands": {
-    "housing": [
-      "memory/episodic/slices/2025/03/10/0915.md",
-      "memory/episodic/slices/2025/04/02/1400.md",
-      "memory/episodic/slices/2025/06/18/1100.md"
-    ],
-    "work": [
-      "memory/episodic/slices/2025/06/18/1100.md",
-      "memory/episodic/slices/2025/07/01/0800.md"
-    ]
-  }
-}
+Each belief in previously.md carries structured metadata:
+
+```markdown
+- Prefers concise, direct answers over lengthy explanations
+  evidence: [2026/07/22/1430-T1], [2026/07/25/0915-T3]
+  confidence: high
+  updated: 2026-07-27
+  obs: 3
+  expires: 2026-08-03   ← only for short-term beliefs
 ```
 
-Strands are built at slice-close via `updateStrands`. A slice = what happened; a strand = what it was about. Strands form the thin, lossless semantic index over the episodic timeline — the whole history of a topic across time, without duplicating the content.
+Every belief has a paper trail. You can trace when it was first observed, how many times it's been reinforced, when it was last updated, and — for short-term beliefs — when it will expire. Nothing is asserted without evidence.
 
-> **Roadmap:** Strands currently carry no rolling summary. A richer first-class strand with its own narrative summary and recall integration is a future milestone.
+## How Evolution Works
 
-## Semantic Memory, Layer 2: Memory Nodes
+After every conversation, a dedicated **Evolution workflow** runs. It is a completely separate system from the chat — an independent Vercel Workflow with its own model, its own steps, and its own retry logic. The chat and the evolution run in parallel. They are coupled only through the `previously.md` file on disk.
 
-**Memory nodes** are separate structured knowledge units at `memory/nodes/`, authored by Previously itself (the Pro model, via `writeFile`) when a conversation reveals genuinely notable information about you. Unlike strands — which are an auto-built keyword index — nodes are hand- or agent-authored knowledge units with a typed schema:
+### The Evolution Agent
 
-| Field | Purpose |
-|-------|---------|
-| `type` | `concept`, `experience`, `project`, `people`, or `personality` |
-| `priority` | 1–10, defaults to 5 |
-| `domain` | Classification domain, defaults to `general` |
-| `tags` | Keyword labels for matching |
-| `related` | Links to other node IDs |
-| `backlinks` | Reverse links from YAML frontmatter (static) |
-| `status` | `active` or `deprecated` |
-| `access_count` | Not yet implemented (consumed by scorer but never written) |
-| `last_accessed` | Date-only string (YYYY-MM-DD) |
-| `superseded_by` | Node ID that replaces this one |
+The evolution workflow runs a Pro model (DeepSeek V4 Pro, without thinking mode — this is structured review, not creative work). It reads three things:
 
-Node relevance is scored at recall time:
+1. **The current previously.md** — what the agent currently believes about you
+2. **The conversation that just happened** — `core.md` (what was said) + `agent.md` (what the agent thought)
+3. **Recent conversation history** — the last 6 turns for immediate context
+
+The model then decides, autonomously, what to do. It has three paths:
+
+1. **Nothing to do** — the conversation didn't reveal anything new. The evolution returns empty and exits.
+2. **Shallow edit** — the changes are obvious from the immediate data. The model applies mutations directly.
+3. **Deep exploration** — the model calls tools (`readSlice`, `readAgentTimeline`, `readPreviously`) to investigate further before deciding.
+
+This three-gate design keeps evolution fast in the common case while giving the model room to investigate when something genuinely new or contradictory appears.
+
+### The Seven Mutations
+
+When the evolution agent decides to change its understanding of you, it doesn't just edit the file. It applies one of seven structured **mutations** through a pure-function engine (`previously-updater.ts`):
+
+| Mutation | What it does | Example |
+|----------|-------------|---------|
+| **observe** | Add a new belief | "User mentions working in healthcare" → new identity belief |
+| **reinforce** | Strengthen an existing belief | "User again prefers short answers" → bump obs count, update date |
+| **contradict** | Correct a wrong belief | "No, I'm not a manager — I'm an IC" → lower confidence, add contradiction note |
+| **discard** | Remove a belief entirely | User explicitly says "forget that, it was wrong" |
+| **expire** | Remove an outdated short-term belief | 7 days passed, context no longer relevant |
+| **promote** | Move short-term → long-term | A pattern appeared in 3+ slices — it's stable enough to keep |
+| **demote** | Move long-term → short-term | Confidence dropped to low with only 1 observation |
+
+Each mutation is a specific, auditable operation. The updater is a pure function: it takes the current previously.md and a list of mutations, and returns the updated version. No I/O, no LLM calls inside the updater. The evolution model makes the decisions; the updater applies them mechanically. This separation makes the system predictable, testable, and debuggable.
+
+### Capacity Management
+
+Each category has a hard limit (identity ≤ 20, patterns ≤ 8, strategies ≤ 15, context ≤ 10). When a category is full and a new belief needs to be added, the system ranks existing beliefs by a combined score:
 
 ```
-score = (priority
-         + keyword-tag-match[+5 each]
-         + graph_bonus[+2 per already-selected linked node]
-         + freq_bonus[min(access_count * 0.3, 3)])
-         * time_decay
-
-where time_decay = 0.9^(daysSinceAccess / 7)  ~10% decay per week
+score = confidence × recency
 ```
 
-Deprecated nodes always score 0. This scoring feeds the context assembler's selection.
+The lowest-scoring belief is evicted. Confidence is a three-tier enum (high/medium/low). Recency is how recently the belief was observed or reinforced. Beliefs that are both low-confidence and haven't been seen in a while are the first to go.
 
-## Layered Memory: L0/L1 vs L2
+This is deliberate: the agent's self-model has a fixed size budget. It cannot grow indefinitely. It must decide what matters enough to keep.
 
-Memory is organized in three tiers, split by when they load:
+## The Previously Bar: Evolution, Visible
 
-| Tier | What | When | Mutable? |
-|------|------|------|----------|
-| **L0** | Agent constitution (SOUL) | Bundled at build time | Immutable at runtime |
-| **L1** | Agent directives (DIRECTIVES) | Bundled at build time | Immutable at runtime |
-| **L2** | Episodic slices + strands + nodes | Fetched on demand at runtime | Writable by tools |
+The agent's self-evolution is not hidden in a log file. It is visible, always, at the bottom of the screen, through the **Previously Bar**:
 
-L0 and L1 are produced by `scripts/generate-identity.mjs` at build time and compiled into strings. Their source sits outside the tool whitelist — the agent cannot rewrite its own soul. L2 is read live from the filesystem via tools, and that is where the episodic memory, strands, and nodes live.
+| State | What you see |
+|-------|-------------|
+| 🌀 Evolving | "Self-evolving… reading memories…" — a brain icon with a spinner |
+| ✅ Changed | "Evolved: +2 observed · ↑1 reinforced · ↓1 demoted" — the mutations applied |
+| ✓ No change | A muted "Checked" — the evolution ran but found nothing to update |
+| ❌ Failed | Red "Self-evolution failed: {reason}" — something went wrong, chat unaffected |
+| 📜 History | "Previously archive · Click to view" — opens the full previously.md in a dialog |
 
-The user profile (`memory/user/profile.md`) is a hybrid: it loads live from memory/ (L2 at runtime), but the generic `writeFile` tool is blocked from editing it — only a dedicated `updateUserProfile` tool can modify it.
+The Previously Bar is the product's answer to a simple question: "Does my agent actually know me?" You don't have to wonder. You can see it learn.
+
+## previously.md Format v2
+
+The file itself is structured Markdown:
+
+```markdown
+# Previously On
+
+## Long-term memory
+*Stable impressions. Change only on user correction or strong contradictory evidence.*
+
+### User identity
+- Software engineer focused on Rust and systems programming
+  evidence: [2026/07/22/1430-T1], [2026/07/25/0915-T3]
+  confidence: high
+  updated: 2026-07-27
+  obs: 5
+
+### User patterns
+- Prefers concise, direct answers over lengthy explanations
+  evidence: [2026/07/22/1430-T2], [2026/07/24/1100-T1]
+  confidence: high
+  updated: 2026-07-26
+  obs: 3
+
+### Agent strategies
+- Use code examples when explaining technical concepts
+  evidence: [2026/07/25/0915-T4]
+  confidence: medium
+  updated: 2026-07-25
+  obs: 1
+
+## Short-term memory
+*Transient context. Default expiration: 7 days.*
+
+### Current context
+- Working on the Previously v0.5 documentation update
+  evidence: [2026/07/27/1430-T1]
+  confidence: high
+  updated: 2026-07-27
+  obs: 1
+  expires: 2026-08-03
+```
+
+This is v2 of the format. v1 (used in v0.4) was a flat list of beliefs without the long-term/short-term split, without expiration, and without the structured evidence trail. v2 was introduced alongside the dedicated evolution workflow and the Previously Bar.
+
+## What Replaced What
+
+v0.5 consolidated three separate systems from v0.4 into one:
+
+| v0.4 system | v0.5 replacement |
+|-------------|-----------------|
+| `profile.md` — a manually-edited identity file | previously.md User identity section — agent-maintained, evidence-backed |
+| Memory nodes (`memory/nodes/`) — agent-authored knowledge cards | previously.md beliefs — structured, scored, capacity-managed |
+| `updateUserProfile` tool — model-called profile patching | Evolution workflow — independent, autonomous, mechanically applied |
+
+The consolidation is a philosophical shift: the agent's understanding of you should be **one thing**, maintained by **one process**, visible in **one place**. Not scattered across three file formats and two update mechanisms.
+
+## Context Assembly: What the Agent Sees
+
+When you send a message, the agent's system prompt includes `previously.md` in full — its complete understanding of you. That is the foundation. Everything else is retrieved on demand.
+
+If the conversation touches on the past, the agent calls the `recall` tool — a fast Flash sub-agent that scans the global timeline index and the strand index, returns pointers to relevant slices, and lets the main model read those slices in full. This is the Pull architecture: context is fetched when needed, not force-fed before every reply.
+
+Context stays bounded because previously.md is compact (at most 53 beliefs across all categories) and slice reads are targeted. The agent never loads your entire history into its context window — it retrieves only what matters for the current conversation.
 
 ## The Whitelist Boundary
 
@@ -120,52 +184,29 @@ Agent tools are confined to three writable directories:
 memory/   tasks/   sessions/
 ```
 
-The `src/` directory is agent-**read-only**, never modifiable by any tool. Path validation normalizes inputs — decoding URI components, converting backslashes to forward slashes, resolving `./` and `../`, stripping leading slashes — then rejects empty paths, absolute paths (`/`), and drive-letter paths (`A:`) before matching against the allowed prefixes.
+The `src/` directory is agent-read-only — never modifiable by any tool. Path validation normalizes inputs, resolves traversal attempts, and rejects absolute paths and drive-letter paths before matching against allowed prefixes.
 
 Within the whitelist, certain paths are readable but write-blocked:
 
 - `memory/episodic/` — system-owned slices and indexes
 - Any `_index.json` file
 - `strands.json`
-- `memory/user/profile.md` — editable only via its dedicated tool
 
 This prevents accidental or malicious corruption of the episodic timeline and structural indexes.
 
-## Context Assembly Under a Token Budget
-
-When Previously constructs a prompt, the context assembler packs a 5-layer payload under a default budget of 8,000 tokens:
-
-| Layer | Content | Budget Rule |
-|-------|---------|-------------|
-| 0 | System prompt (constitution + directives) | Full, always included |
-| 1 | Core memory nodes (full content) | Capped at budget x 0.7 (reserves 30% for later layers) |
-| 2 | Session summary + recent turns | Turns truncated to 300 characters each |
-| 3 | Extended nodes (summary only) | First paragraph <= 200 characters; stops at budget - 500 |
-| 4 | Reference nodes | `[[wikilink]]` titles only |
-
-Token estimation is a heuristic (`ceil(chars / 4)`) — not a real tokenizer. As the budget fills, detail degrades: full node content gives way to summaries, which give way to bare titles. This guarantees every request fits within the model's context window without hard truncation of critical layers.
-
 ## Why Plain Markdown + YAML
 
-There is no database, no vector store, and no proprietary format. Every piece of memory is a Markdown file with YAML frontmatter. This choice is deliberate:
+There is no database, no vector store, no proprietary format. Every piece of memory is a Markdown file with YAML frontmatter:
 
-- **Portable** — `git clone` anywhere, read on any device, no server needed.
-- **Git-diffable** — every change to a slice, node, or strand is tracked in version history. You can see what Previously learned and when.
-- **Human-editable** — open any slice in VS Code, fix a summary, add a tag. No admin UI, no SDK.
-- **Any tool reads it** — Previously writes, Claude Code reads, Codex extends. No lock-in, no integration tax, no schema migration.
+- **Portable** — `git clone` anywhere, read on any device, no server needed
+- **Git-diffable** — every change to previously.md, slices, and strands is tracked in version history
+- **Human-readable** — open any file in VS Code and understand it immediately. No admin UI needed
+- **Any tool reads it** — Previously writes, Claude Code reads, any editor extends. No lock-in
 
 Files are the interface.
 
-## Two-Tier Recall
-
-Recall follows the episodic-then-semantic order grounded in Tulving: scan WHEN first, then retrieve WHAT.
-
-1. **Flash** (DeepSeek-chat) — scans recent slice summaries and the strand index, returning pointers to relevant slices. Per-round metadata maintenance (tags, strands, summaries) is folded into this single round-trip via `runUnifiedFlash()`, which retries once after 300ms and falls back to safe defaults.
-2. **Pro** (the main model) — calls the `readMemory` tool to read full slice bodies for deep recall. This is the expensive, thorough pass that reconstructs context from the raw timeline.
-
-This split keeps fast operations fast while reserving model capacity for the work that needs it.
-
 ## Related
 
-- [Architecture](/docs/architecture)
-- [Recall](/docs/recall)
+- [The Timeline](/docs/timeline) — horizontal navigation across time
+- [Recall](/docs/recall) — how the agent searches memory on demand
+- [Architecture](/docs/architecture) — the full system design including the evolution workflow
