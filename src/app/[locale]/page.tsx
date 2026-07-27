@@ -40,40 +40,30 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-/** Extract a nested array value from next-intl messages without type gymnastics. */
 function getArray(messages: unknown, path: string): string[] {
   try {
-    const keys = path.split(".");
     let current: any = messages;
-    for (const key of keys) {
-      current = current?.[key];
-    }
+    for (const key of path.split(".")) current = current?.[key];
     return Array.isArray(current) ? current : [];
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
 
 function getString(messages: unknown, path: string): string {
   try {
-    const keys = path.split(".");
     let current: any = messages;
-    for (const key of keys) {
-      current = current?.[key];
-    }
+    for (const key of path.split(".")) current = current?.[key];
     return typeof current === "string" ? current : "";
-  } catch {
-    return "";
-  }
+  } catch { return ""; }
 }
 
-export default async function HomePage({
-  params,
-}: Props): Promise<React.ReactElement> {
+export default async function HomePage({ params }: Props): Promise<React.ReactElement> {
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "Landing" });
-  const messages = await getMessages();
+  const m = await getMessages();
+
+  const s = (key: string) => getString(m, `Landing.${key}`);
+  const a = (key: string) => getArray(m, `Landing.${key}`);
 
   return (
     <>
@@ -94,10 +84,15 @@ export default async function HomePage({
         docsLabel={t("Screen2.cta")}
         visual={
           <TimelineVisual
-            beforeCardLabels={getArray(messages, "Landing.Screen2.beforeCardLabels")}
-            afterCardLabels={getArray(messages, "Landing.Screen2.afterCardLabels")}
-            beforeLabel={getString(messages, "Landing.Screen2.beforeLabel")}
-            afterLabel={getString(messages, "Landing.Screen2.afterLabel")}
+            beforeCardLabels={a("Screen2.beforeCardLabels")}
+            afterCardLabels={a("Screen2.afterCardLabels")}
+            beforeLabel={s("Screen2.beforeLabel")}
+            afterLabel={s("Screen2.afterLabel")}
+            strandWork={s("Screen2.strandWork")}
+            strandTravel={s("Screen2.strandTravel")}
+            earlierLabel={s("Screen2.earlierLabel")}
+            nowLabel={s("Screen2.nowLabel")}
+            legendText={s("Screen2.legendText")}
           />
         }
         variant="muted"
@@ -109,16 +104,27 @@ export default async function HomePage({
         description={t("Screen3.description")}
         docsHref="/docs/memory-model"
         docsLabel={t("Screen3.cta")}
-        visual={<SelfModelVisual />}
+        visual={<SelfModelVisual legend={s("Screen3.legend")} />}
       />
 
-      {/* ── Screen 4: Transparency ──────────────────────── */}
+      {/* ── Screen 4: Raw Context ───────────────────────── */}
       <ProductSection
         title={t("Screen4.title")}
         description={t("Screen4.description")}
         docsHref="/docs/architecture"
         docsLabel={t("Screen4.cta")}
-        visual={<ThinkingVisual />}
+        visual={
+          <ThinkingVisual
+            terminalTitle={s("Screen4.terminalTitle")}
+            phase1Label={s("Screen4.phase1Label")}
+            phase1Detail={s("Screen4.phase1Detail")}
+            phase2Label={s("Screen4.phase2Label")}
+            phase2Detail={s("Screen4.phase2Detail")}
+            phase3Label={s("Screen4.phase3Label")}
+            phase3Detail={s("Screen4.phase3Detail")}
+            cursorText={s("Screen4.cursorText")}
+          />
+        }
         variant="muted"
       />
 
@@ -128,7 +134,7 @@ export default async function HomePage({
         description={t("Screen5.description")}
         docsHref="/docs/slices"
         docsLabel={t("Screen5.cta")}
-        visual={<TimeTravelVisual />}
+        visual={<TimeTravelVisual nowLabel={s("Screen5.nowLabel")} />}
       />
 
       {/* ── Screen 6: GitHub-native ─────────────────────── */}
@@ -137,7 +143,13 @@ export default async function HomePage({
         description={t("Screen6.description")}
         docsHref="/docs/architecture"
         docsLabel={t("Screen6.cta")}
-        visual={<GitHubRepoVisual />}
+        visual={
+          <GitHubRepoVisual
+            repoName={s("Screen6.repoName")}
+            repoVisibility={s("Screen6.repoVisibility")}
+            lockText={s("Screen6.lockText")}
+          />
+        }
         variant="muted"
       />
 
@@ -147,7 +159,7 @@ export default async function HomePage({
         description={t("Screen7.description")}
         docsHref="/docs/configuration"
         docsLabel={t("Screen7.cta")}
-        visual={<BackgroundLoopVisual />}
+        visual={<BackgroundLoopVisual tagline={s("Screen7.tagline")} />}
         variant="muted"
       />
 
@@ -157,7 +169,16 @@ export default async function HomePage({
         description={t("Screen8.description")}
         docsHref="/docs/getting-started"
         docsLabel={t("Screen8.cta")}
-        visual={<OpenSourceVisual />}
+        visual={
+          <OpenSourceVisual
+            badgeMIT={s("Screen8.badgeMIT")}
+            badgeSelfHost={s("Screen8.badgeSelfHost")}
+            badgeNoTelemetry={s("Screen8.badgeNoTelemetry")}
+            badgeCommunity={s("Screen8.badgeCommunity")}
+            githubStars={s("Screen8.githubStars")}
+            githubMIT={s("Screen8.githubMIT")}
+          />
+        }
       />
 
       {/* ── Screen 9: CTA ───────────────────────────────── */}
@@ -169,26 +190,12 @@ export default async function HomePage({
           {t("Screen9.description")}
         </p>
         <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <a
-            href={siteConfig.demoUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={cn(
-              buttonVariants({ variant: "default", size: "lg" }),
-              "w-full sm:w-auto",
-            )}
-          >
+          <a href={siteConfig.demoUrl} target="_blank" rel="noopener noreferrer"
+            className={cn(buttonVariants({ variant: "default", size: "lg" }), "w-full sm:w-auto")}>
             {t("Screen9.ctaDemo")}
           </a>
-          <a
-            href={siteConfig.githubUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={cn(
-              buttonVariants({ variant: "outline", size: "lg" }),
-              "w-full sm:w-auto",
-            )}
-          >
+          <a href={siteConfig.githubUrl} target="_blank" rel="noopener noreferrer"
+            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full sm:w-auto")}>
             {t("Screen9.ctaGithub")}
           </a>
         </div>

@@ -33,37 +33,62 @@
         "Picked the destination",
         "Dinner venue decided",
         "Tech stack discussion"
-      ]
+      ],
+      "strandWork": "Work",
+      "strandTravel": "Travel",
+      "earlierLabel": "← Earlier",
+      "nowLabel": "NOW",
+      "legendText": "Strands connect related topics across time"
     },
     "Screen3": {
       "title": "Grows with you.",
       "description": "Previously refines how it thinks and remembers — drawing from every conversation and its own reflections. It iterates on its own, getting better at helping you, one chat at a time.",
-      "cta": "Explore the memory model"
+      "cta": "Explore the memory model",
+      "legend": "Evolving understanding — observe, reinforce, correct, expire"
     },
     "Screen4": {
       "title": "Every word matters.",
       "description": "Previously keeps every conversation in its original form — raw, uncompressed, exactly as it happened. When you need something, it retrieves and assembles context on the fly.",
-      "cta": "Explore the architecture"
+      "cta": "Explore the architecture",
+      "terminalTitle": "phase-indicator",
+      "phase1Label": "Segmenting time…",
+      "phase1Detail": "Identifying the current conversation window",
+      "phase2Label": "Scanning memory…",
+      "phase2Detail": "Found 12 historical slices in this time range",
+      "phase3Label": "Updating understanding…",
+      "phase3Detail": "+2 new observations · ↑1 reinforced",
+      "cursorText": "observing pattern: prefers concise answers…"
     },
     "Screen5": {
       "title": "Travel back to any moment.",
       "description": "Click any point on your timeline and you're there — reliving that conversation, seeing what the agent was thinking, picking up exactly where you left off. Not search. Not scroll. Time travel.",
-      "cta": "Understanding slices"
+      "cta": "Understanding slices",
+      "nowLabel": "NOW"
     },
     "Screen6": {
       "title": "Your memory. Your repository.",
       "description": "Every conversation is a Markdown file in your own GitHub repo. No proprietary database. No cloud lock-in. No one else's server. Your data, your format, your control — forever.",
-      "cta": "See the architecture"
+      "cta": "See the architecture",
+      "repoName": "your-username/memory",
+      "repoVisibility": "public",
+      "lockText": "Your GitHub repo. Your data."
     },
     "Screen7": {
       "title": "It works while you're away.",
       "description": "Close the tab. Walk away. Previously keeps working — running background tasks, evolving its understanding, preparing for your next conversation. 'I come after you're done' isn't just a tagline. It's how it works.",
-      "cta": "Configure background loops"
+      "cta": "Configure background loops",
+      "tagline": "I come after you're done."
     },
     "Screen8": {
       "title": "Open source. Self-host. No lock-in.",
       "description": "MIT licensed. Run it on your own machine. Modify it. Extend it. Contribute back. Previously belongs to the community, not a corporation.",
-      "cta": "Get started"
+      "cta": "Get started",
+      "badgeMIT": "MIT License",
+      "badgeSelfHost": "Self-hosted",
+      "badgeNoTelemetry": "No telemetry",
+      "badgeCommunity": "Community-driven",
+      "githubStars": "Stars on GitHub",
+      "githubMIT": "MIT Licensed"
     },
     "Screen9": {
       "title": "Previously on you.",

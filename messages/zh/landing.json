@@ -33,37 +33,62 @@
         "确定旅行目的地",
         "聚餐地点敲定",
         "技术选型讨论"
-      ]
+      ],
+      "strandWork": "工作",
+      "strandTravel": "旅行",
+      "earlierLabel": "← 更早",
+      "nowLabel": "现在",
+      "legendText": "线索将时间上相关的话题串联起来"
     },
     "Screen3": {
       "title": "与你一起成长。",
       "description": "Previously 根据你的每一次对话和它自己的反思，持续优化它思考和回忆的方式。它会自己迭代、自己调整，一次比一次更懂怎么帮你。",
-      "cta": "探索记忆模型"
+      "cta": "探索记忆模型",
+      "legend": "进化的认知 — 观察、强化、纠正、过期"
     },
     "Screen4": {
       "title": "每一个字，都在。",
       "description": "Previously 保留每一次对话的原始情景，原原本本。当需要的时候，动态调取、动态拼接上下文。",
-      "cta": "探索架构设计"
+      "cta": "探索架构设计",
+      "terminalTitle": "phase-indicator",
+      "phase1Label": "正在切分时间…",
+      "phase1Detail": "识别当前对话的时间窗口",
+      "phase2Label": "正在扫描记忆…",
+      "phase2Detail": "在此时间范围内找到 12 个历史切片",
+      "phase3Label": "正在更新认知…",
+      "phase3Detail": "+2 新增 · ↑1 强化",
+      "cursorText": "观察到模式：偏好简洁的回答…"
     },
     "Screen5": {
       "title": "穿越到任何一个瞬间。",
       "description": "点击时间线上的任意一点，你就到了那里——重温那次对话，看到 Agent 当时在想什么，从上次停下的地方继续。不是搜索，不是滚动。是时间旅行。",
-      "cta": "理解时间切片"
+      "cta": "理解时间切片",
+      "nowLabel": "现在"
     },
     "Screen6": {
       "title": "你的记忆。你的仓库。",
       "description": "每一次对话都是你 GitHub 仓库中的一个 Markdown 文件。没有私有数据库。没有云锁定。没有别人的服务器。你的数据，你的格式，你的控制——永远如此。",
-      "cta": "了解架构"
+      "cta": "了解架构",
+      "repoName": "your-username/memory",
+      "repoVisibility": "公开",
+      "lockText": "你的 GitHub 仓库。你的数据。"
     },
     "Screen7": {
       "title": "你不在的时候，它也在工作。",
       "description": "关闭标签页。走开。Previously 继续工作——运行后台任务、进化它的理解、为你的下一次对话做准备。「话后功成」不只是一句口号，而是它的工作方式。",
-      "cta": "配置后台循环"
+      "cta": "配置后台循环",
+      "tagline": "话后功成。"
     },
     "Screen8": {
       "title": "开源。自托管。无锁定。",
       "description": "MIT 许可。在你自己的机器上运行。修改它。扩展它。回馈社区。Previously 属于社区，不属于任何公司。",
-      "cta": "开始使用"
+      "cta": "开始使用",
+      "badgeMIT": "MIT 许可",
+      "badgeSelfHost": "可自托管",
+      "badgeNoTelemetry": "无遥测",
+      "badgeCommunity": "社区驱动",
+      "githubStars": "GitHub 星标",
+      "githubMIT": "MIT 开源"
     },
     "Screen9": {
       "title": "Previously on you.",

@@ -5,7 +5,7 @@ import { ScrollReveal } from "@/components/landing/scroll-reveal";
 import { cn } from "@/lib/utils";
 import { ArrowRight } from "lucide-react";
 
-type SectionVariant = "default" | "muted" | "dark";
+type SectionVariant = "default" | "muted";
 
 interface ProductSectionProps {
   title: string;
@@ -19,7 +19,6 @@ interface ProductSectionProps {
 const bgMap: Record<SectionVariant, string> = {
   default: "",
   muted: "bg-muted/20",
-  dark: "bg-foreground text-background",
 };
 
 /**
@@ -39,48 +38,29 @@ export function ProductSection({
   docsLabel,
   variant = "default",
 }: ProductSectionProps) {
-  const isDark = variant === "dark";
-
   return (
     <ScrollReveal
       className={cn(
         "relative flex min-h-screen w-full flex-col items-center justify-center px-4 py-20 sm:px-6 lg:px-8",
-        bgMap[variant],
+        bgMap[variant ?? "default"],
       )}
     >
-      {/* Section label — subtle eyebrow above title */}
-      <h2
-        className={cn(
-          "mx-auto max-w-4xl text-balance text-center text-xl font-semibold tracking-tight sm:text-2xl md:text-3xl lg:text-4xl",
-          isDark && "text-background",
-        )}
-      >
+      <h2 className="mx-auto max-w-4xl text-balance text-center text-xl font-semibold tracking-tight sm:text-2xl md:text-3xl lg:text-4xl">
         {title}
       </h2>
 
-      <p
-        className={cn(
-          "mx-auto mt-4 max-w-2xl text-balance text-center text-xs leading-relaxed text-muted-foreground sm:text-sm",
-          isDark && "text-background/60",
-        )}
-      >
+      <p className="mx-auto mt-4 max-w-2xl text-balance text-center text-xs leading-relaxed text-muted-foreground sm:text-sm">
         {description}
       </p>
 
-      {/* Visual — client component slot */}
       <div className="mt-10 flex w-full max-w-5xl items-center justify-center sm:mt-14">
         {visual}
       </div>
 
-      {/* CTA */}
       <div className="mt-10 sm:mt-14">
         <Link
           href={docsHref}
-          className={cn(
-            buttonVariants({ variant: isDark ? "outline" : "link", size: "default" }),
-            "group gap-1.5 text-sm",
-            isDark && "border-background/20 text-background hover:bg-background/10",
-          )}
+          className={cn(buttonVariants({ variant: "link", size: "default" }), "group gap-1.5 text-sm")}
         >
           {docsLabel}
           <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
