@@ -51,7 +51,7 @@ export function ProductSection({
       {/* Section label — subtle eyebrow above title */}
       <h2
         className={cn(
-          "max-w-3xl text-balance text-center text-2xl font-semibold tracking-tight sm:text-3xl md:text-4xl lg:text-5xl",
+          "mx-auto max-w-4xl text-balance text-center text-xl font-semibold tracking-tight sm:text-2xl md:text-3xl lg:text-4xl",
           isDark && "text-background",
         )}
       >
@@ -60,7 +60,7 @@ export function ProductSection({
 
       <p
         className={cn(
-          "mt-5 max-w-xl text-balance text-center text-sm leading-relaxed text-muted-foreground sm:text-base",
+          "mx-auto mt-4 max-w-2xl text-balance text-center text-xs leading-relaxed text-muted-foreground sm:text-sm",
           isDark && "text-background/60",
         )}
       >
@@ -68,7 +68,7 @@ export function ProductSection({
       </p>
 
       {/* Visual — client component slot */}
-      <div className="mt-10 flex w-full items-center justify-center sm:mt-14">
+      <div className="mt-10 flex w-full max-w-5xl items-center justify-center sm:mt-14">
         {visual}
       </div>
 

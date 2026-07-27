@@ -28,7 +28,7 @@ export function ThinkingVisual() {
   return (
     <div
       ref={ref}
-      className="w-full max-w-lg rounded-xl border border-border bg-card/80 p-5 shadow-sm sm:p-6"
+      className="w-full max-w-2xl rounded-xl border border-border bg-card/80 p-5 shadow-sm sm:p-6"
       role="img"
       aria-label="Agent thinking phases shown transparently in real time"
     >

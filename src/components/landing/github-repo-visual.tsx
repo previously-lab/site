@@ -29,7 +29,7 @@ export function GitHubRepoVisual() {
   return (
     <div
       ref={ref}
-      className="w-full max-w-md"
+      className="w-full max-w-xl"
       role="img"
       aria-label="Your memory lives as Markdown files in your own GitHub repository"
     >

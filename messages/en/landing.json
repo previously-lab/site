@@ -36,13 +36,13 @@
       ]
     },
     "Screen3": {
-      "title": "An agent that grows with you.",
-      "description": "It doesn't just store conversations. It forms an understanding of who you are — your identity, your patterns, your preferences — and refines that understanding every time you talk. Like a friend who gets to know you better over time.",
+      "title": "Grows with you.",
+      "description": "Previously refines how it thinks and remembers — drawing from every conversation and its own reflections. It iterates on its own, getting better at helping you, one chat at a time.",
       "cta": "Explore the memory model"
     },
     "Screen4": {
-      "title": "See every thought. Trust every answer.",
-      "description": "Most AI is a black box. Previously shows you exactly what it's thinking — every phase, every decision, every reason — in real time. Because trust isn't given. It's built, step by visible step.",
+      "title": "Every word matters.",
+      "description": "Previously keeps every conversation in its original form — raw, uncompressed, exactly as it happened. When you need something, it retrieves and assembles context on the fly.",
       "cta": "Explore the architecture"
     },
     "Screen5": {

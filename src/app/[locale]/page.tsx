@@ -138,7 +138,7 @@ export default async function HomePage({
         docsHref="/docs/architecture"
         docsLabel={t("Screen6.cta")}
         visual={<GitHubRepoVisual />}
-        variant="dark"
+        variant="muted"
       />
 
       {/* ── Screen 7: Background Loops ──────────────────── */}
@@ -162,10 +162,10 @@ export default async function HomePage({
 
       {/* ── Screen 9: CTA ───────────────────────────────── */}
       <ScrollReveal className="relative flex min-h-screen w-full flex-col items-center justify-center px-4 text-center sm:px-6 lg:px-8">
-        <h2 className="max-w-2xl text-balance text-4xl font-semibold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
+        <h2 className="max-w-4xl text-balance text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl">
           {t("Screen9.title")}
         </h2>
-        <p className="mt-6 max-w-lg text-balance text-sm leading-relaxed text-muted-foreground sm:text-base">
+        <p className="mt-4 max-w-2xl text-balance text-xs leading-relaxed text-muted-foreground sm:text-sm">
           {t("Screen9.description")}
         </p>
         <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">

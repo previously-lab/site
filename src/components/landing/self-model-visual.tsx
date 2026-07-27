@@ -21,15 +21,15 @@ interface Connection {
 }
 
 const NODES: BeliefNode[] = [
-  { id: 1, cx: 120, cy: 30, label: "Prefers Rust", category: "pattern", delay: 0 },
+  { id: 1, cx: 120, cy: 30, label: "Prefers concise", category: "pattern", delay: 0 },
   { id: 2, cx: 180, cy: 90, label: "Full-stack dev", category: "identity", delay: 0.3 },
-  { id: 3, cx: 250, cy: 20, label: "Concise answers", category: "strategy", delay: 0.5 },
-  { id: 4, cx: 310, cy: 100, label: "Works on Tauri", category: "pattern", delay: 0.7 },
-  { id: 5, cx: 370, cy: 40, label: "Building agent", category: "context", delay: 0.9 },
-  { id: 6, cx: 430, cy: 85, label: "Prefers en", category: "pattern", delay: 1.1 },
-  { id: 7, cx: 490, cy: 25, label: "OSS advocate", category: "identity", delay: 1.3 },
+  { id: 3, cx: 250, cy: 20, label: "Use examples", category: "strategy", delay: 0.5 },
+  { id: 4, cx: 310, cy: 100, label: "Early riser", category: "pattern", delay: 0.7 },
+  { id: 5, cx: 370, cy: 40, label: "Building app", category: "context", delay: 0.9 },
+  { id: 6, cx: 430, cy: 85, label: "Likes feedback", category: "pattern", delay: 1.1 },
+  { id: 7, cx: 490, cy: 25, label: "OSS contributor", category: "identity", delay: 1.3 },
   { id: 8, cx: 550, cy: 95, label: "GMT+8", category: "context", delay: 1.5 },
-  { id: 9, cx: 90, cy: 120, label: "Old belief", category: "context", delay: 0.2, fadesOut: true },
+  { id: 9, cx: 90, cy: 120, label: "Likes Python", category: "context", delay: 0.2, fadesOut: true },
 ];
 
 const CONNECTIONS: Connection[] = [
