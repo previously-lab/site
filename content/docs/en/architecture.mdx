@@ -1,16 +1,12 @@
 ---
 title: Architecture
-description: System architecture — two independent Vercel Workflows (chat + evolution) running in parallel, a Pull-based recall model where the agent decides when to search, and conceptual memory tools that replace filesystem operations.
+description: Three-layer cloud architecture — every chat turn runs inside a durable Vercel Workflow run, with GitHub as the single source of truth for memory.
 order: 1
 ---
 
 # Architecture
 
-<Callout variant="info">
-The core insight of v0.5: the agent decides. It decides when to search memory (Pull, not Push). It evolves its understanding of you in a parallel workflow (independent, not embedded). It navigates memory concepts (slices, strands, timelines) rather than file paths. Everything runs on your GitHub repo — no database, no vector store.
-</Callout>
-
-Previously runs two independent Vercel Workflows in parallel — chat and evolution — coupled only through files on disk. The agent pulls context on demand instead of having it pushed. Tools express memory semantics, not filesystem operations.
+Previously is a cloud agent on Vercel that reads GitHub files, calls LLMs, and streams responses back — no database, no cron, no persistent server. What makes it unusual is that **every chat turn runs inside a durable Vercel Workflow run**: each LLM call and each tool call is an individually durable, auto-retried step. GitHub remains the single source of truth for memory — Workflow is only the execution container.
 
 ## The Three Layers
 
@@ -18,242 +14,140 @@ The system is split into three layers, each with a distinct responsibility and a
 
 | Layer | What it is | What it does |
 |-------|------------|--------------|
-| **Browser** | Next.js App Router UI | Renders the chat surface, horizontal timeline, Phase Indicator, and Previously Bar. Captures input. Streams responses. That is all — no business logic, no state machine, no local memory. |
-| **Vercel Orchestration** | Two independent Workflows | **Chat workflow** (`POST /api/chat`): runs the agent loop, streams responses. **Evolution workflow** (`POST /api/evolution`): runs the Previously Agent, updates the self-model. The two run in parallel, coupled only through `previously.md` on disk. |
-| **GitHub Private Repo** | The single source of truth | Holds everything: `src/` (agent-read-only), `memory/` (episodic slices, previously.md, timeline index, strand index), `tasks/`, `sessions/`. |
+| **Browser / Phone** | Next.js App Router UI | Renders the chat surface. Captures input. Streams the response. That is all — no business logic, no state machine, no local memory. |
+| **Vercel** | Orchestration | Receives a trigger, reads GitHub state, runs the agent workflow, writes back. Stateless, event-driven, durable. |
+| **GitHub Private Repo** | The single source of truth | Holds everything: `src/` (agent-read-only), `memory/`, `tasks/`, `sessions/` (agent-read-write). Code and data coexist in one repo. |
 
-### Execution Model: Vercel Workflow
+<Callout variant="info">
+**Key takeaway: no database, no always-on agent, no persistent connection.** Previously runs entirely inside Vercel's request lifecycle. You send a message, the turn workflow fires, and the response streams back. When the response ends, there is no background process — unless a durable loop is running, and even that persists its state to the repo, not to a server.
+</Callout>
 
-Every chat turn runs inside a durable Vercel Workflow run. This means:
+## The Durable Turn Workflow
 
-- **Resumable streaming** — the response streams to the client. If the connection drops, the workflow continues running on Vercel's infrastructure and the client can reconnect.
-- **Durable steps** — each LLM call and each tool call is an individually durable, automatically retried workflow step. A transient API failure retries without losing the turn's progress.
-- **Parallel workflows** — the chat and evolution workflows are fully independent. Chat does not wait for evolution. Evolution does not block the chat response. If evolution fails, chat continues normally. The two systems are decoupled at the infrastructure level.
+The whole agent is `src/app/api/chat/turn-workflow.ts` — a `"use workflow"` controller. Every user message triggers one of these runs:
 
-There is intentionally no database or KV store. State lives in GitHub files. Workflow provides durability for execution; GitHub provides durability for data.
+1. **Housekeeping** — resolve or recover the active time slice, apply the 30-minute silence rule, append the incoming turn.
+2. **Worker pass** — a cheap worker model (derived from the main model's provider) scans recent slice summaries for recall pointers and maintains the slice's metadata, in one call. It also applies the **semantic gate**: trivial turns ("thanks", "continue") produce no tags and no strands.
+3. **Prompt assembly** — the system prompt is assembled from identity, the user card, and the episodic timeline context.
+4. **Pro agent loop** — the main model runs as a `WorkflowAgent` (`@ai-sdk/workflow`). Each LLM call and each tool call is its own durable step: tool executors are standalone `"use step"` functions in `src/app/api/agent/tool-executors.ts`, so the runtime retries them on transient failures. The agent reasons, recalls, reads, and answers.
+5. **Finalize** — the turn is appended, the slice snapshot is saved, indexes and strands are updated.
 
-## The Chat Workflow: Pull-Based Agent Loop
+Because every step is durable, the run survives dropped connections. `WorkflowChatTransport` on the client re-attaches to the same run when the tab returns to the foreground, and replays what was missed. Background loops use the same agent layer as separate workflow runs.
 
-The chat workflow is `src/app/api/chat/turn-workflow.ts`. Each user message triggers these steps:
+## Agent Layer
 
-### 1. Housekeeping
+The agent layer lives in `src/app/api/agent/` and is shared by chat turns and any background loops:
 
-Resolve or create the active time slice. If no slice is active, recover the last-known slice from disk. Apply the 30-minute silence rule: if the user has been inactive that long, close the old slice and open a new one. Append the incoming turn.
+| File | Purpose |
+|------|---------|
+| `agent.ts` | Creates the `WorkflowAgent` with the model, thinking, and tool set |
+| `tools.ts` | Tool definitions (schema + context schema) — the chat agent's tool set |
+| `tool-executors.ts` | Standalone `"use step"` executors for each tool |
+| `register-model-classes.ts` | Registers model hosts so they survive the workflow→step boundary |
 
-### 2. Assemble Baseline Context
+### Tools
 
-The system prompt is built from two things:
-- **System directives** — the agent's role, capabilities, and rules (compiled at build time)
-- **previously.md** — the agent's current understanding of the user (read from disk at request time)
+The chat agent gets a small, deliberate tool set. Concept tools (read a slice / belief / cognition you were given an id for):
 
-That's it. No pre-loaded recall results. No pre-assembled timeline context. No mandatory Flash call. The agent starts with its understanding of who you are, and pulls everything else on demand.
+| Tool | Purpose |
+|------|---------|
+| `readSlice` | Read a slice's turns, optionally a `range` |
+| `readPreviously` | Read the user-card belief snapshot across time |
+| `readAgentTimeline` | Read the agent's own past reasoning |
+| `listSlices` / `readTimeline` | Explore the timeline (recall-engine job, mostly) |
+| `listStrands` / `readStrand` | Follow a keyword across slices |
 
-### 3. Agent Loop (Pro Model)
+Delegation tools:
 
-The main model (DeepSeek V4 Pro, with optional thinking mode) enters a tool-use loop:
+| Tool | Purpose |
+|------|---------|
+| `recall` | Hands the actual search to the worker model's recall engine, returns pointers |
+| `webSearch` / `webFetch` | Look things up on the web |
 
-```
-Pro receives message + previously.md
-  → Pro decides: respond directly, or search memory?
-    → If search: call recall tool
-      → Flash sub-agent scans timeline, returns pointers
-      → Pro reads relevant slices via readSlice
-    → Pro responds
-  → (optional) Pro calls additional tools (readStrand, readTimeline, etc.)
-  → Loop continues until Pro finishes (max 20 steps)
-```
+> **One recall, then stop.** The main agent does not browse memory itself — exploration is the recall engine's job. It asks `recall` once, reads what it needs with `readSlice`, and moves on. `startLoop` is defined but currently commented out (background loops are temporarily disabled while being stabilized).
 
-The key difference from v0.4: the system does not pre-decide what context the agent needs. The agent decides.
+## Two-Tier Model Split
 
-### 4. Cognition Extraction
+The model layer (`src/lib/models/`) resolves two tiers:
 
-After each turn, the system mechanically extracts the agent's reasoning and tool-call results from the workflow step data and writes them to `agent.md`. This is automatic — the agent doesn't need to call a tool to record its thinking. The extraction reads `result.steps[].reasoning` for the thinking text and matches tool results by `toolCallId`. No model involvement, no missed recordings.
+- **Main model** — user-selected in the chat toolbar, persisted to `memory/user/config.json`. Does the reasoning, tool calling, and response generation.
+- **Worker model** — a cheap tier derived from the main model's provider (or manually pinned). Runs the housekeeping calls: recall scanning, metadata maintenance, the semantic gate. This keeps the per-turn cost low while the main model does the heavy lifting.
 
-### 5. Slice Snapshot
-
-On turn completion, the slice state is snapshotted to disk. The global timeline index is updated. The strand index is refreshed with any new tags. If the slice is closing (30-minute silence rule), the evolution workflow is triggered.
-
-## The Evolution Workflow: Independent Self-Model Updates
-
-The evolution workflow is `src/app/api/evolution/route.ts`. It runs as a **fully independent Vercel Workflow**, in parallel with chat:
-
-```
-Client                          Server
-  │                               │
-  ├─ POST /api/chat ──────────────┼── chat workflow (Pro agent loop)
-  │                               │
-  ├─ POST /api/evolution ─────────┼── evolution workflow (Previously Agent)
-  │  (parallel, don't wait)       │      │
-  │                               │      ├─ readEvolutionContext
-  │                               │      │   ├─ Read current slice (core.md + agent.md)
-  │                               │      │   ├─ Read previously.md
-  │                               │      │   └─ Extract recent turns
-  │                               │      │
-  │                               │      └─ finalizeEvolution
-  │                               │          ├─ Run Previously Agent (Pro, no thinking)
-  │                               │          ├─ Apply mutations via previously-updater
-  │                               │          ├─ Write updated previously.md
-  │                               │          └─ Stream results via SSE
-  │                               │
-  │  ←── data-evolution chunks ───┼── Previously Bar updates in real time
-```
-
-### Why It's Independent
-
-1. **Decoupling** — Chat and evolution know nothing about each other. They share only `previously.md` on disk. This is a clean microservice-style boundary.
-2. **Parallelism** — Evolution never delays a chat response. Both run at the same time.
-3. **Fault isolation** — If evolution fails, chat doesn't care. The Previously Bar shows a red error state, but the conversation continues.
-4. **Independent retry** — Evolution has its own durable steps and retry logic. A transient failure in the Previously Agent call doesn't affect anything else.
-
-### The Previously Agent
-
-The evolution workflow runs a Pro model (DeepSeek V4 Pro, **without** thinking mode — this is structured review, not creative work). It makes a three-gate decision:
-
-1. **Nothing to do** → return empty mutations, immediately end
-2. **Shallow edit** → from pre-loaded data (previously.md + current conversation + recent turns), decide what changed
-3. **Deep exploration** → call `readSlice`, `readAgentTimeline`, or `readPreviously` tools to investigate before deciding
-
-The Previously Agent's mutations are applied through `previously-updater.ts` — a **pure function** with no I/O and no LLM calls. It takes the current previously.md and a list of mutation operations (observe, reinforce, contradict, discard, expire, promote, demote), and returns the updated document. This separation — model decides, pure function applies — keeps the system testable and predictable.
-
-## Capabilities Module: Single Source of Truth
-
-`src/lib/capabilities.ts` is the one place that determines what the app can do. Every other module queries it instead of reading environment variables directly:
-
-```
-DEEPSEEK_API_KEY exists?
-├─ NO  → App unavailable
-└─ YES → GITHUB_TOKEN exists?
-          ├─ NO  → Demo mode: can chat, cannot write, cannot loop
-          └─ YES → Production mode: full functionality
-```
-
-This replaces the v0.4 pattern where 8+ files each read `process.env` independently. The capabilities module is for engineering code only — the AI model layer never imports it. The model learns its limitations through tool executor return values, not through injected system prompt flags.
-
-## Conceptual Memory Tools
-
-The agent's tools express **memory semantics**, not filesystem operations. This is a deliberate design choice: the agent should navigate memory the way a person thinks about it, not the way a filesystem organizes it.
-
-| Tool | Semantic concept | What it actually does |
-|------|-----------------|---------------------|
-| `recall` | Search the past | Launch a Flash sub-agent to scan the global timeline + strand index, return pointers to relevant slices |
-| `readSlice` | Open a memory | Construct the path to a slice directory, read both core.md and agent.md, return structured content |
-| `readTimeline` | Browse the timeline | Read the global timeline index (`timeline.md`), return all available slices with summaries |
-| `readStrand` | Trace a topic | Read the strand index, follow a keyword to its slice paths, read those slices |
-| `listStrands` | Browse all topics | Read the strand index, return all keyword entries |
-| `readAgentTimeline` | Review past thinking | Read agent.md files across slices to trace the agent's cognitive history |
-| `readPreviously` | Check past impressions | Read historical previously.md snapshots from earlier slices |
-
-Each tool constructs paths internally. The agent never sees or constructs a file path. The path whitelist (`memory/`, `tasks/`, `sessions/`) is enforced at the tool executor level — the agent can only access what the tools allow, and the tools can only access whitelisted directories.
-
-## The Dual Timeline
-
-Every slice stores two parallel records:
-
-```
-memory/episodic/slices/YYYY/MM/DD/HHMM/
-  timeline/
-    core.md       ← the conversation (what was said)
-    agent.md      ← the cognition (what the agent was thinking)
-  previously.md   ← the self-model snapshot
-```
-
-`core.md` is the transcript. `agent.md` is the internal record — reasoning text and tool-call results, mechanically extracted from workflow step data. Together they power the historical view (conversation + "Thoughts" link) and give the evolution system the raw material it needs.
-
-## Shared Infrastructure
-
-### Turn Parser (`turn-parser.ts`)
-
-A shared utility for parsing slice IDs and conversation turns:
-- `parseSliceId()`: converts `YYYY-MM-DD-HHMM` to path segments
-- `parseTurns()`: parses `## Turn N -- ISO_TIMESTAMP (role)` headers from core.md
-
-Used by both tool executors and evolution steps — avoids duplicated parsing logic.
-
-### Slice Cache (`slice-cache.ts`)
-
-A client-side in-memory cache (`Map<sliceId, {content, timestamp}>`) with a 5-minute TTL. When the user clicks back to a recently viewed slice, the content returns instantly from cache — no API call, no loading state. Auto-expires stale entries.
-
-### Global Timeline Index (`timeline.md`)
-
-A single flat file containing summaries of all closed slices. The recall system reads this as its starting point — one read, everything visible. Regenerated incrementally when slices close. Stale-detected (6-hour threshold) and auto-regenerated if needed.
+`resolveWorkerModel()` (`src/lib/models/worker.ts`) picks it: manual pin → same-provider lightweight → the main model. The catalog is models.dev-driven (`src/lib/models/catalog.ts`), gated by configured API-key env vars and reverse-filtered against each provider's live `/models` endpoint.
 
 ## Frontend Architecture
 
-The page uses a two-screen CSS document flow — no JavaScript height hacks, no virtual scroller:
+The Next.js App Router enforces a strict server-component/client-component boundary. `page.tsx` is a Server Component that preloads the user config and sets up the demo persona, then renders `ChatPage` — a thin client shell owning the AI SDK `useChat` hook with `WorkflowChatTransport`.
 
-- **Hero** — `h-screen`, full viewport. "Previously on {name}" with text-reveal animation.
-- **Timeline** — `sticky top-12`, snaps below the fixed header and stays visible.
-- **Content area** — `min-h-screen`, natural document flow containing either live chat or historical view.
-- **Chat input** — `fixed bottom-0` with translucent backdrop (`bg-background/90 backdrop-blur-md`).
-- **Previously Bar** — `fixed bottom-12`, always visible between content and input.
+The page is one vertical scroller:
 
-The message area streams through React Server Components with Suspense boundaries, enabling the page shell to render immediately while data streams in.
+1. **Hero** — server-rendered, `"Previously on {name}"`.
+2. **Sticky horizontal timeline** — `HorizontalTimeline`, a date-dot strip that snaps below the AppHeader.
+3. **Chat content** — live messages, or a historical slice view when a past dot is selected.
+4. **Sticky input bar** — with model selector, thinking toggle, image attachments, and the demo trigger.
 
-## Security Model
+Message rendering is a unified stream pipeline (`buildStream` in `src/lib/chat/build-stream.ts`): reasoning merges into `ThinkingSteps`, tool calls merge into `ToolRenderer` cards by `toolCallId`, `data-phase` parts become `PhaseIndicator`s, `data-evolution` parts drive the per-bubble `EvolutionIndicator`. Everything renders inline inside the assistant bubble via `AnimatePresence`.
 
-Security is enforced entirely in TypeScript at the tool boundary:
-
-### Path Whitelist
-
-Only three directories are writable: `memory/`, `tasks/`, `sessions/`. `normalizePath()` decodes URI components, converts backslashes, resolves `./` and `../`, strips leading slashes. Then `isPathAllowed()` rejects empty paths, absolute Unix paths, and drive-letter paths before matching against allowed prefixes.
-
-### Protected System Paths
-
-Within the whitelist, certain paths are readable but **not writable** by the generic tools: `memory/episodic/` (system-owned slices and indexes), any `_index.json` file, `strands.json`, and `timeline.md`. These are only modified through their dedicated system functions.
-
-### `src/` Is Agent-Read-Only
-
-The `src/` directory does not appear in the whitelist. No agent tool can write there. The agent can read `src/` through git, but cannot modify it.
-
-### Data Source Auto-Detection
-
-The capabilities module centralizes data-source resolution. When `GITHUB_TOKEN` is set, the system uses the GitHub API against the user's private repo. Without a token, demo mode activates — serving benchmark data from a public repo. Writes are accepted but discarded in demo mode. A demo badge in the header indicates the current mode.
-
-## Core Modules (v0.5)
+## Core Modules
 
 | Module | Path | Purpose |
 |--------|------|---------|
-| Capabilities | `src/lib/capabilities.ts` | Single source of truth for app mode and feature flags |
-| Previously Updater | `src/lib/episodic/previously-updater.ts` | Pure function: applies mutations to previously.md |
-| Previously Format | `src/lib/episodic/previously-format.ts` | Serialize/deserialize/validate previously.md v2 |
-| Global Timeline | `src/lib/episodic/global-timeline.ts` | Generate/format/stale-check `timeline.md` |
-| Recall Search | `src/lib/episodic/recall.ts` | Flash sub-agent: multi-step timeline search, returns pointers |
-| Turn Parser | `src/lib/episodic/turn-parser.ts` | Shared slice ID and turn parsing for tools + evolution |
-| Cognition Extraction | `src/app/api/chat/cognition-extraction.ts` | Mechanical extraction of reasoning + tool results from workflow steps |
-| Evolution Workflow | `src/app/api/evolution/route.ts` | Independent Vercel Workflow for self-model updates |
-| Chat Workflow | `src/app/api/chat/turn-workflow.ts` | Main agent loop: Pull-based tool use, streaming response |
-| Tool Definitions | `src/lib/tools/tools.ts` | Declares inputSchema + contextSchema + executor references |
-| Tool Executors | `src/lib/tools/tool-executors.ts` | Independent `"use step"` functions, shared by chat and loop |
-| Path Whitelist | `src/lib/whitelist/` | Security boundary: `memory/ tasks/ sessions/` only |
+| Capabilities | `src/lib/capabilities.ts` | Global app-mode checks (isAIConfigured, isDemo, canWrite) |
+| Episodic Memory | `src/lib/episodic/` | Time-slice management, slicing rules, strands index |
+| Turn Analyzer | `src/lib/episodic/flash/turn-analyzer.ts` | The worker-model housekeeping call |
+| Time Localization | `src/lib/episodic/time-localize.ts` | Server-side local-time annotation for read tools |
+| User Card | `src/lib/episodic/previously-*` | The compact user card + `applyCardUpdate` |
+| Model Registry | `src/lib/models/` | models.dev catalog, provider dispatch, worker resolution |
+| GitHub Tools | `src/lib/tools/` | readFile/writeFile/listFiles via Octokit |
+| Path Whitelist | `src/lib/whitelist/` | Security boundary: memory/tasks/sessions only |
 
-## What Was Removed (v0.4 → v0.5)
+## Security Model
 
-The v0.5 architecture is simpler despite being more capable. Key removals:
+Security is enforced entirely in TypeScript at the tool boundary.
 
-| Removed | Why | Replaced by |
-|---------|-----|------------|
-| `profile.md` + profile writer | Separate identity file, manually patched | previously.md User identity section |
-| `memory/nodes/` extractor | Agent-authored knowledge cards | previously.md beliefs with evidence trails |
-| `updateUserProfile` tool | Model-called profile patching | Evolution workflow (autonomous, independent) |
-| File-driven loop engine | Manual checkpoint serialization | Vercel Workflow native durability |
-| Unified Flash call (per-turn) | Mandatory context pre-loading | On-demand `recall` tool |
-| Archive sync | Session/task archival | Superseded by workflow + slice systems |
-| Vertical timeline panel (~580 lines) | Sidebar with date-grouped cards | Horizontal timeline (115 lines) |
-| Filesystem-concept tools | `readFile`, `writeFile`, etc. | Conceptual memory tools (7 tools) |
+### Path Whitelist
+
+`src/lib/whitelist/index.ts` defines the only three writable directories:
+
+```
+memory/   tasks/   sessions/
+```
+
+`normalizePath()` decodes URI components, converts backslashes to forward slashes, resolves `./` and `../` segments, and strips leading slashes. `isPathAllowed()` rejects empty paths and absolute paths (Unix and Windows drive letters), then checks the path starts with one of the three allowed prefixes.
+
+### `src/` Is Agent-Read-Only
+
+The `src/` directory simply does not appear in the whitelist. No agent tool can write there. The agent can read `src/` through git, but cannot modify it — the path whitelist rejects write attempts. This keeps the codebase integrity independent of the agent's execution.
+
+### GitHub Token Scope
+
+The `GITHUB_TOKEN` is scoped to a single repository with contents read/write. The agent operates on exactly one repo: the one defined by `GITHUB_REPO_OWNER` / `GITHUB_REPO_NAME`. There is no cross-repo access.
+
+All path validation is server-side — the client is untrusted. The browser never constructs file paths or makes storage decisions.
+
+## Data Source Modes
+
+Storage has three modes, controlled by `STORAGE`:
+
+| Mode | When | Behavior |
+|------|------|----------|
+| `local` | local dev | Reads/writes the local filesystem |
+| `github` | production | Reads/writes your repo via the GitHub API (Octokit) |
+| `demo` | preview | Read-only, pre-seeded personas |
+
+Auto-detection: `GITHUB_TOKEN` present → `github`; `NODE_ENV=development` → `local`; otherwise → `demo`.
 
 ## What Comes Next (Roadmap)
 
-- Richer first-class strands with rolling summaries and narrative arcs
-- Multi-branch memory and parallel timeline indexing
-- Recall-quality metrics and evaluation harness
-- Background loop engine v2 (re-enabled in v0.5, further work planned)
-- Authentication and multi-user support
-- Cloud-local connector framework
+- First-class strands — a rolling summary + recall integration for each strand
+- Re-enable background loops (`startLoop` is defined but commented out)
+- Richer cross-slice navigation on the timeline
+- More demo personas
 
-Previously is **experimental** (v0.5). The author commits to long-term maintenance, but the project is in active early development.
+The project status badge is **experimental**.
 
 ## Related
 
-- [Memory Model](/docs/memory-model) — how previously.md works
-- [Recall](/docs/recall) — the Pull-based retrieval engine
-- [Slices](/docs/slices) — the dual-timeline slice structure
+- [Memory Model](/docs/memory-model) — how slices, strands, and the user card work
+- [Recall](/docs/recall) — the two-tier retrieval pipeline in depth
+- [Timeline](/docs/timeline) — the UI surface and how the agent sees your past

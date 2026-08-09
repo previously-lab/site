@@ -1,113 +1,121 @@
 ---
 title: Deployment
-description: How to create a private copy, configure, and deploy Previously to Vercel in about 10 minutes — no server management or database setup required.
+description: How to create a private copy, generate a GitHub token, and deploy Previously to Vercel in about 10 minutes.
 order: 1
 ---
 
 # Deployment
 
-<Callout variant="warning">
-No authentication yet. Previously is in early development (v0.5) and does not yet have built-in authentication or access control. Anyone with your deployment URL can use your instance — and access or modify your memory data. Keep your deployment URL private. Do not share it publicly. Authentication is a high-priority feature and will be available in a future release.
-</Callout>
-
 Get your own Previously running in about 10 minutes. You'll create a private copy from the template, create a GitHub token, and deploy to Vercel. No server management, no database setup — just a repo, a token, and a deploy.
 
-## Create Your Private Copy
+<Callout variant="warning">
+⚠️ **Important: No authentication yet.** Previously is in early development and does not yet have built-in authentication or access control. Anyone with your deployment URL can use your instance — and access or modify your memory data. Keep your deployment URL private. Do not share it publicly. Limit your Vercel deployment visibility if possible. Authentication is a high-priority feature and will be available soon.
+</Callout>
 
-Previously is a GitHub Template Repository. Click **Use this template** on the [Previously repo page](https://github.com/previously-lab/agent) and choose **Create a new repository**. **Make your new repository private** — this repository holds your agent's memory data (episodic slices, previously.md self-model, strand index, tasks, and session state). A private repository keeps everything accessible only to you and your agent.
+## Create your private copy
 
-> Your repository contains the application code. Memory data your agent creates is stored in whichever GitHub repository the environment variables point to — by default your private copy, but you can point it at a different repo entirely. Code and memory are decoupled by design.
+Previously is a [GitHub Template Repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template). Click **Use this template** on the [Previously repo page](https://github.com/previously-lab/agent) and choose **Create a new repository**. **Make your new repository private** — this repository holds your agent's memory data (episodic slices, memory nodes, tasks, and session state). A private repo keeps everything accessible only to you and your agent.
 
-## Create a GitHub Token
+> Your repository contains the application code. Memory data your agent creates is stored in whichever GitHub repository the environment variables point to — by default your own repo, but you can point it at a different repo entirely. Code and memory are decoupled by design.
+
+## Create a GitHub token
 
 Previously uses the GitHub API to read and write memory data. You need a fine-grained personal access token scoped to your repository.
 
-1. Go to **GitHub Settings** → **Developer settings** → **Personal access tokens** → **Fine-grained tokens**.
-2. Click **Generate new token**.
-3. Give it a name (like "Previously") and choose an expiration.
-4. Under **Repository access**, select **Only select repositories** and pick your repository.
-5. Under **Permissions**, set **Contents** to **Read and write**.
-6. Click **Generate token** and **copy the token immediately** — you will not see it again.
+1. Go to **GitHub Settings** (your profile picture → **Settings**).
+2. In the left sidebar, click **Developer settings**.
+3. Click **Personal access tokens** → **Fine-grained tokens**.
+4. Click **Generate new token**.
+5. Give it a name (like "Previously") and choose an expiration.
+6. Under **Repository access**, select **Only select repositories** and pick your private repo.
+7. Under **Permissions**, find **Contents** and set it to **Read and write**.
+8. Click **Generate token** and **copy the token immediately** — you won't be able to see it again.
 
-The token needs Contents read/write because Previously reads memory files (episodic slices, previously.md, timeline index, strand index) and writes new ones after every conversation — including the evolution workflow's updates to previously.md.
+The token needs Contents read/write because Previously reads memory files (episodic slices, memory nodes, task lists) and writes new ones as the agent works. Scoping it to a single repo limits the blast radius if the token is ever exposed.
 
 ## Deploy to Vercel
 
-### Option A: Import to Vercel (Recommended)
+Two options, from smoothest updates to quickest setup.
 
-1. Go to [vercel.com](https://vercel.com) and sign in with your GitHub account.
-2. Click **Add New** → **Project**.
-3. Import your private repository from the repository list.
-4. In the **Environment Variables** section, add the required variables (see below).
-5. Click **Deploy**.
+### Option A: Import to Vercel (recommended)
+
+1. Create your private copy from the template (you already did this above).
+2. Go to [vercel.com](https://vercel.com) and sign in with your GitHub account.
+3. Click **Add New** → **Project**.
+4. Import your private repo from the repository list. If it's not visible, click **Adjust GitHub App Permissions** and grant Vercel access to the repo.
+5. In the **Environment Variables** section, add `DEEPSEEK_API_KEY`, `GITHUB_TOKEN`, `GITHUB_REPO_OWNER`, and `GITHUB_REPO_NAME` (see below).
+6. Click **Deploy**.
 
 Vercel detects Next.js, builds, and gives you a URL. That's it.
 
-### Option B: Local Dev (For Testing)
+### Option B: Local dev (for testing)
+
+To run Previously on your own machine:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/previously.git
-cd previously
+git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git
+cd YOUR_REPO
 pnpm install
 pnpm dev
 ```
 
-Create a `.env.local` file (see below) before starting. The app runs on `http://localhost:3000`. Without `GITHUB_TOKEN`, it runs in demo mode with 20 benchmark personas.
+Create a `.env.local` file (see below) before starting. The app runs on `http://localhost:3000`.
 
-## Environment Variables
+## Environment variables
 
-For local dev, create `.env.local` in the project root. For Vercel, add these under **Settings → Environment Variables**.
+For local dev, create `.env.local` in the project root. For Vercel deployment, add these in your project settings under **Settings → Environment Variables**.
 
 ```bash
-# Required — DeepSeek API key (powers Flash recall and Pro reasoning)
+# Required — DeepSeek API key (powers the main model; the worker tier resolves from the same provider)
 DEEPSEEK_API_KEY=sk-...
 
-# Required for production — the GitHub token you created above
+# Required — the GitHub token you created above
 GITHUB_TOKEN=github_pat_...
 
-# Required for production — your GitHub username and the repo name
+# Required — your GitHub username and the repo name
 GITHUB_REPO_OWNER=your-username
-GITHUB_REPO_NAME=previously
+GITHUB_REPO_NAME=your-repo-name
 
-# Optional — benchmark data repo URL (only used in demo mode)
-# BENCHMARK_BASE_URL=https://github.com/example/benchmark-data
+# Optional — read-only demo persona mode
+# STORAGE=demo
 ```
 
-| Variable | Required | Where to get it |
-|---|---|---|
-| `DEEPSEEK_API_KEY` | Yes | [platform.deepseek.com](https://platform.deepseek.com) — create an account and generate an API key |
-| `GITHUB_TOKEN` | For production | Created in the token setup steps above |
-| `GITHUB_REPO_OWNER` | For production | Your GitHub username |
-| `GITHUB_REPO_NAME` | For production | Your repository name |
-| `BENCHMARK_BASE_URL` | No | — |
+| Variable | Required | What it is | Where to get it |
+|---|---|---|---|
+| `DEEPSEEK_API_KEY` | Yes | Authenticates requests to DeepSeek for the main model (and, by default, the worker tier derived from the same provider). | [platform.deepseek.com](https://platform.deepseek.com) — create an account and generate an API key. |
+| `GITHUB_TOKEN` | Yes | The fine-grained personal access token. Every GitHub read and write flows through it. | [Created above](#create-a-github-token) in the token setup steps. |
+| `GITHUB_REPO_OWNER` | Yes | Your GitHub username or organization that owns the repository holding memory data. | Your GitHub username. |
+| `GITHUB_REPO_NAME` | Yes | The repository name where memory data lives. By default this is your repo, but you can point it at any repo you own. | Your repo's name on GitHub. |
+| `STORAGE` | No | Selects the data source: `local` (filesystem), `github` (GitHub API), or `demo` (read-only pre-seeded persona dataset). Auto-detected when unset. | — |
 
-> **Without `GITHUB_TOKEN`:** The app automatically runs in demo mode with 20 benchmark personas. No GitHub token needed for evaluation. Writes are accepted but not persisted.
+## Syncing upstream updates
 
-## Syncing Upstream Updates
+Previously has a built-in sync mechanism. When a new version is released:
 
-Previously has a built-in sync mechanism to keep your deployment up to date:
+1. Open your Previously instance and go to **Settings**.
+2. In the **Version & Updates** section, if you see "Update available," click **Sync from upstream**.
+3. The latest code is merged into your repository automatically. Vercel redeploys on the next push.
 
-1. Go to your deployed app's **Settings** page.
-2. Navigate to **Version & Updates**.
-3. Click **Sync from upstream**.
-4. The code is merged into your repository, and Vercel automatically redeploys.
+Your personal data (`memory/`, `tasks/`, `sessions/`) is never overwritten — only code directories are synced. The sync creates a proper merge commit that preserves your git history.
 
-The sync process only touches code directories. Your memory data (`memory/`), tasks, and sessions are never modified by upstream updates.
+### Manual sync (fallback)
 
-### Manual Sync (Fallback)
+If the built-in sync button is unavailable, you can merge upstream changes manually from the command line. First, add the upstream remote (one-time setup):
 
 ```bash
 git remote add upstream https://github.com/previously-lab/agent.git
 git fetch upstream
-git checkout main
 git merge upstream/main --allow-unrelated-histories
 git push origin main
 ```
 
 Vercel redeploys automatically after the push.
 
+### What sync touches
+
+Code directories (`src/`, `content/`, `public/`, `messages/`, `scripts/`, etc.) and root config files are synced from upstream. Episodic memory data (`memory/episodic/`) is gitignored, so pulling in new code never overwrites your accumulated memory. Your personal data in `memory/`, `tasks/`, and `sessions/` is always preserved.
+
 ## Related
 
-- [Architecture](/docs/architecture) — the two-workflow system design
-- [Configuration](/docs/configuration) — env var reference and model settings
+- [Architecture](/docs/architecture) — three-layer separation and data model
 - [Getting Started](/docs/getting-started) — tour the interface and send your first message

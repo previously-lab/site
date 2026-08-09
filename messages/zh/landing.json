@@ -2,19 +2,19 @@
   "Landing": {
     "Meta": {
       "title": "Previously — Previously on you.",
-      "description": "一个开源的个人 AI 代理，按时间组织记忆——一条时间线上的情景切片，而非聊天线程"
+      "description": "一个开源的个人 AI Agent,按时间而非聊天线程记忆——一条时间线上的情景时间片"
     },
     "Hero": {
       "eyebrow": "Previously on you.",
-      "title": "你的 AI，按时间组织——而非按对话线程。",
-      "subtitle": "一个开源的个人 AI 代理，按时间组织记忆——一条时间线上的情景切片，而非聊天线程",
+      "title": "你的 AI,按时间组织——而非按对话线程。",
+      "subtitle": "一个开源的个人 AI Agent,按时间而非聊天线程记忆——一条时间线上的情景时间片",
       "ctaDemo": "体验在线演示",
       "ctaDocs": "阅读文档",
       "ctaGithub": "在 GitHub 查看"
     },
     "Screen2": {
-      "title": "时间，而非对话。",
-      "description": "绝大多数 AI agent 按对话线程组织你的内容。Previously 将所有对话按时间顺序归入一条连续的时间线——每一个瞬间，都在它该在的位置。",
+      "title": "时间,而非对话。",
+      "description": "绝大多数 AI agent 按对话线程组织你的内容。Previously 没有对话——只有一条连续时间线上的持续关系,每一个瞬间,都在它该在的位置。",
       "cta": "了解时间线如何工作",
       "beforeLabel": "聊天线程 — 彼此孤立的对话",
       "afterLabel": "Previously — 一条连续的时间线",
@@ -41,47 +41,47 @@
       "legendText": "线索将时间上相关的话题串联起来"
     },
     "Screen3": {
-      "title": "与你一起成长。",
-      "description": "Previously 根据你的每一次对话和它自己的反思，持续优化它思考和回忆的方式。它会自己迭代、自己调整，一次比一次更懂怎么帮你。",
+      "title": "会了解你的记忆。",
+      "description": "Previously 维护一张紧凑的用户卡片——身份、画像、最近的工作——随你的对话不断演化。每关闭一个切片,它就精炼一次对你的理解:不是臃肿的档案,只是真正重要的东西。",
       "cta": "探索记忆模型",
       "legend": "进化的认知 — 观察、强化、纠正、过期"
     },
     "Screen4": {
-      "title": "每一个字，都在。",
-      "description": "Previously 保留每一次对话的原始情景，原原本本。当需要的时候，动态调取、动态拼接上下文。",
+      "title": "没有黑箱。",
+      "description": "思考、回忆和每一次工具调用,都在答案流出的同时内联呈现。你可以看到 Agent 推理、扫描你的时间线、深读真正重要的切片——然后才给出回答。",
       "cta": "探索架构设计",
-      "terminalTitle": "phase-indicator",
-      "phase1Label": "正在切分时间…",
-      "phase1Detail": "识别当前对话的时间窗口",
-      "phase2Label": "正在扫描记忆…",
-      "phase2Detail": "在此时间范围内找到 12 个历史切片",
-      "phase3Label": "正在更新认知…",
-      "phase3Detail": "+2 新增 · ↑1 强化",
-      "cursorText": "观察到模式：偏好简洁的回答…"
+      "terminalTitle": "recall pipeline",
+      "phase1Label": "worker 扫描…",
+      "phase1Detail": "扫描近期切片摘要,寻找指针",
+      "phase2Label": "主模型深读…",
+      "phase2Detail": "完整读取真正重要的切片",
+      "phase3Label": "元数据维护…",
+      "phase3Detail": "+2 标签织入线索索引",
+      "cursorText": "回忆:你上次关于住房项目做了什么决定…"
     },
     "Screen5": {
       "title": "穿越到任何一个瞬间。",
-      "description": "点击时间线上的任意一点，你就到了那里——重温那次对话，看到 Agent 当时在想什么，从上次停下的地方继续。不是搜索，不是滚动。是时间旅行。",
+      "description": "点击时间线上的任意一点,你就到了那里——重温那次对话,看到 Agent 当时在想什么,从上次停下的地方继续。不是搜索,不是滚动。是时间旅行。",
       "cta": "理解时间切片",
       "nowLabel": "现在"
     },
     "Screen6": {
       "title": "你的记忆。你的仓库。",
-      "description": "每一次对话都是你 GitHub 仓库中的一个 Markdown 文件。没有私有数据库。没有云锁定。没有别人的服务器。你的数据，你的格式，你的控制——永远如此。",
+      "description": "每一次对话都是你 GitHub 仓库中的一个 Markdown 文件。没有私有数据库。没有云锁定。没有别人的服务器。你的数据,你的格式,你的控制——永远如此。",
       "cta": "了解架构",
       "repoName": "your-username/memory",
       "repoVisibility": "公开",
       "lockText": "你的 GitHub 仓库。你的数据。"
     },
     "Screen7": {
-      "title": "你不在的时候，它也在工作。",
-      "description": "关闭标签页。走开。Previously 继续工作——运行后台任务、进化它的理解、为你的下一次对话做准备。「话后功成」不只是一句口号，而是它的工作方式。",
-      "cta": "配置后台循环",
+      "title": "你不在的时候,它也在工作。",
+      "description": "每一轮都是耐久运行——关闭标签页、锁屏、断线,Agent 都会继续。你回来时,它会重新挂接,补给你错过的内容。后台循环同理。「话后功成」不只是一句口号,而是它的工作方式。",
+      "cta": "了解耐久工作流",
       "tagline": "话后功成。"
     },
     "Screen8": {
       "title": "开源。自托管。无锁定。",
-      "description": "MIT 许可。在你自己的机器上运行。修改它。扩展它。回馈社区。Previously 属于社区，不属于任何公司。",
+      "description": "MIT 许可。在你自己的机器上运行。修改它。扩展它。回馈社区。Previously 属于社区,不属于任何公司。",
       "cta": "开始使用",
       "badgeMIT": "MIT 许可",
       "badgeSelfHost": "可自托管",
@@ -92,7 +92,7 @@
     },
     "Screen9": {
       "title": "Previously on you.",
-      "description": "你的 AI，按时间组织——而非按对话线程。开源。自托管。永远属于你。",
+      "description": "你的 AI,按时间组织——而非按对话线程。开源。自托管。永远属于你。",
       "ctaDemo": "体验在线演示",
       "ctaGithub": "在 GitHub 查看"
     }

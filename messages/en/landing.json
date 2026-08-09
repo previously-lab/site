@@ -2,19 +2,19 @@
   "Landing": {
     "Meta": {
       "title": "Previously — Previously on you.",
-      "description": "an open-source personal AI agent that organizes memory by time — a single timeline of episodic slices, not chat threads"
+      "description": "an open-source personal AI agent that remembers by when, not by chat thread — a single timeline of episodic time slices"
     },
     "Hero": {
       "eyebrow": "Previously on you.",
       "title": "Your AI, organized by time — not by threads.",
-      "subtitle": "an open-source personal AI agent that organizes memory by time — a single timeline of episodic slices, not chat threads",
+      "subtitle": "an open-source personal AI agent that remembers by when, not by chat thread — a single timeline of episodic time slices",
       "ctaDemo": "Try the live demo",
       "ctaDocs": "Read the docs",
       "ctaGithub": "View on GitHub"
     },
     "Screen2": {
       "title": "Time, not conversations.",
-      "description": "Most AI agents organize your content by conversation threads. Previously organizes everything chronologically — a single, continuous timeline where every moment has its place.",
+      "description": "Most AI agents organize your content by conversation threads. Previously has no conversations — just one continuous relationship on a single timeline of time slices, where every moment has its place.",
       "cta": "How the timeline works",
       "beforeLabel": "Chat threads — isolated conversations",
       "afterLabel": "Previously — one continuous timeline",
@@ -41,23 +41,23 @@
       "legendText": "Strands connect related topics across time"
     },
     "Screen3": {
-      "title": "Grows with you.",
-      "description": "Previously refines how it thinks and remembers — drawing from every conversation and its own reflections. It iterates on its own, getting better at helping you, one chat at a time.",
+      "title": "A memory that learns about you.",
+      "description": "Previously keeps a compact user card — identity, profile, recent work — that evolves as you talk. Once per closed slice it refines how it understands you: not a bloated dossier, just what matters.",
       "cta": "Explore the memory model",
       "legend": "Evolving understanding — observe, reinforce, correct, expire"
     },
     "Screen4": {
-      "title": "Every word matters.",
-      "description": "Previously keeps every conversation in its original form — raw, uncompressed, exactly as it happened. When you need something, it retrieves and assembles context on the fly.",
+      "title": "Nothing happens in a black box.",
+      "description": "Thinking, recall, and every tool call stream inline as the answer arrives. You watch the agent reason, scan your timeline, and deep-read the slices that matter — before it answers.",
       "cta": "Explore the architecture",
-      "terminalTitle": "phase-indicator",
-      "phase1Label": "Segmenting time…",
-      "phase1Detail": "Identifying the current conversation window",
-      "phase2Label": "Scanning memory…",
-      "phase2Detail": "Found 12 historical slices in this time range",
-      "phase3Label": "Updating understanding…",
-      "phase3Detail": "+2 new observations · ↑1 reinforced",
-      "cursorText": "observing pattern: prefers concise answers…"
+      "terminalTitle": "recall pipeline",
+      "phase1Label": "Worker scan…",
+      "phase1Detail": "Scanning recent slice summaries for pointers",
+      "phase2Label": "Main deep read…",
+      "phase2Detail": "Reading the slices that matter, in full",
+      "phase3Label": "Metadata maintained…",
+      "phase3Detail": "+2 tags woven into strands",
+      "cursorText": "recalling what you decided about the housing project…"
     },
     "Screen5": {
       "title": "Travel back to any moment.",
@@ -75,8 +75,8 @@
     },
     "Screen7": {
       "title": "It works while you're away.",
-      "description": "Close the tab. Walk away. Previously keeps working — running background tasks, evolving its understanding, preparing for your next conversation. 'I come after you're done' isn't just a tagline. It's how it works.",
-      "cta": "Configure background loops",
+      "description": "Every turn is a durable run — close the tab, lock your phone, drop the connection, and the agent keeps going. When you come back, it re-attaches and shows you what you missed. Background loops work the same way.",
+      "cta": "See the durable workflow",
       "tagline": "I come after you're done."
     },
     "Screen8": {
