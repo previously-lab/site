@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
 
-export const alt = "Previously — an open-source personal AI agent with episodic memory";
+export const alt = "Previously Lab — an open-source personal AI agent with episodic memory";
 export const size = {
   width: 1200,
   height: 630,
@@ -35,7 +35,7 @@ export default async function Image(): Promise<ImageResponse> {
             lineHeight: 1,
           }}
         >
-          Previously
+          Previously Lab
         </div>
 
         {/* Tagline */}

@@ -15,7 +15,7 @@ export async function GET(_request: NextRequest): Promise<Response> {
   const sections: string[] = [];
 
   // ---- Title ----
-  sections.push(`# ${siteConfig.name}`);
+  sections.push(`# ${siteConfig.orgName}`);
   sections.push("");
 
   // ---- Blockquote summary ----
@@ -24,7 +24,7 @@ export async function GET(_request: NextRequest): Promise<Response> {
 
   // ---- Intro ----
   sections.push(
-    `${siteConfig.name} is an open-source personal AI agent that organizes memory by time — a single timeline of episodic slices, not chat threads. This documentation covers concepts, guides, and reference material.`,
+    `${siteConfig.productName} is an open-source personal AI agent that organizes memory by time — a single timeline of episodic slices, not chat threads. It is built by ${siteConfig.orgName}. This documentation covers concepts, guides, and reference material.`,
   );
   sections.push("");
 

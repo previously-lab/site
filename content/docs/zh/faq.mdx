@@ -1,92 +1,77 @@
 ---
 title: 常见问题
-description: 关于 Previously 的常见问题——它如何工作、成本多少、数据隐私，以及自我模型背后的架构。
+description: 关于 Previously 的常见问题——无数据库、可移植性、切片规则、成本、隐私与项目状态。
 order: 2
 ---
 
 # 常见问题
 
+关于 Previously 如何工作、运行成本以及边界在哪里的常见问题。
+
+## 有数据库吗?
+
+没有。所有状态都是带有 YAML frontmatter 的纯 Markdown 文件,存储在 GitHub 仓库中。没有数据库、没有向量存储、没有 ORM,也没有专有格式。Slice、strand、node——一切都是文件。
+
+唯一的结构性索引是一个 JSON 文件:`memory/episodic/strands.json` 将每个 strand 关键字映射到其对应的 slice 路径。按月度的 slice 索引(`_index.json`)位于月份目录(`slices/YYYY/MM/`)中,比 slice 文件本身高一层级,slice 文件以 `MM/DD/HHMM.md` 格式存储。这就是全部"管道"了。没有 Postgres、没有 SQLite、没有 Pinecone。
+
 <Callout variant="info">
-你的记忆是 git 仓库中的一个 Markdown 文件目录树——slices、一个自我模型、一个时间线索引和一个 strand 索引。仅此而已。没有数据库，没有向量存储，没有专有格式。
+**关键要点:你的记忆就是一个 git 仓库里 Markdown 文件的目录树。仅此而已。**
 </Callout>
 
-关于 Previously 如何工作、成本多少以及边界在哪里的常见问题。
+## 其他工具能读取我的记忆吗?
 
-## 有数据库吗？
+可以。记忆是带有 YAML frontmatter 的纯 Markdown——没有 SDK、没有 API 网关、没有供应商锁定。Previously 写入记忆。Claude Code 读取记忆。Codex 扩充记忆。任何能解析 Markdown 并读取 GitHub 仓库的工具都能读取你的记忆。
 
-没有。所有状态都是带 YAML frontmatter 的纯 Markdown 文件，存储在 GitHub 仓库中。数据模型包括：
+这种可移植性是核心设计目标。你永远不需要导出或迁移数据;只需让不同的工具指向同一个仓库即可。
 
-- **Slices**——位于 `memory/episodic/slices/YYYY/MM/DD/HHMM/` 的目录，包含 `core.md`（对话内容）和 `agent.md`（认知内容）
-- **previously.md**——agent 的自我模型，一个位于 `memory/episodic/previously.md` 的结构化 Markdown 文件
-- **timeline.md**——所有已关闭 slice 的扁平全局索引
-- **strands.json**——关键词到 slice 路径的映射
-- **任务和会话**——位于 `tasks/` 和 `sessions/` 的 Markdown 文件
+## 在长对话中它会遗忘吗?
 
-没有 Postgres、没有 SQLite、没有 Pinecone。文件就是数据库。
+不会——不像不断增长的提示窗口那样会遗忘。Previously 没有无限累积的聊天线程。每次请求都会基于时间线从头组装上下文,并且保持边界可控。
 
-## 其他工具能读取我的记忆吗？
+其机制位于 `src/lib/context/assembler.ts`。每次请求都会获得一次全新的上下文组装,默认预算为 8,000 token。当预算超出时(第 76 行:`budget - 500` 保留空间),block 停止加载。这意味着时间线可以跨越数月的对话不断增长,但加载到任何单次请求中的内容始终保持相关且符合窗口大小。
 
-可以。记忆是带 YAML frontmatter 的纯 Markdown——无需 SDK、无需 API 网关、无供应商锁定。Previously 写入记忆。Claude Code 读取它们。任何编辑器打开它们。任何能解析 Markdown 和读取 git 仓库的工具都能读取你的记忆。
+不存在 agent 突然忘记长对话开头的情况,因为根本没有单一的长对话——上下文每轮都会重建。
 
-这种可移植性是核心设计目标。你永远不需要导出或迁移数据；只需将不同工具指向同一个仓库。
+## 切片是如何关闭的?
 
-## 在长对话中会忘记吗？
+一条规则:30 分钟静默(无活动)。当你开始对话时,一个 slice 打开;在你保持互动期间保持活跃;30 分钟无活动后自动关闭。
 
-不会——不像不断增长的提示窗口那样。Previously 没有无限累积的聊天线程。系统提示词包含 `previously.md`（紧凑、有界——所有类别最多 53 条信念）。其余一切按需拉取：agent 在需要搜索过去时调用 `recall`，在需要读取特定对话时调用 `readSlice`。每次请求保持有界和相关。
+阈值硬编码在 `src/lib/episodic/slicer.ts` 中:
 
-不存在 agent 突然忘记长对话开头的情况，因为没有单一的长对话——上下文每轮都从 agent 的自我模型加上定向检索重新构建。
+```ts
+export const TIME_SILENCE_THRESHOLD_MS = 30 * 60 * 1000;
+```
 
-## Slice 如何关闭？
+函数 `checkTimeSilence()` 将已过的毫秒数与阈值进行比较。没有容量限制、没有话题切换规则、也没有 worker 连续性检查。容量检查和 worker 连续性检查已在 M8 期间移除——仅基于时间的 slicing 是全部逻辑。
 
-一条规则：自上一条消息起静默 30 分钟。该阈值硬编码为 `TIME_SILENCE_THRESHOLD_MS = 30 * 60 * 1000`。没有容量限制，没有主题切换检测。当 slice 关闭时，系统：最终确定 `core.md`，写入带机械提取认知的 `agent.md`，快照 `previously.md`，更新全局时间线索引，刷新 strand 索引，并触发演化工作流。
+## 它达到生产就绪了吗?
 
-## previously.md 和用户档案有什么区别？
+没有。Previously 是实验性的(v0.7)。README 带有"实验性"状态徽章,并明确说明"尚未准备好用于个人或生产用途"。
 
-用户档案是你填写的东西。previously.md 是 agent 自己编写和维护的。
+这是个人部署,而非 SaaS 产品。作者承诺长期维护,但项目处于活跃的早期开发阶段。预计会遇到粗糙的边缘、破坏性变更以及仍在路线图上的功能。
 
-每次对话后，一个专门的演化工作流运行一个独立模型，审查 agent 观察到的内容并决定它对你的理解是否需要改变。它可以观察新事物、强化现有印象、纠正错误、让过期的上下文失效。文件带有证据链——每条信念都链接回支持它的具体对话。
+## 代码和记忆共享同一个仓库吗?
 
-你可以随时通过点击 Previously Bar 阅读它。你可以通过告诉 agent"不，那不对"来纠正它。但你从不直接写入它。它是 agent 对你的理解，由 agent 维护，为了 agent。
+可以共享,也可以分开。部署后的应用读写由环境变量 `GITHUB_REPO_OWNER` 和 `GITHUB_REPO_NAME` 指定的 GitHub 仓库。这些环境变量也可以指向一个与代码仓库不同的专用私有记忆仓库。
 
-## Agent 能了解关于我的什么？
+项目自身的约定(在 `CLAUDE.md` 中描述)将代码和数据放在同一个仓库中——其中 `src/` 为 agent 只读,而数据目录(`memory/`、`tasks/`、`sessions/`)为 agent 读写。但配置给了你选择权。独立的记忆仓库也是可行的,并在快速入门中有文档说明。
 
-当你发送消息时，agent 的系统提示词完整包含 `previously.md`——它对你的完整理解：你的身份、模式、如何最好地帮助你，以及你当前的上下文。这是基线。其余一切按需拉取：agent 调用 `recall` 搜索你的过往对话，`readSlice` 读取具体对话，以及按需使用其他记忆工具。
+## 运行成本是多少?
 
-agent 在严格的容量限制内维护它所知道的内容（身份 ≤ 20 条信念，模式 ≤ 8 条，策略 ≤ 15 条，上下文 ≤ 10 条）。当一个类别已满时，置信度最低、最不最近的信念被驱逐。agent 必须决定什么重要到足以保留。
+两个成本中心:
 
-## 它准备好用于生产了吗？
+- **LLM API 使用费**——Previously 使用你自己的 API 密钥(DeepSeek 和/或 Anthropic)运行。两层架构(worker 模型用于快速召回扫描,主模型用于深度推理)是出于成本考虑:廉价模型处理常见情况,昂贵的推理保留给需要的时候。
+- **托管费用**——Vercel Pro(部署按钮指向 Vercel)。Vercel 的免费套餐可能覆盖轻度使用,但持续使用可能需要付费计划。GitHub 仓库存储基本上是免费的。
 
-没有。Previously 是实验性的 v0.5。这是一个单人的研究项目，处于活跃早期开发阶段——尚未准备好用于个人或生产用途。预计会有粗糙的边界、破坏性变更，以及路线图上仍待完成的功能。作者承诺长期维护。
+Previously 不收取任何订阅费、按席位收费或使用加价。你提供基础设施和密钥;该项目是介于两者之间的编排层。
 
-## 代码和记忆共用一个仓库吗？
+## 我的数据隐私吗?
 
-可以。也可以分开。环境变量 `GITHUB_REPO_OWNER` 和 `GITHUB_REPO_NAME` 可以指向一个独立于代码仓库的专用私有记忆仓库。项目自身的惯例是将它们放在一起，但配置给了你选择。
+是的,这是设计使然。记忆存储在你拥有的 GitHub 仓库中(快速入门推荐使用私有仓库)。访问由 GitHub fine-grained personal access token 控制,该 token 限定为单个仓库的 contents 读写权限。没有保存你对话的平台数据库。没有第三方服务器存储你的 slice 或 strand。
 
-## 运行成本多少？
+你完全拥有数据的所有权。克隆它、备份它、迁移到其他供应商——它们只是 git 仓库中的文件。
 
-两个成本中心：
+## 相关文档
 
-- **LLM API 使用量**——Previously 使用你自己的 DeepSeek API 密钥运行。两层架构（Flash 用于快速 recall 搜索，Pro 用于推理和响应）是成本驱动的：廉价通道处理常见情况，昂贵推理仅在需要时运行。在 v0.5 的 Pull 架构中，对于不需要记忆检索的对话，Flash 根本不运行。
-- **托管**——Vercel（免费层可能覆盖轻度使用；持续使用可能需要付费计划）。GitHub 仓库存储实际上是免费的。
-
-Previously 不收取订阅费、不按席位收费、不收取使用溢价。你提供基础设施和密钥；项目是编排层。
-
-## 我的数据是私密的吗？
-
-是的，设计如此。记忆位于你拥有的 GitHub 仓库中（部署指南推荐私有仓库）。访问由限定于单个仓库 contents 读/写的细粒度个人访问令牌控制。没有平台数据库保存你的对话。没有第三方服务器存储你的 slices、你的 previously.md 或你的 strand 索引。
-
-你完全拥有数据。克隆它、备份它、迁移到其他提供商——它们只是 git 仓库中的文件。
-
-## memory nodes 和 profile.md 去哪了？
-
-它们在 v0.5 中被合并到 previously.md 中。旧系统有三个独立的东西：一个 `profile.md` 身份文件、`memory/nodes/` 知识卡片和一个 `updateUserProfile` 工具。新系统只有一个东西：previously.md，由一个流程（演化工作流）维护，在一个地方可见（Previously Bar）。每条信念都带有回到具体对话的证据链。
-
-## Agent 能在我离开时运行任务吗？
-
-可以——后台循环在 v0.5 中已重新启用。agent 可以通过 `startLoop` 工具启动持久化后台任务。循环使用与聊天轮次相同的 Vercel Workflow 基础设施（持久化执行、自动重试）。在 demo 模式下，该工具返回一条引导你部署自己实例的消息——循环需要 GitHub 连接的环境。
-
-## 相关内容
-
-- [记忆模型](/docs/memory-model) — previously.md 如何工作
-- [架构](/docs/architecture) — 完整系统设计
-- [快速开始](/docs/getting-started) — 日常使用是什么样的
+- [记忆模型](/docs/memory-model) —— 了解 slice、strand 和上下文组装如何工作
+- [架构概述](/docs/architecture)

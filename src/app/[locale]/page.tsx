@@ -153,11 +153,11 @@ export default async function HomePage({ params }: Props): Promise<React.ReactEl
         variant="muted"
       />
 
-      {/* ── Screen 7: Background Loops ──────────────────── */}
+      {/* ── Screen 7: Durable Runs ──────────────────────── */}
       <ProductSection
         title={t("Screen7.title")}
         description={t("Screen7.description")}
-        docsHref="/docs/configuration"
+        docsHref="/docs/architecture"
         docsLabel={t("Screen7.cta")}
         visual={<BackgroundLoopVisual tagline={s("Screen7.tagline")} />}
         variant="muted"

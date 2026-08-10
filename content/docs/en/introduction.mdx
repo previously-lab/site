@@ -1,79 +1,61 @@
 ---
 title: Introduction
-description: What Previously is — a personal AI agent that organizes memory by time, forms a persistent understanding of you, and self-evolves after every conversation.
+description: What Previously is — a persistent cloud agent organized around one continuous relationship on one timeline, with episodic memory as its defining feature.
 order: 0
 ---
 
 # Introduction
 
-<Callout variant="info">
-Previously replaces chat threads with a single timeline, gives your agent a living self-model that evolves with every conversation, and stores everything as plain Markdown in your own GitHub repository.
-</Callout>
-
-Previously is a personal AI agent with one defining idea: **memory should be organized by time, not by chat threads.** You show up, you talk, you leave. When you come back — hours, days, or weeks later — your agent already knows you. It has been refining its understanding. It picks up where you left off.
+Previously is a lightweight cloud agent whose defining feature is episodic memory: it reads, writes, reasons, and acts, and is designed to never forget across time.
 
 ## What Previously Is
 
-Previously is not another assistant you chat with in disposable threads. It is a persistent agent with three things no chat-thread product has:
+Previously is not another assistant you chat with in disposable threads. It is a persistent cloud agent organized around a single idea: **one continuous relationship on one timeline.** You are the commander; Previously is your staff. You show up, you talk, you leave. When you come back — hours, days, or weeks later — the first thing you see is a timeline of your past, not a list of chat threads. The agent figures out relevance by scanning *when* something happened, then retrieving *what* was said.
 
-1. **A timeline, not a thread list.** Every conversation becomes a point on a horizontal timeline — click any point and you're back in that moment. No folders, no naming, no "new chat" button.
-
-2. **A self-model that evolves.** Your agent maintains a file called `previously.md` — its persistent understanding of who you are. It observes, reinforces, corrects, and occasionally forgets. After every conversation, a separate model reviews what it learned and updates this understanding. It gets better at helping you over time.
-
-3. **Transparent thinking.** When your agent works, you see it — not a spinner with "Thinking...", but a staged, timed, real-time view of what it's doing: scanning your timeline, searching for relevant memories, updating its understanding of you. Each step is labeled, timed, and expandable.
-
-Everything runs on your own GitHub repository. Memory is plain Markdown files with YAML frontmatter. No database, no vector store, no proprietary format. Your data, your repo, your control.
+There are no conversations. There is no conversation management. There is one timeline.
 
 ## The "Previously on..." Metaphor
 
-The name comes from television: before a new episode, a brief recap reminds you what happened last time — just enough context to resume. Previously does the same thing for your life. Every time you return, it recaps your own timeline, pulling forward what matters so you never start cold.
+The name comes from television: before a new episode, a brief recap reminds you what happened last time — just enough context to resume. Previously does the same thing. Every time you return, it recaps your own timeline, pulling forward what matters so you never start cold.
 
-But the metaphor goes deeper. In v0.5, your agent doesn't just recap — it **forms an impression of you.** Think of it like a friend who has known you for years. They remember your identity (who you are), your patterns (how you do things), and how to best help you (strategies). That understanding doesn't reset between conversations. It accumulates, deepens, and self-corrects over time.
+<Callout variant="info">
+**Key takeaway: Previously replaces the chat-thread model with time slices, so memory and interaction are unified. Fix the memory model and you remove the need to manage conversations at all.**
+</Callout>
 
 ## How It Differs from Chat-Thread Agents
 
 Mainstream agents split your life into chat threads. Each thread starts cold. Memory across threads is siloed, fragile, and lossy — bolting on vector databases, RAG pipelines, and prompt hacking to approximate what should be a native capability.
 
-Previously replaces threads with **time slices**: conversation bursts stored as plain Markdown files on a timeline. Because interaction history and memory share the same structure — a chronological sequence of slices — cross-session recall is a property of the system, not a retrofit.
-
-But v0.5 goes further. In previous versions, the system force-fed context to the agent before every reply, whether it needed it or not. Now, the agent **decides for itself** when it needs to look something up. It calls a `recall` tool — a fast search across your entire memory — only when the conversation actually calls for it. Conversations that don't need memory don't pay the cost. This shift from "push" to "pull" is what turns a passive LLM into an actual agent.
+Previously replaces threads with **time slices**. Because interaction history and memory share the same structure — a chronological sequence of slices — cross-session recall is a property of the system, not a retrofit. The agent never abruptly forgets the start of a long exchange because context is assembled dynamically per request rather than accumulated in a growing prompt window. Per-request load stays bounded and relevant.
 
 ## Vocabulary Tour
 
-Five terms carry the architecture.
+Three terms carry the architecture.
 
-**Timeline** — Your memory, visualized. A horizontal scrollable line where every dot is a conversation. Date above. Time below. A thin connector runs through them all, from the past stretching all the way to NOW — a hollow dot waiting at the rightmost end. Click any dot and you're back in that moment. The old view doesn't flash away while the new one loads. Content stays visible across transitions.
+**Slice** — One conversation burst. A single Markdown file on the timeline at `memory/episodic/slices/YYYY/MM/DD/HHMM.md`. Opens when you start talking, stays active while you stay engaged, closes automatically after 30 minutes of silence. Carries structured YAML frontmatter: focus, summary, decisions, open loops, tags, emotional tone. Slice = *what happened, and when.*
 
-**Slice** — One conversation burst. A directory at `memory/episodic/slices/YYYY/MM/DD/HHMM/` containing two parallel records: `timeline/core.md` (what was said) and `timeline/agent.md` (what the agent was thinking). Opens when you start talking, closes automatically after 30 minutes of silence. Carries structured YAML frontmatter: focus, summary, decisions, open loops, tags, emotional tone.
+**Strand** — A keyword (like `health`, `work`, `housing`) that recurs across slices. The index `memory/episodic/strands.json` maps each keyword to every slice path that carries it. Strands are built at slice-close from the slice's tags. A slice = what happened; a strand = what it was about. Strands form the thin, lossless semantic layer over the timeline.
 
-**Strand** — A topic keyword (like `rust`, `work`, `health`) that recurs across slices. The global timeline index maps each strand to every slice that carries it. Where a slice answers "what happened when," a strand answers "what was it about." Strands form the thin, lossless semantic layer over the timeline.
-
-**previously.md** — Your agent's living self-model. A structured Markdown file split into long-term memory (identity, patterns, strategies — stable, only changes when you correct it) and short-term memory (current context — naturally expires after 7 days). After every conversation, a dedicated evolution workflow reviews new observations, reinforces existing beliefs, corrects contradictions, and expires outdated context. This file replaces the old profile.md and memory nodes systems from earlier versions.
-
-**Recall** — The agent's search engine. When the conversation touches on the past, the agent calls the `recall` tool, which launches a fast Flash sub-agent to scan the global timeline and return pointers to relevant slices. The main model then reads those slices in full. Flash is fast and approximate; the main model is deliberate and thorough. Neither replaces the other.
+**Recall** — The two-tier retrieval engine. A **worker** model (a cheap tier derived from the main model's provider) scans recent closed-slice summaries in a single fast round-trip, returning up to five pointers with relevance scores. It handles the semantic gate and metadata maintenance in the same call. The **main model** (the one you pick in the toolbar, thinking enabled) receives those pointers and reads the full slices via the `readSlice` tool — the expensive, thorough pass. The worker is expected to be imperfect; the main model does the deeper work when the scan returns nothing.
 
 | Term | Layer | Role | Speed |
 |------|-------|------|-------|
-| Timeline | Navigation | Horizontal visual browser of your memory | Instant (client-side) |
-| Slice | Episodic (when) | Records what happened + what agent thought | Storage, not retrieval |
+| Slice | Episodic (when) | Records what happened | Storage, not retrieval |
 | Strand | Semantic (what) | Keywords across slices | Built at slice-close |
-| previously.md | Self-model | Agent's persistent understanding of you | Updated after every conversation |
-| Recall | Retrieval | On-demand search across the entire timeline | ~500ms flash scan + deep read |
+| Worker recall | Retrieval tier 1 | Scan + pointers + maintenance | ~500 ms (typical) |
+| Main recall | Retrieval tier 2 | Deep read + reasoning | Seconds (per tool call) |
 
 ## Research Grounding
 
-The episodic / semantic split is not arbitrary. It is grounded in Endel Tulving's episodic vs. semantic memory theory (1972) and context-dependent memory research (Godden & Baddeley 1975; Smith & Vela 2001). Slices encode the *when* (episodic). Strands encode the *what* (semantic). The previously.md self-model encodes the *who* — the agent's evolving mental model of the person it's helping.
+The episodic / semantic split is not arbitrary. It is grounded in Endel Tulving's episodic vs. semantic memory theory (1972) and context-dependent memory research (Godden & Baddeley 1975; Smith & Vela 2001). Slices encode the *when* (episodic). Strands and memory nodes encode the *what* (semantic). Recall follows the same order: scan when first, then retrieve what.
 
 ## Status
 
-Previously is **EXPERIMENTAL** — early development, not yet ready for personal or production use. It is a one-person research project, intended to be maintained long-term.
+Previously is **EXPERIMENTAL** — early development, not yet ready for personal or production use. It is a one-person research project, but intended to be maintained long-term. What works today: streaming chat with visible thinking, recall, and tool calls; time-slice storage with automatic 30-minute-silence slicing; a two-tier recall pipeline (worker scan + main-model deep read); a compact user card that evolves once per closed slice; server-side local-time annotation; a semantic gate that keeps trivial turns out of memory; GitHub file tools with a path whitelist; multi-provider model support (DeepSeek, Anthropic, OpenAI-compatible); durable background runs via Vercel Workflow; and English-plus-Chinese internationalization.
 
-What works today in v0.5: horizontal timeline with stable slice switching (click any dot, no flicker), streaming chat with Phase Indicator (staged, timed, subtitle-style reasoning display), the previously.md self-model with 7 mutation operations (observe, reinforce, contradict, discard, expire, promote, demote), evolution as an independent workflow running in parallel with chat, on-demand recall via a Flash sub-agent, the dual-timeline architecture (core.md + agent.md per slice), mechanical cognition extraction (automatic, no model involvement), a 16-tip loading carousel, multi-persona demo mode (20 WorldMemArena personas), reasoning effort control (low/medium/high), GitHub-native storage with path whitelist, and English-plus-Chinese internationalization.
-
-The strand index is now actively used by recall — a v0.5 improvement over v0.4, where it was write-only. Richer first-class strands with rolling summaries remain a future milestone.
+The strand index is built at slice-close and the main model can read it on demand, but the worker scan still searches recent slice summaries first. A first-class strand with its own rolling summary and recall integration is a future milestone.
 
 ## Related
 
-- [Memory Model](/docs/memory-model) — how previously.md works
-- [The Timeline](/docs/timeline) — horizontal timeline navigation
-- [Architecture](/docs/architecture) — the full system design
+- [Memory Model](/docs/memory-model)
+- [Architecture Overview](/docs/architecture)

@@ -1,259 +1,153 @@
 ---
 title: 架构
-description: 系统架构——两个独立的 Vercel Workflow（聊天 + 演化）并行运行，基于 Pull 的 recall 模型让 agent 自行决定何时搜索，以及取代文件系统操作的记忆概念工具。
+description: 三层云端架构——每一轮聊天都跑在一次耐久的 Vercel Workflow 运行里,GitHub 是记忆的唯一事实来源。
 order: 1
 ---
 
 # 架构
 
-<Callout variant="info">
-v0.5 的核心洞察：agent 自行决定。它决定何时搜索记忆（Pull，而非 Push）。它在并行工作流中演化对你的理解（独立，而非嵌入）。它导航的是记忆概念（slices、strands、时间线）而非文件路径。一切运行在你的 GitHub 仓库上——没有数据库，没有向量存储。
-</Callout>
-
-Previously 运行两个独立的 Vercel Workflow——聊天和演化——仅通过磁盘上的文件耦合。agent 按需拉取上下文而非被动接收。工具表达的是记忆语义，而非文件系统操作。
+Previously 是部署在 Vercel 上的云端 Agent,读取 GitHub 文件、调用 LLM、把响应流式传回——没有数据库,没有定时任务,没有持久化服务器。让它与众不同的,是**每一轮聊天都跑在一次耐久的 Vercel Workflow 运行里**:每一次 LLM 调用、每一次工具调用,都是单独耐久、自动重试的步骤。GitHub 仍是记忆的唯一事实来源——Workflow 只是执行容器。
 
 ## 三层架构
 
-系统分为三个层，每层有明确的职责和严格的边界：
+系统分为三个层,每层有明确的职责和严格的边界:
 
 | 层 | 是什么 | 做什么 |
 |-------|------------|--------------|
-| **浏览器** | Next.js App Router UI | 渲染聊天界面、水平时间线、Phase Indicator 和 Previously Bar。捕获输入。流式输出响应。仅此而已——没有业务逻辑，没有状态机，没有本地记忆。 |
-| **Vercel 编排层** | 两个独立 Workflow | **聊天工作流**（`POST /api/chat`）：运行 agent 循环，流式输出响应。**演化工作流**（`POST /api/evolution`）：运行 Previously Agent，更新自我模型。两者并行运行，仅通过磁盘上的 `previously.md` 耦合。 |
-| **GitHub 私有仓库** | 单一事实来源 | 保存一切：`src/`（agent 只读）、`memory/`（情景 slices、previously.md、时间线索引、strand 索引）、`tasks/`、`sessions/`。 |
+| **浏览器 / 手机** | Next.js App Router UI | 渲染聊天界面。捕获输入。流式输出响应。仅此而已——没有业务逻辑,没有状态机,没有本地记忆。 |
+| **Vercel** | 编排层 | 接收触发 → 读 GitHub 状态 → 运行 Agent workflow → 写回。无状态、事件驱动、耐久。 |
+| **GitHub 私有仓库** | 单一事实来源 | 保存一切:`src/`(agent 只读)、`memory/`、`tasks/`、`sessions/`(agent 可读写)。代码和数据共存于一个仓库中。 |
 
-### 执行模型：Vercel Workflow
+<Callout variant="info">
+**关键要点:没有数据库,没有常驻 agent,没有持久连接。** Previously 完全运行在 Vercel 的请求生命周期内。你发送一条消息,回合 workflow 触发,响应流式传回。响应结束时没有后台进程——除非有耐久循环在跑,而即使那样,它的状态也持久化到仓库,而不是某台服务器。
+</Callout>
 
-每个聊天轮次在一个持久化的 Vercel Workflow 运行中执行。这意味着：
+## 耐久的回合 Workflow
 
-- **可恢复的流式响应**——响应流式传输到客户端。如果连接断开，workflow 继续在 Vercel 基础设施上运行，客户端可以重新连接。
-- **持久化步骤**——每个 LLM 调用和每个工具调用都是独立持久化、自动重试的 workflow step。瞬时 API 故障会重试，不会丢失轮次进度。
-- **并行工作流**——聊天和演化工作流完全独立。聊天不等待演化。演化不阻塞聊天响应。如果演化失败，聊天正常继续。两个系统在基础设施层面解耦。
+整个 Agent 是 `src/app/api/chat/turn-workflow.ts`——一个 `"use workflow"` 控制器。每个用户消息触发一次这样的运行:
 
-系统有意不引入数据库或 KV 存储。状态完全存在于 GitHub 文件中。Workflow 为执行提供持久性，GitHub 为数据提供持久性。
+1. **日常维护(housekeeping)** —— 解析或恢复当前时间切片,应用 30 分钟静默规则,追加本轮用户消息。
+2. **worker 扫描** —— 一个廉价 worker 模型(从主模型供应商派生)在一次调用里扫描近期切片摘要找回忆指针、维护切片元数据,并应用**语义门**:琐碎回合(「谢谢」「继续」)不产生标签、不进线索索引。
+3. **组装 prompt** —— 系统 prompt 由身份、用户卡片、情景时间线上下文组装而成。
+4. **主模型 Agent 循环** —— 主模型作为 `WorkflowAgent`(`@ai-sdk/workflow`)运行。每一次 LLM 调用、每一次工具调用都是它自己的耐久步骤:工具执行器是 `src/app/api/agent/tool-executors.ts` 里独立的 `"use step"` 函数,运行时对瞬时失败自动重试。Agent 推理、回忆、读取、回答。
+5. **收尾(finalize)** —— 追加本轮、保存切片快照、更新索引与线索。
 
-## 聊天工作流：基于 Pull 的 Agent 循环
+因为每一步都耐久,运行能扛住断线。客户端的 `WorkflowChatTransport` 在标签页回到前台时重新挂到同一次运行上,回放错过的东西。后台循环用同一个 agent 层,跑在独立的 workflow 运行里。
 
-聊天工作流位于 `src/app/api/chat/turn-workflow.ts`。每条用户消息触发以下步骤：
+## Agent 层
 
-### 1. 日常维护
+Agent 层在 `src/app/api/agent/`,聊天回合与任何后台循环共用:
 
-解析或创建当前的时间 slice。如果没有活跃 slice，从磁盘恢复最近已知的 slice。应用 30 分钟静默规则：如果用户已静默超过该时长，关闭旧 slice 并打开新 slice。追加当前轮次。
+| 文件 | 用途 |
+|------|------|
+| `agent.ts` | 创建 `WorkflowAgent`,配置模型、思考、工具集 |
+| `tools.ts` | 工具定义(schema + context schema)——聊天 Agent 的工具集 |
+| `tool-executors.ts` | 每个工具的独立 `"use step"` 执行器 |
+| `register-model-classes.ts` | 注册模型 host,使它们能跨 workflow→step 边界重建 |
 
-### 2. 组装基线上下文
+### 工具
 
-系统提示词由两部分构建：
-- **系统指令**——agent 的角色、能力和规则（构建时编译）
-- **previously.md**——agent 对用户的当前理解（请求时从磁盘读取）
+聊天 Agent 拿到的是一套小而克制的工具。概念工具(读取你给了它 id 的切片 / 信念 / 认知):
 
-仅此而已。没有预加载的 recall 结果。没有预组装的时间线上下文。没有强制性的 Flash 调用。agent 以它对你身份的理解开始，按需拉取其余一切。
+| 工具 | 用途 |
+|------|------|
+| `readSlice` | 读取一个切片的轮次,可选 `range` |
+| `readPreviously` | 跨时间读取用户卡片的信念快照 |
+| `readAgentTimeline` | 读取 Agent 自己过去的推理 |
+| `listSlices` / `readTimeline` | 浏览时间线(主要是回忆引擎的活) |
+| `listStrands` / `readStrand` | 跨切片追踪一个关键词 |
 
-### 3. Agent 循环（Pro 模型）
+委托工具:
 
-主模型（DeepSeek V4 Pro，可选推理模式）进入工具使用循环：
+| 工具 | 用途 |
+|------|------|
+| `recall` | 把真正的搜索交给 worker 模型的回忆引擎,返回指针 |
+| `webSearch` / `webFetch` | 上网查资料 |
 
-```
-Pro 收到消息 + previously.md
-  → Pro 决定：直接回复，还是搜索记忆？
-    → 如果搜索：调用 recall 工具
-      → Flash 子 agent 扫描时间线，返回指针
-      → Pro 通过 readSlice 读取相关 slice
-    → Pro 回复
-  → （可选）Pro 调用其他工具（readStrand、readTimeline 等）
-  → 循环继续直到 Pro 完成（最多 20 步）
-```
+> **回忆一次,然后停止。** 主 Agent 不自己浏览记忆——探索是回忆引擎的活。它调用一次 `recall`,用 `readSlice` 读需要的内容,然后继续。`startLoop` 已定义但当前被注释掉(后台循环在稳定化期间暂时禁用)。
 
-与 v0.4 的关键区别：系统不预先决定 agent 需要什么上下文。agent 自行决定。
+## 双层模型分工
 
-### 4. 认知提取
+模型层(`src/lib/models/`)解析出两层:
 
-每个轮次后，系统从 workflow step 数据中机械提取 agent 的推理和工具调用结果，写入 `agent.md`。这是自动的——agent 无需调用工具来记录其思考。提取过程读取 `result.steps[].reasoning` 获取思考文本，并通过 `toolCallId` 匹配工具结果。无需模型参与，不会遗漏记录。
+- **主模型** —— 用户在聊天工具栏选,持久化到 `memory/user/config.json`。负责推理、工具调用、生成回答。
+- **worker 模型** —— 从主模型供应商派生的廉价档(或手动固定)。跑日常维护调用:回忆扫描、元数据维护、语义门。这样每轮成本低,重活交给主模型。
 
-### 5. Slice 快照
-
-轮次完成后，slice 状态快照到磁盘。全局时间线索引更新。strand 索引用新标签刷新。如果 slice 正在关闭（30 分钟静默规则），演化工作流被触发。
-
-## 演化工作流：独立的自我模型更新
-
-演化工作流位于 `src/app/api/evolution/route.ts`。它作为一个**完全独立的 Vercel Workflow** 运行，与聊天并行：
-
-```
-客户端                          服务端
-  │                               │
-  ├─ POST /api/chat ──────────────┼── 聊天工作流（Pro agent 循环）
-  │                               │
-  ├─ POST /api/evolution ─────────┼── 演化工作流（Previously Agent）
-  │  （并行，不等待）              │      │
-  │                               │      ├─ readEvolutionContext
-  │                               │      │   ├─ 读取当前 slice（core.md + agent.md）
-  │                               │      │   ├─ 读取 previously.md
-  │                               │      │   └─ 提取最近轮次
-  │                               │      │
-  │                               │      └─ finalizeEvolution
-  │                               │          ├─ 运行 Previously Agent（Pro，无思考模式）
-  │                               │          ├─ 通过 previously-updater 应用变更
-  │                               │          ├─ 写入更新后的 previously.md
-  │                               │          └─ 通过 SSE 流式输出结果
-  │                               │
-  │  ←── data-evolution 数据块 ───┼── Previously Bar 实时更新
-```
-
-### 为什么独立
-
-1. **解耦**——聊天和演化彼此一无所知。它们仅共享磁盘上的 `previously.md`。这是一个清晰的微服务式边界。
-2. **并行性**——演化从不延迟聊天响应。两者同时运行。
-3. **故障隔离**——如果演化失败，聊天不关心。Previously Bar 显示红色错误状态，但对话继续。
-4. **独立重试**——演化有自己的持久化步骤和重试逻辑。Previously Agent 调用中的瞬时故障不影响任何其他内容。
-
-### Previously Agent
-
-演化工作流运行一个 Pro 模型（DeepSeek V4 Pro，**不带**思考模式——这是结构化审查，而非创造性工作）。它做三阶段决策：
-
-1. **无需操作**→ 返回空变更，立即结束
-2. **浅层编辑**→ 从预加载数据（previously.md + 当前对话 + 最近轮次）判断什么变了
-3. **深层探索**→ 调用 `readSlice`、`readAgentTimeline` 或 `readPreviously` 工具进行深入调查后再做决定
-
-Previously Agent 的变更通过 `previously-updater.ts` 应用——一个**纯函数**，无 I/O、无 LLM 调用。它接受当前的 previously.md 和一系列变更操作（observe、reinforce、contradict、discard、expire、promote、demote），返回更新后的文档。这种分离——模型决定，纯函数应用——使系统可测试且可预测。
-
-## 能力模块：单一事实来源
-
-`src/lib/capabilities.ts` 是确定应用能做什么的唯一位置。所有其他模块查询它而非直接读取环境变量：
-
-```
-DEEPSEEK_API_KEY 存在？
-├─ 否  → 应用不可用
-└─ 是  → GITHUB_TOKEN 存在？
-          ├─ 否  → Demo 模式：可聊天、不可写入、不可循环
-          └─ 是  → 生产模式：全功能
-```
-
-这取代了 v0.4 中 8+ 个文件各自独立读取 `process.env` 的模式。能力模块仅供工程代码使用——AI 模型层从不导入它。模型通过工具执行器的返回值了解其限制，而非通过注入的系统提示标记。
-
-## 记忆概念工具
-
-agent 的工具表达的是**记忆语义**，而非文件系统操作。这是一个深思熟虑的设计选择：agent 应如人类思考记忆的方式那样导航记忆，而非如文件系统组织数据的方式那样。
-
-| 工具 | 语义概念 | 实际上做什么 |
-|------|-----------------|---------------------|
-| `recall` | 搜索过去 | 启动 Flash 子 agent 扫描全局时间线 + strand 索引，返回指向相关 slice 的指针 |
-| `readSlice` | 打开一段记忆 | 构造 slice 目录路径，读取 core.md 和 agent.md，返回结构化内容 |
-| `readTimeline` | 浏览时间线 | 读取全局时间线索引（`timeline.md`），返回所有可用 slice 及其摘要 |
-| `readStrand` | 追踪一个主题 | 读取 strand 索引，跟踪关键词到其 slice 路径，读取那些 slice |
-| `listStrands` | 浏览所有主题 | 读取 strand 索引，返回所有关键词条目 |
-| `readAgentTimeline` | 回顾过去思考 | 读取跨 slice 的 agent.md 文件，追踪 agent 的认知历史 |
-| `readPreviously` | 查看过去的印象 | 读取之前 slice 中的历史 previously.md 快照 |
-
-每个工具在内部构造路径。agent 从不看到或构造文件路径。路径白名单（`memory/`、`tasks/`、`sessions/`）在工具执行器层面强制执行——agent 只能访问工具允许的内容，而工具只能访问白名单目录。
-
-## 双时间线
-
-每个 slice 存储两条并行记录：
-
-```
-memory/episodic/slices/YYYY/MM/DD/HHMM/
-  timeline/
-    core.md       ← 对话内容（说了什么）
-    agent.md      ← 认知内容（agent 在想什么）
-  previously.md   ← 自我模型快照
-```
-
-`core.md` 是记录。`agent.md` 是内部记录——从 workflow step 数据中机械提取的推理文本和工具调用结果。两者共同驱动历史视图（对话 + "Thoughts" 链接），并为演化系统提供所需原始素材。
-
-## 共享基础设施
-
-### Turn Parser（`turn-parser.ts`）
-
-用于解析 slice ID 和对话轮次的共享工具：
-- `parseSliceId()`：将 `YYYY-MM-DD-HHMM` 转换为路径段
-- `parseTurns()`：从 core.md 解析 `## Turn N -- ISO_TIMESTAMP (role)` 标题
-
-被工具执行器和演化步骤共同使用——避免重复的解析逻辑。
-
-### Slice Cache（`slice-cache.ts`）
-
-客户端内存缓存（`Map<sliceId, {content, timestamp}>`），5 分钟 TTL。当用户点击回到最近查看过的 slice 时，内容从缓存即时返回——无 API 调用、无加载状态。过期条目自动清除。
-
-### 全局时间线索引（`timeline.md`）
-
-一个包含所有已关闭 slice 摘要的单一扁平文件。recall 系统以此为起点——一次读取，一览全貌。在 slice 关闭时增量重新生成。过期检测（6 小时阈值），需要时自动重新生成。
+`resolveWorkerModel()`(`src/lib/models/worker.ts`)的选择顺序:手动固定 → 同供应商轻量档 → 主模型。目录是 models.dev 驱动的(`src/lib/models/catalog.ts`),以配置的 API key 环境变量为门槛,并按各供应商实时 `/models` 端点反过滤。
 
 ## 前端架构
 
-页面采用双屏 CSS 文档流——无 JavaScript 高度技巧，无虚拟滚动器：
+Next.js App Router 强制执行严格的服务器组件/客户端组件边界。`page.tsx` 是一个服务器组件,预加载用户配置、设置演示人格,然后渲染 `ChatPage`——一个持有 AI SDK `useChat` hook(配 `WorkflowChatTransport`)的轻量客户端外壳。
 
-- **Hero**——`h-screen`，全视口。"Previously on {名字}" 带文字揭示动画。
-- **时间线**——`sticky top-12`，吸附在固定头部下方并保持可见。
-- **内容区域**——`min-h-screen`，自然文档流，包含实时聊天或历史视图。
-- **聊天输入**——`fixed bottom-0` 带半透明背景（`bg-background/90 backdrop-blur-md`）。
-- **Previously Bar**——`fixed bottom-12`，始终可见于内容和输入之间。
+页面是一个垂直滚动器:
 
-消息区域通过 React Server Components 搭配 Suspense 边界进行流式渲染，使页面外壳能够立即渲染，而数据流式加载进来。
+1. **Hero** —— 服务端渲染的 `"Previously on {名字}"`。
+2. **吸附的横向时间线** —— `HorizontalTimeline`,一排日期圆点,吸附在 AppHeader 下方。
+3. **聊天内容** —— 实时消息;选中过去的圆点时是历史切片视图。
+4. **吸附的输入栏** —— 带模型选择器、思考开关、图片附件和演示触发按钮。
 
-## 安全模型
+消息渲染是一条统一流式管道(`src/lib/chat/build-stream.ts`):推理合并进 `ThinkingSteps`,工具调用按 `toolCallId` 合并进 `ToolRenderer` 卡片,`data-phase` 部分变成 `PhaseIndicator`,`data-evolution` 部分驱动每条气泡的 `EvolutionIndicator`。一切通过 `AnimatePresence` 内联渲染在助手气泡内。
 
-安全完全在 TypeScript 层面、在工具边界处执行：
-
-### 路径白名单
-
-仅三个目录可写入：`memory/`、`tasks/`、`sessions/`。`normalizePath()` 解码 URI 组件、转换反斜杠、解析 `./` 和 `../`、去除前导斜杠。然后 `isPathAllowed()` 拒绝空路径、绝对 Unix 路径和驱动器字母路径，再匹配允许的前缀。
-
-### 受保护的系统路径
-
-在白名单内，某些路径可读取但**不可**由通用工具写入：`memory/episodic/`（系统拥有的 slices 和索引）、任何 `_index.json` 文件、`strands.json` 和 `timeline.md`。这些只能通过其专用系统函数修改。
-
-### `src/` 为 Agent 只读
-
-`src/` 目录不在白名单中。没有 agent 工具可以在那里写入。agent 可以通过 git 读取 `src/`，但不能修改它。
-
-### 数据源自动检测
-
-能力模块集中化数据源解析。当设置 `GITHUB_TOKEN` 时，系统使用 GitHub API 操作用户的私有仓库。无 token 时，demo 模式激活——从公共仓库提供基准测试数据。写入在 demo 模式中被接受但丢弃。头部中的 demo 徽章指示当前模式。
-
-## 核心模块（v0.5）
+## 核心模块
 
 | 模块 | 路径 | 用途 |
 |--------|------|---------|
-| Capabilities | `src/lib/capabilities.ts` | 应用模式和功能标志的单一事实来源 |
-| Previously Updater | `src/lib/episodic/previously-updater.ts` | 纯函数：将变更操作应用于 previously.md |
-| Previously Format | `src/lib/episodic/previously-format.ts` | 序列化/反序列化/验证 previously.md v2 |
-| Global Timeline | `src/lib/episodic/global-timeline.ts` | 生成/格式化/过期检查 `timeline.md` |
-| Recall Search | `src/lib/episodic/recall.ts` | Flash 子 agent：多步时间线搜索，返回指针 |
-| Turn Parser | `src/lib/episodic/turn-parser.ts` | 工具和演化共享的 slice ID 和轮次解析 |
-| Cognition Extraction | `src/app/api/chat/cognition-extraction.ts` | 从 workflow step 中机械提取推理 + 工具结果 |
-| Evolution Workflow | `src/app/api/evolution/route.ts` | 独立的 Vercel Workflow 用于自我模型更新 |
-| Chat Workflow | `src/app/api/chat/turn-workflow.ts` | 主 agent 循环：基于 Pull 的工具使用，流式响应 |
-| Tool Definitions | `src/lib/tools/tools.ts` | 声明 inputSchema + contextSchema + 执行器引用 |
-| Tool Executors | `src/lib/tools/tool-executors.ts` | 独立的 `"use step"` 函数，聊天和循环共享 |
-| Path Whitelist | `src/lib/whitelist/` | 安全边界：仅 `memory/ tasks/ sessions/` |
+| 能力 | `src/lib/capabilities.ts` | 全局应用模式检查(isAIConfigured、isDemo、canWrite) |
+| 情景记忆 | `src/lib/episodic/` | 时间切片管理、切片规则、线索索引 |
+| 回合分析器 | `src/lib/episodic/flash/turn-analyzer.ts` | worker 模型的日常维护调用 |
+| 时间本地化 | `src/lib/episodic/time-localize.ts` | 读工具的服务端本地时间标注 |
+| 用户卡片 | `src/lib/episodic/previously-*` | 紧凑用户卡片 + `applyCardUpdate` |
+| 模型注册 | `src/lib/models/` | models.dev 目录、供应商分发、worker 解析 |
+| GitHub 工具 | `src/lib/tools/` | 通过 Octokit 的 readFile/writeFile/listFiles |
+| 路径白名单 | `src/lib/whitelist/` | 安全边界:仅 memory/tasks/sessions |
 
-## 移除了什么（v0.4 → v0.5）
+## 安全模型
 
-v0.5 架构更简单但能力更强。关键移除项：
+安全完全在 TypeScript 的工具边界强制执行。
 
-| 移除 | 原因 | 被取代为 |
-|---------|-----|------------|
-| `profile.md` + profile writer | 独立的身份文件，手动修补 | previously.md 用户身份部分 |
-| `memory/nodes/` extractor | agent 编写的知识卡片 | 带证据链的 previously.md 信念 |
-| `updateUserProfile` 工具 | 模型调用的 profile 修补 | 演化工作流（自主、独立） |
-| 文件驱动的循环引擎 | 手动检查点序列化 | Vercel Workflow 原生持久性 |
-| 统一 Flash 调用（每轮） | 强制上下文预加载 | 按需 `recall` 工具 |
-| Archive sync | 会话/任务归档 | 被工作流和 slice 系统取代 |
-| 垂直时间线面板（~580 行） | 带按日期分组的卡片侧边栏 | 水平时间线（115 行） |
-| 文件系统概念工具 | `readFile`、`writeFile` 等 | 记忆概念工具（7 个工具） |
+### 路径白名单
 
-## 下一步（路线图）
+`src/lib/whitelist/index.ts` 定义仅有的三个可写目录:
 
-- 更丰富的第一类 strand，带有滚动摘要和叙事弧线
-- 多分支记忆和并行时间线索引
-- Recall 质量指标和评估工具
-- 后台循环引擎 v2（v0.5 中已重新启用，计划进一步工作）
-- 身份认证和多用户支持
-- 云-本地连接器框架
+```
+memory/   tasks/   sessions/
+```
 
-Previously 是**实验性的**（v0.5）。作者承诺长期维护，但项目处于活跃早期开发阶段。
+`normalizePath()` 解码 URI 组件、把反斜杠转正斜杠、解析 `./` 与 `../` 片段、去掉前导斜杠。`isPathAllowed()` 拒绝空路径和绝对路径(Unix 与 Windows 盘符),然后检查路径是否以三个允许前缀之一开头。
 
-## 相关内容
+### `src/` 是 Agent 只读
 
-- [记忆模型](/docs/memory-model) — previously.md 如何工作
-- [Recall](/docs/recall) — 基于 Pull 的检索引擎
-- [Slices](/docs/slices) — 双时间线 slice 结构
+`src/` 目录根本不在白名单里。没有 Agent 工具能写进去。Agent 可以通过 git 读 `src/`,但不能改——路径白名单拒绝写尝试。这保证代码库完整性独立于 Agent 的执行。
+
+### GitHub Token 范围
+
+`GITHUB_TOKEN` 限定为单个仓库的 contents 读写。Agent 只操作一个仓库:由 `GITHUB_REPO_OWNER` / `GITHUB_REPO_NAME` 定义的那个。没有跨仓库访问。
+
+所有路径验证都在服务端——客户端不可信。浏览器从不构造文件路径或做存储决策。
+
+## 数据源模式
+
+存储有三种模式,由 `STORAGE` 控制:
+
+| 模式 | 何时用 | 行为 |
+|------|--------|------|
+| `local` | 本地开发 | 读写本地文件系统 |
+| `github` | 生产环境 | 通过 GitHub API(Octokit)读写你的仓库 |
+| `demo` | 预览 | 只读,内置人格 |
+
+自动检测:有 `GITHUB_TOKEN` → `github`;`NODE_ENV=development` → `local`;否则 → `demo`。
+
+## 接下来(路线图)
+
+- 一等公民的线索——每条线索带滚动摘要与回忆集成
+- 重新启用后台循环(`startLoop` 已定义但被注释)
+- 时间线上更丰富的跨切片导航
+- 更多演示人格
+
+项目状态徽章是 **实验阶段**。
+
+## 相关
+
+- [记忆模型](/docs/memory-model) — 切片、线索与用户卡片如何工作
+- [回忆](/docs/recall) — 双层检索流水线详解
+- [时间线](/docs/timeline) — UI 表面以及 Agent 如何看待你的过去
