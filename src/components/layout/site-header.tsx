@@ -19,7 +19,7 @@ export async function SiteHeader({
         href="/"
         className="text-sm font-semibold tracking-tight hover:text-foreground/80 transition-colors"
       >
-        {siteConfig.name}
+        {siteConfig.orgName}
       </Link>
 
       {/* Nav — desktop */}

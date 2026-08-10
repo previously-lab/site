@@ -1,5 +1,12 @@
 export type SiteConfig = {
+  /** The name used in SEO <title>s — the product, "Previously". */
   name: string;
+  /** The brand / organization name — Previously Lab. */
+  orgName: string;
+  /** The product name — previously-lab/agent. */
+  productName: string;
+  /** Organization URL (GitHub org). */
+  orgUrl: string;
   tagline: string;
   description: string;
   url: string;
@@ -17,6 +24,9 @@ export type SiteConfig = {
 
 export const siteConfig: SiteConfig = {
   name: "Previously",
+  orgName: "Previously Lab",
+  productName: "previously-lab/agent",
+  orgUrl: "https://github.com/previously-lab",
   tagline: "Previously on you.",
   description:
     "an open-source personal AI agent that organizes memory by time - a single timeline of episodic slices, not chat threads",
@@ -44,6 +54,8 @@ export const siteConfig: SiteConfig = {
       "raw context",
       "dynamic retrieval",
       "Previously",
+      "Previously Lab",
+      "previously-lab/agent",
     ],
     zh: [
       "情景记忆",
@@ -60,6 +72,8 @@ export const siteConfig: SiteConfig = {
       "原始上下文",
       "动态调取",
       "Previously",
+      "Previously Lab",
+      "previously-lab/agent",
     ],
   },
 };

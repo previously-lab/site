@@ -21,7 +21,7 @@ export async function SiteFooter({
               href="/"
               className="text-lg font-bold tracking-tight text-foreground"
             >
-              {siteConfig.name}
+              {siteConfig.orgName}
             </Link>
             <p className="text-sm text-muted-foreground">{t("tagline")}</p>
           </div>
@@ -29,7 +29,7 @@ export async function SiteFooter({
           {/* Links column */}
           <div className="space-y-3">
             <h4 className="text-sm font-semibold text-foreground">
-              {siteConfig.name}
+              {siteConfig.orgName}
             </h4>
             <ul className="space-y-2">
               <li>
@@ -86,7 +86,7 @@ export async function SiteFooter({
         {/* Bottom bar */}
         <div className="mt-10 flex flex-col items-center justify-between gap-2 border-t border-border pt-6 sm:flex-row">
           <p className="text-xs text-muted-foreground">
-            &copy; {currentYear} {siteConfig.name}. {t("license")}.
+            &copy; {currentYear} {siteConfig.orgName}. {t("license")}.
           </p>
         </div>
       </div>

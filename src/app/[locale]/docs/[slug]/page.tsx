@@ -176,7 +176,7 @@ export default async function DocPage({ params }: Props) {
         headline={frontmatter.title}
         description={frontmatter.description}
         url={`/${locale}/docs/${slug}`}
-        publisherName={siteConfig.name}
+        publisherName={siteConfig.orgName}
       />
 
       <BreadcrumbJsonLd
