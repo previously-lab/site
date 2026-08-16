@@ -1,176 +1,501 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { useInView, motion } from "motion/react";
+import { useEffect, useRef, useState } from "react";
+import {
+  motion,
+  useReducedMotion,
+  useScroll,
+  useTransform,
+  type MotionValue,
+} from "motion/react";
+
+export interface TimelineBeat {
+  date: string;
+  title: string;
+  desc: string;
+}
 
 interface TimelineVisualProps {
-  beforeCardLabels: string[];
-  afterCardLabels: string[];
-  beforeLabel: string;
-  afterLabel: string;
-  strandWork: string;
-  strandTravel: string;
-  earlierLabel: string;
-  nowLabel: string;
+  /** Era marker at the top of the spine, e.g. "2025". */
+  year: string;
+  /** 7 story beats — title + 1–2 sentence description per card. */
+  beats: TimelineBeat[];
+  strandFriends: string;
+  strandRunning: string;
+  strandFamily: string;
+  strandAlex: string;
+  strandCamping: string;
   legendText: string;
 }
 
-/* ── Layout constants ─────────────────────────────────── */
+/* ── Strand colors ──────────────────────────────────────── */
 
-const CARD_W = 100;
-const CARD_H = 26;
-const DOT_Y = 115;
-const CARD_CENTER_Y = 65;
+const BLUE = "oklch(0.6 0.23 260)";
+const AMBER = "oklch(0.7 0.12 85)";
+const EMERALD = "oklch(0.7 0.15 160)";
+const ROSE = "oklch(0.72 0.14 350)";
+const VIOLET = "oklch(0.68 0.16 300)";
+const GREY = "oklch(0.556 0 0)";
 
-const SCATTERED = [
-  { cx: 140, cy: 40 }, { cx: 420, cy: 30 }, { cx: 670, cy: 44 },
-  { cx: 210, cy: 120 }, { cx: 500, cy: 110 }, { cx: 680, cy: 130 },
-];
+/** Per-beat strand color: friends / running / family / Alex+camping /
+    work (grey one-off) / running×Alex crossing / friends. */
+const BEAT_STRAND = [BLUE, AMBER, EMERALD, ROSE, GREY, ROSE, BLUE] as const;
 
-const TIMELINE_X = [100, 218, 336, 454, 572, 690];
-const NOW_X = 755;
+/** Five strands — all threads converge into NOW. */
+const STRANDS = [
+  { color: BLUE, beats: [0, 6], range: [0.34, 0.7] },
+  { color: AMBER, beats: [1, 5], range: [0.4, 0.76] },
+  { color: EMERALD, beats: [2], range: [0.46, 0.82] },
+  { color: ROSE, beats: [3, 5], range: [0.5, 0.84] },
+  { color: VIOLET, beats: [3], range: [0.54, 0.88] },
+] as const;
 
-const DATES = ["Jul 20", "Jul 21", "Jul 22", "Jul 23", "Jul 24", "Jul 25"] as const;
+/* ── Two layout constant sets — desktop alternates cards left/right;
+      mobile pins the spine left and stacks full-width cards. ── */
 
-function Card({ cx, cy, label, muted, isHovered }: {
-  cx: number; cy: number; label: string; muted?: boolean; isHovered?: boolean;
-}) {
-  const halfW = CARD_W / 2;
-  const halfH = CARD_H / 2;
+interface Layout {
+  viewBox: string;
+  width: number;
+  spineX: number;
+  spineY0: number;
+  nowY: number;
+  beatY: readonly number[];
+  cardW: number;
+  cardH: number;
+  /** -1 = card hangs left of the spine, 1 = right. */
+  cardSide: readonly number[];
+  /** X of the strand dot at a beat on the given side. */
+  strandDotX: (side: number) => number;
+  bandX: number;
+  bandW: number;
+  bandFrom: number;
+  bandTo: number;
+  falloff: number;
+}
+
+const DESKTOP: Layout = {
+  viewBox: "0 0 1200 2300",
+  width: 1200,
+  spineX: 600,
+  spineY0: 100,
+  nowY: 2160,
+  beatY: [260, 510, 760, 1010, 1260, 1510, 1760],
+  cardW: 420,
+  cardH: 120,
+  cardSide: [-1, 1, -1, 1, -1, 1, -1],
+  strandDotX: (side) => (side === -1 ? 90 : 1110),
+  bandX: 60,
+  bandW: 1080,
+  bandFrom: 220,
+  bandTo: 1880,
+  falloff: 700,
+};
+
+const MOBILE: Layout = {
+  viewBox: "0 0 720 2200",
+  width: 720,
+  spineX: 96,
+  spineY0: 90,
+  nowY: 2060,
+  beatY: [270, 530, 790, 1050, 1310, 1570, 1830],
+  cardW: 540,
+  cardH: 128,
+  cardSide: [1, 1, 1, 1, 1, 1, 1],
+  strandDotX: () => 150,
+  bandX: 40,
+  bandW: 640,
+  bandFrom: 230,
+  bandTo: 1960,
+  falloff: 640,
+};
+
+/** Mobile strand lanes — one vertical rail per strand, between spine and cards. */
+function laneX(strandIndex: number): number {
+  return 140 - strandIndex * 9;
+}
+
+/** Wheel falloff — a beat is fully lit at the band, faded far from it. */
+function proximity(L: Layout, center: number, beatY: number): number {
+  return Math.max(0, 1 - Math.abs(center - beatY) / L.falloff);
+}
+
+function cardX(L: Layout, side: number): number {
+  if (L === MOBILE) return 150;
+  return side === -1 ? 90 : L.width - 90 - L.cardW;
+}
+
+function strandPathDesktop(L: Layout, beats: readonly number[]): string {
+  const pts: { x: number; y: number }[] = beats.map((b) => ({
+    x: L.strandDotX(L.cardSide[b]),
+    y: L.beatY[b],
+  }));
+  pts.push({ x: L.spineX, y: L.nowY - 16 });
+  let d = `M ${pts[0].x} ${pts[0].y}`;
+  for (let i = 1; i < pts.length; i++) {
+    const midY = (pts[i - 1].y + pts[i].y) / 2;
+    d += ` C ${pts[i - 1].x} ${midY} ${pts[i].x} ${midY} ${pts[i].x} ${pts[i].y}`;
+  }
+  return d;
+}
+
+function strandPathMobile(L: Layout, strandIndex: number, beats: readonly number[]): string {
+  const x = laneX(strandIndex);
+  const pts: { x: number; y: number }[] = beats.map((b) => ({ x, y: L.beatY[b] }));
+  /* Down the lane, then a tight S-curve into the NOW dot. */
+  pts.push({ x, y: L.nowY - 140 });
+  pts.push({ x: L.spineX, y: L.nowY - 16 });
+  let d = `M ${pts[0].x} ${pts[0].y}`;
+  for (let i = 1; i < pts.length; i++) {
+    const midY = (pts[i - 1].y + pts[i].y) / 2;
+    d += ` C ${pts[i - 1].x} ${midY} ${pts[i].x} ${midY} ${pts[i].x} ${pts[i].y}`;
+  }
+  return d;
+}
+
+/* ── Scroll-driven pieces ──────────────────────────────── */
+
+interface Driven {
+  band: MotionValue<number>;
+  reduced: boolean | null;
+  L: Layout;
+}
+
+function Beat({ band, reduced, L, index, beat }: Driven & { index: number; beat: TimelineBeat }) {
+  const y = L.beatY[index];
+  const side = L.cardSide[index];
+  const color = BEAT_STRAND[index];
+  const mobile = L === MOBILE;
+  /* Wheel feel — mirror the product: scale 1→0.68, opacity 1→0.3 by distance */
+  const opacity = useTransform(band, (c) => 0.3 + 0.7 * proximity(L, c, y));
+  const scale = useTransform(band, (c) => 0.68 + 0.32 * proximity(L, c, y));
+  const glow = useTransform(band, (c) => proximity(L, c, y) * 0.5);
+
+  const x = cardX(L, side);
+  const cardCX = x + L.cardW / 2;
+  const dateX = mobile ? x : side === -1 ? L.spineX + 22 : L.spineX - 22;
+  const dateY = mobile ? y - L.cardH / 2 - 12 : y - 24;
+  const dateAnchor = mobile || side === -1 ? ("start" as const) : ("end" as const);
+
   return (
-    <g>
-      {isHovered && (
-        <rect x={cx - halfW - 3} y={cy - halfH - 3} width={CARD_W + 6} height={CARD_H + 6} rx={7} className="fill-[#0066FF]/8" />
-      )}
-      <rect x={cx - halfW} y={cy - halfH} width={CARD_W} height={CARD_H} rx={5}
-        className={muted
-          ? isHovered ? "fill-muted/90 stroke-foreground/30" : "fill-muted/70 stroke-border/60"
-          : isHovered ? "fill-card stroke-foreground/40" : "fill-card stroke-border"}
-        strokeWidth={isHovered ? 1 : 0.75}
+    <motion.g
+      style={
+        reduced
+          ? undefined
+          : { opacity, scale, transformOrigin: `${cardCX}px ${y}px` }
+      }
+    >
+      {/* Strand-colored glow when the band passes — radial gradient fill
+          (no feGaussianBlur; compositor-friendly), animated opacity */}
+      <motion.circle
+        cx={cardCX}
+        cy={y}
+        r={mobile ? 130 : 120}
+        fill={`url(#bg-${index})`}
+        style={reduced ? { opacity: 0.18 } : { opacity: glow }}
       />
-      <text x={cx} y={cy + 4} textAnchor="middle"
-        className={muted
-          ? isHovered ? "fill-foreground/90 text-[9px] font-medium" : "fill-foreground/70 text-[9px] font-medium"
-          : "fill-foreground/85 text-[9px] font-medium"}
-      >{label}</text>
-    </g>
+      {/* Glass beat card */}
+      <rect
+        x={x}
+        y={y - L.cardH / 2}
+        width={L.cardW}
+        height={L.cardH}
+        rx={10}
+        className="landing-fill-glass landing-stroke-hairline"
+        strokeWidth={1}
+      />
+      {/* Title + description — HTML inside the SVG so text wraps */}
+      <foreignObject x={x} y={y - L.cardH / 2} width={L.cardW} height={L.cardH}>
+        <div className="flex h-full flex-col justify-center gap-1 px-4">
+          <p className={`flex items-center gap-2 font-semibold text-foreground/90 ${mobile ? "text-[15px]" : "text-[14px]"}`}>
+            <span
+              aria-hidden="true"
+              className="inline-block size-1.5 shrink-0 rounded-full"
+              style={{ backgroundColor: color, boxShadow: `0 0 6px ${color}` }}
+            />
+            {beat.title}
+          </p>
+          <p className={`leading-snug text-muted-foreground/75 ${mobile ? "text-[12px]" : "text-[11.5px]"}`}>
+            {beat.desc}
+          </p>
+        </div>
+      </foreignObject>
+      {/* Connector to the spine */}
+      <line
+        x1={side === -1 ? x + L.cardW : x}
+        y1={y}
+        x2={side === -1 ? L.spineX - 10 : L.spineX + 10}
+        y2={y}
+        strokeWidth={1}
+        className="landing-stroke-hairline"
+      />
+      <circle cx={L.spineX} cy={y} r={4.5} className="fill-foreground/70" />
+      {/* Mono timestamp — desktop: on the spine opposite the card;
+          mobile: above the card */}
+      <text
+        x={dateX}
+        y={dateY}
+        textAnchor={dateAnchor}
+        className={`fill-muted-foreground/60 font-mono tabular-nums ${mobile ? "text-[15px]" : "text-[14px]"}`}
+      >
+        {beat.date}
+      </text>
+    </motion.g>
   );
 }
 
-export function TimelineVisual({
-  beforeCardLabels, afterCardLabels, beforeLabel, afterLabel,
-  strandWork, strandTravel, earlierLabel, nowLabel, legendText,
-}: TimelineVisualProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
-  const [hoveredBefore, setHoveredBefore] = useState<number | null>(null);
-  const [hoveredAfter, setHoveredAfter] = useState<number | null>(null);
+function Strand({ p, reduced, L, strand, strandIndex }: { p: MotionValue<number>; reduced: boolean | null; L: Layout; strand: (typeof STRANDS)[number]; strandIndex: number }) {
+  const pathLength = useTransform(p, [strand.range[0], strand.range[1]], [0, 1]);
+  const opacity = useTransform(p, [strand.range[0], strand.range[0] + 0.05], [0, 1]);
+  const mobile = L === MOBILE;
+  const d = mobile
+    ? strandPathMobile(L, strandIndex, strand.beats)
+    : strandPathDesktop(L, strand.beats);
+  const pl = reduced ? 1 : pathLength;
+  /* Dot offset so two strands sharing a beat (05/10, 06/28) stay visible */
+  const dotOffset = (strandIndex - 2) * 7;
+  return (
+    <motion.g style={reduced ? undefined : { opacity }}>
+      {/* Glow underlay — a soft wide stroke behind the crisp line,
+          instead of a drop-shadow filter */}
+      <motion.path
+        d={d}
+        fill="none"
+        stroke={strand.color}
+        strokeWidth="7"
+        strokeLinecap="round"
+        opacity="0.22"
+        style={{ pathLength: pl }}
+      />
+      <motion.path
+        d={d}
+        fill="none"
+        stroke={strand.color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        opacity="0.75"
+        style={{ pathLength: pl }}
+      />
+      {strand.beats.map((b) => {
+        const dotX = mobile ? laneX(strandIndex) : L.strandDotX(L.cardSide[b]);
+        const dotY = mobile ? L.beatY[b] : L.beatY[b] + dotOffset;
+        return (
+          <g key={b}>
+            {mobile && (
+              <line
+                x1={dotX}
+                y1={dotY}
+                x2={150}
+                y2={dotY}
+                strokeWidth={1}
+                className="landing-stroke-hairline"
+              />
+            )}
+            <circle cx={dotX} cy={dotY} r={4} fill={strand.color} opacity="0.9" />
+          </g>
+        );
+      })}
+    </motion.g>
+  );
+}
 
-  const strands = [
-    { ids: [0, 2, 5], color: "#0066FF", label: strandWork, labelX: 218 },
-    { ids: [1, 3, 4], color: "oklch(0.7 0.12 85)", label: strandTravel, labelX: 336 },
-  ] as const;
+function SelectionBand({ band, reduced, L }: Driven) {
+  const y = useTransform(band, (c) => c - 75);
+  const opacity = useTransform(band, [L.bandFrom, L.bandFrom + 120, L.bandTo - 140, L.bandTo], [0, 1, 1, 0]);
+  if (reduced) return null;
+  return (
+    <motion.g style={{ y, opacity }}>
+      <rect x={L.bandX} y={0} width={L.bandW} height={150} rx={12} className="landing-fill-glass" />
+      <line x1={L.bandX} x2={L.bandX + L.bandW} y1={0} y2={0} strokeWidth={1} className="landing-stroke-hairline" />
+      <line x1={L.bandX} x2={L.bandX + L.bandW} y1={150} y2={150} strokeWidth={1} className="landing-stroke-hairline" />
+    </motion.g>
+  );
+}
+
+/* ── The visual ────────────────────────────────────────── */
+
+/**
+ * Act 1 visual — "Time, not threads.", the product's vertical timeline
+ * wheel at full scale: a wide, long canvas so scrolling down feels like
+ * time flowing past. Beat cards carry a bold title plus a 1–2 sentence
+ * description (HTML in foreignObject, so text wraps); five strands —
+ * friends (blue), running (amber), family (emerald), Alex (rose),
+ * camping (violet) — weave between their beats, cross at 05/10 and
+ * 06/28, and all converge into the hollow NOW dot: NOW is where all
+ * threads meet. One muted grey beat (work) stays strandless. Glows are
+ * radial-gradient fills and wide underlay strokes — no SVG filters.
+ *
+ * Two layout constant sets, switched live via matchMedia: desktop
+ * alternates cards left/right of a central spine; mobile pins the spine
+ * left (~13%), stacks full-width cards to its right, and simplifies
+ * strands to per-strand lanes with short S-curve convergence into NOW.
+ * Reduced motion renders the finished end-state, band hidden.
+ */
+export function TimelineVisual({
+  year,
+  beats,
+  strandFriends,
+  strandRunning,
+  strandFamily,
+  strandAlex,
+  strandCamping,
+  legendText,
+}: TimelineVisualProps): React.ReactElement {
+  const ref = useRef<HTMLDivElement>(null);
+  const reduced = useReducedMotion();
+  const [isDesktop, setIsDesktop] = useState(true);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const update = () => setIsDesktop(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
+  const L = isDesktop ? DESKTOP : MOBILE;
+  const { scrollYProgress: p } = useScroll({
+    target: ref,
+    offset: ["start 0.8", "end 0.6"],
+  });
+
+  const spinePL = useTransform(p, [0.02, 0.28], [0, 1]);
+  const band = useTransform(p, [0.15, 0.92], [L.bandFrom, L.bandTo]);
+  const nowOpacity = useTransform(p, [0.88, 0.96], [0, 1]);
+  const nowScale = useTransform(p, [0.88, 0.96], [0.4, 1]);
 
   return (
-    <div ref={ref} className="w-full" role="img" aria-label={`${beforeLabel}. ${afterLabel}.`}>
-      {/* ═══ TOP — Before ═══ */}
-      <div className="mb-6">
-        <motion.p className="mb-6 text-center text-[11px] font-medium text-muted-foreground/60"
-          initial={{ opacity: 0 }} animate={isInView ? { opacity: 1 } : { opacity: 0 }} transition={{ duration: 0.4, delay: 0.1 }}>
-          {beforeLabel}
-        </motion.p>
-        <svg viewBox="0 0 800 170" fill="none" className="w-full" aria-hidden="true">
-          {beforeCardLabels.slice(0, 6).map((label, i) => {
-            const isHovered = hoveredBefore === i;
-            return (
-              <motion.g key={`before-${i}`}
-                initial={{ opacity: 0, y: -6 }}
-                animate={isInView ? { opacity: 1, y: 0, scale: isHovered ? 1.06 : 1 } : { opacity: 0, y: -6 }}
-                transition={{ duration: 0.2 }}
-                onMouseEnter={() => setHoveredBefore(i)} onMouseLeave={() => setHoveredBefore(null)}
-                style={{ cursor: "pointer" }}
-              >
-                <Card cx={SCATTERED[i].cx} cy={SCATTERED[i].cy} label={label} muted isHovered={isHovered} />
-              </motion.g>
-            );
-          })}
-          <motion.g initial={{ opacity: 0 }} animate={isInView ? { opacity: 0.2 } : { opacity: 0 }} transition={{ duration: 0.5, delay: 0.8 }} className="text-muted-foreground/40">
-            <line x1={190} y1={40} x2={160} y2={120} stroke="currentColor" strokeWidth="0.5" strokeDasharray="3 3" />
-            <line x1={370} y1={30} x2={190} y2={40} stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 4" />
-            <line x1={260} y1={120} x2={450} y2={110} stroke="currentColor" strokeWidth="0.5" strokeDasharray="3 2" />
+    <div ref={ref} className="w-full" role="img" aria-label={legendText}>
+      <div className="relative">
+        {/* Gradient beam traveling down the spine */}
+        <div
+          aria-hidden="true"
+          className="absolute top-[5%] h-[86%] w-px"
+          style={{ left: `${(L.spineX / L.width) * 100}%` }}
+        >
+          <div
+            className="landing-beam-y h-[14%] w-px"
+            style={{
+              background: `linear-gradient(to bottom, transparent, ${BLUE}, transparent)`,
+              boxShadow: `0 0 8px oklch(0.6 0.23 260 / 60%)`,
+            }}
+          />
+        </div>
+
+        <svg viewBox={L.viewBox} fill="none" className="w-full" aria-hidden="true">
+          <defs>
+            {/* Per-beat radial glow gradients (color → transparent) */}
+            {BEAT_STRAND.map((color, i) => (
+              <radialGradient key={`bg-${i}`} id={`bg-${i}`}>
+                <stop offset="0%" stopColor={color} stopOpacity="0.5" />
+                <stop offset="100%" stopColor={color} stopOpacity="0" />
+              </radialGradient>
+            ))}
+          </defs>
+
+          {/* Era marker at the top of the spine */}
+          <line x1={L.spineX} y1={L.spineY0 - 52} x2={L.spineX} y2={L.spineY0} strokeWidth={1} className="landing-stroke-hairline" />
+          <text
+            x={L.spineX + 18}
+            y={L.spineY0 - 18}
+            className="fill-muted-foreground font-mono text-[18px] font-semibold tabular-nums"
+          >
+            {year}
+          </text>
+
+          {/* The spine draws itself in */}
+          <motion.line
+            x1={L.spineX}
+            y1={L.spineY0}
+            x2={L.spineX}
+            y2={L.nowY}
+            strokeWidth="2"
+            className="text-foreground/60"
+            stroke="currentColor"
+            style={{ pathLength: reduced ? 1 : spinePL }}
+          />
+
+          {/* The traveling selection band — the wheel's center */}
+          <SelectionBand band={band} reduced={reduced} L={L} />
+
+          {/* Story beats */}
+          {beats.slice(0, 7).map((beat, i) => (
+            <Beat
+              key={`beat-${i}`}
+              band={band}
+              reduced={reduced}
+              L={L}
+              index={i}
+              beat={beat}
+            />
+          ))}
+
+          {/* Five strands weaving between their beats, into NOW */}
+          {STRANDS.map((strand, i) => (
+            <Strand
+              key={strand.color}
+              p={p}
+              reduced={reduced}
+              L={L}
+              strand={strand}
+              strandIndex={i}
+            />
+          ))}
+
+          {/* Hollow NOW dot at the bottom of the spine — all threads meet here */}
+          <motion.g
+            style={
+              reduced
+                ? { filter: "drop-shadow(0 0 8px oklch(0.6 0.23 260 / 80%))" }
+                : {
+                    opacity: nowOpacity,
+                    scale: nowScale,
+                    transformOrigin: `${L.spineX}px ${L.nowY}px`,
+                    filter: "drop-shadow(0 0 8px oklch(0.6 0.23 260 / 80%))",
+                  }
+            }
+          >
+            <motion.circle
+              cx={L.spineX}
+              cy={L.nowY}
+              r="14"
+              fill="none"
+              stroke={BLUE}
+              strokeWidth="1"
+              animate={{ opacity: [0.15, 0.4, 0.15], scale: [1, 1.3, 1] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <circle cx={L.spineX} cy={L.nowY} r="7" fill="none" stroke={BLUE} strokeWidth="2" />
+            {/* Bilingual brand lockup — both words in both locales */}
+            <text x={L.spineX} y={L.nowY + 40} textAnchor="middle" className="fill-foreground font-mono text-[24px] font-bold">
+              NOW
+            </text>
+            <text x={L.spineX} y={L.nowY + 64} textAnchor="middle" className="fill-muted-foreground/60 font-mono text-[13px]">
+              现在
+            </text>
           </motion.g>
         </svg>
       </div>
 
-      {/* Divider */}
-      <motion.hr className="my-10 border-border/20"
-        initial={{ opacity: 0, scaleX: 0 }} animate={isInView ? { opacity: 1, scaleX: 1 } : { opacity: 0, scaleX: 0 }}
-        transition={{ duration: 0.6, delay: 1.2 }} />
-
-      {/* ═══ BOTTOM — After ═══ */}
-      <div className="mt-6">
-        <motion.p className="mb-6 text-center text-[11px] font-semibold text-foreground/70"
-          initial={{ opacity: 0 }} animate={isInView ? { opacity: 1 } : { opacity: 0 }} transition={{ duration: 0.4, delay: 1.4 }}>
-          {afterLabel}
-        </motion.p>
-        <svg viewBox="0 0 800 200" fill="none" className="w-full" aria-hidden="true">
-          <motion.line x1={TIMELINE_X[0]} y1={DOT_Y} x2={NOW_X} y2={DOT_Y} stroke="currentColor" strokeWidth="1.5" className="text-foreground/70"
-            initial={{ pathLength: 0 }} animate={isInView ? { pathLength: 1 } : { pathLength: 0 }}
-            transition={{ duration: 0.9, delay: 1.5, ease: "easeInOut" }} strokeDasharray="1" strokeDashoffset="0" />
-
-          {strands.map((strand, si) => {
-            const arcY = CARD_CENTER_Y - CARD_H / 2 - 8;
-            const points = strand.ids.map((id) => TIMELINE_X[id]);
-            const d = points.map((x, pi) => {
-              if (pi === 0) return `M ${x} ${arcY}`;
-              return `Q ${(points[pi - 1] + x) / 2} ${arcY - 22} ${x} ${arcY}`;
-            }).join(" ");
-            return (
-              <motion.g key={`strand-${si}`} initial={{ opacity: 0 }} animate={isInView ? { opacity: 1 } : { opacity: 0 }}
-                transition={{ duration: 0.5, delay: 2.4 + si * 0.3 }}>
-                <path d={d} fill="none" stroke={strand.color} strokeWidth="1.2" strokeLinecap="round" opacity="0.35" />
-                <text x={strand.labelX} y={arcY - 28} textAnchor="middle" fill={strand.color} className="text-[7px] font-medium" opacity="0.6">
-                  {strand.label}
-                </text>
-              </motion.g>
-            );
-          })}
-
-          {afterCardLabels.slice(0, 6).map((label, i) => {
-            const cx = TIMELINE_X[i];
-            const isHovered = hoveredAfter === i;
-            return (
-              <motion.g key={`after-${i}`} initial={{ opacity: 0 }}
-                animate={isInView ? { opacity: 1, scale: isHovered ? 1.05 : 1 } : { opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                onMouseEnter={() => setHoveredAfter(i)} onMouseLeave={() => setHoveredAfter(null)}
-                style={{ cursor: "pointer" }}
-              >
-                <line x1={cx} y1={CARD_CENTER_Y + CARD_H / 2} x2={cx} y2={DOT_Y - 4} stroke="currentColor" strokeWidth="0.75" className="text-border/50" />
-                <Card cx={cx} cy={CARD_CENTER_Y} label={label} isHovered={isHovered} />
-                <motion.circle cx={cx} cy={DOT_Y} r={isHovered ? 5.5 : 4} className="fill-foreground/80" />
-                <text x={cx} y={DOT_Y + 16} textAnchor="middle" className="fill-muted-foreground/50 text-[7px]">{DATES[i]}</text>
-              </motion.g>
-            );
-          })}
-
-          <motion.g initial={{ opacity: 0, scale: 0 }} animate={isInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0 }} transition={{ duration: 0.5, delay: 2.6 }}>
-            <motion.circle cx={NOW_X} cy={DOT_Y} r="10" fill="none" stroke="#0066FF" strokeWidth="0.75"
-              animate={{ opacity: [0.15, 0.35, 0.15], scale: [1, 1.25, 1] }} transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }} />
-            <circle cx={NOW_X} cy={DOT_Y} r="5" className="fill-background stroke-foreground" strokeWidth="2" />
-            <text x={NOW_X} y={DOT_Y + 16} textAnchor="middle" className="fill-foreground text-[8px] font-bold">{nowLabel}</text>
-          </motion.g>
-
-          <motion.text x={TIMELINE_X[0] - 12} y={DOT_Y + 5} textAnchor="end" className="fill-muted-foreground/40 text-[7px]"
-            initial={{ opacity: 0 }} animate={isInView ? { opacity: 1 } : { opacity: 0 }} transition={{ duration: 0.3, delay: 2.8 }}>
-            {earlierLabel}
-          </motion.text>
-        </svg>
-
-        <motion.p className="mt-3 text-right text-[7px] italic text-muted-foreground/35"
-          initial={{ opacity: 0 }} animate={isInView ? { opacity: 1 } : { opacity: 0 }} transition={{ duration: 0.4, delay: 2.9 }}>
-          {legendText}
-        </motion.p>
+      {/* Strand legend — crisp HTML, not SVG text */}
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-y-2 font-mono text-xs sm:text-sm">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-5">
+          {[
+            { color: BLUE, label: strandFriends },
+            { color: AMBER, label: strandRunning },
+            { color: EMERALD, label: strandFamily },
+            { color: ROSE, label: strandAlex },
+            { color: VIOLET, label: strandCamping },
+          ].map((s) => (
+            <span key={s.color} className="flex items-center gap-1.5 text-muted-foreground/70">
+              <span
+                aria-hidden="true"
+                className="inline-block size-1.5 rounded-full"
+                style={{ backgroundColor: s.color, boxShadow: `0 0 6px ${s.color}` }}
+              />
+              {s.label}
+            </span>
+          ))}
+        </div>
+        <p className="italic text-muted-foreground/40">{legendText}</p>
       </div>
     </div>
   );

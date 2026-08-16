@@ -13,7 +13,7 @@ export async function SiteHeader({
   const t = await getTranslations({ locale, namespace: "Nav" });
 
   return (
-    <header className="sticky top-0 inset-x-0 z-50 flex items-center justify-between h-12 px-4 sm:px-6 border-b border-border/80 bg-background/90 backdrop-blur-md">
+    <header className="sticky top-0 inset-x-0 z-50 flex items-center justify-between h-12 px-4 sm:px-6 border-b border-border/60 bg-transparent backdrop-blur-md">
       {/* Wordmark */}
       <Link
         href="/"

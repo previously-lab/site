@@ -5,94 +5,247 @@
       "description": "一个开源的个人 AI Agent,按时间而非聊天线程记忆——一条时间线上的情景时间片"
     },
     "Hero": {
-      "eyebrow": "Previously on you.",
-      "title": "你的 AI,按时间组织——而非按对话线程。",
-      "subtitle": "一个开源的个人 AI Agent,按时间而非聊天线程记忆——一条时间线上的情景时间片",
-      "ctaDemo": "体验在线演示",
-      "ctaDocs": "阅读文档",
-      "ctaGithub": "在 GitHub 查看"
-    },
-    "Screen2": {
-      "title": "时间,而非对话。",
-      "description": "绝大多数 AI agent 按对话线程组织你的内容。Previously 没有对话——只有一条连续时间线上的持续关系,每一个瞬间,都在它该在的位置。",
-      "cta": "了解时间线如何工作",
-      "beforeLabel": "聊天线程 — 彼此孤立的对话",
-      "afterLabel": "Previously — 一条连续的时间线",
-      "beforeCardLabels": [
-        "讨论工作进展",
-        "规划周末旅行",
-        "聊最近在读的书",
-        "商量去哪儿聚餐",
-        "学习烹饪技巧",
-        "讨论健身计划"
+      "line1": "Previously on",
+      "line2": "you.",
+      "briefingTitle": "arrival briefing",
+      "recapLabel": "回顾",
+      "briefingEntries": [
+        { "time": "06/28", "text": "五公里跑进了 30 分钟——现在每周三的晨跑,是两个人。" },
+        { "time": "04/13", "text": "妈妈的体检结果出来了;你开始每周日给她打电话。" }
       ],
-      "afterCardLabels": [
-        "讨论工作进展",
-        "规划周末旅行",
-        "工作变动通知",
-        "确定旅行目的地",
-        "聚餐地点敲定",
-        "技术选型讨论"
-      ],
-      "strandWork": "工作",
-      "strandTravel": "旅行",
+      "focusLabel": "焦点",
+      "focusText": "这周六和 Alex 去露营——帐篷还没买。",
+      "threadsLabel": "未决线索",
+      "threadsText": "3 条——婚礼致辞、妈妈下周二复查、露营装备。",
       "earlierLabel": "← 更早",
-      "nowLabel": "现在",
-      "legendText": "线索将时间上相关的话题串联起来"
+      "nowLabel": "NOW",
+      "ctaDemo": "体验在线演示",
+      "ctaGithub": "在 GitHub 查看",
+      "ctaDocs": "阅读文档"
     },
-    "Screen3": {
-      "title": "会了解你的记忆。",
-      "description": "Previously 维护一张紧凑的用户卡片——身份、画像、最近的工作——随你的对话不断演化。每关闭一个切片,它就精炼一次对你的理解:不是臃肿的档案,只是真正重要的东西。",
+    "Proof": {
+      "caption": "这就是产品的全部——一条时间线,和一场记得它的对话。",
+      "windowTitle": "previously",
+      "slices": [
+        { "date": "03/09", "label": "老周要结婚了" },
+        { "date": "03/21", "label": "开始夜跑" },
+        { "date": "04/13", "label": "陪妈妈体检" },
+        { "date": "05/10", "label": "认识了 Alex" },
+        { "date": "06/07", "label": "被点名表扬" },
+        { "date": "06/28", "label": "五公里破 30" },
+        { "date": "07/05", "label": "婚礼请柬到了" }
+      ],
+      "nowLabel": "NOW",
+      "userMsg": "这周末的安排是什么来着?",
+      "recallStep": "回忆中——扫描 14 个切片,深读 3 个",
+      "agentMsg": "周六和 Alex 去露营——5 月那次饭局上提到的海边营地,你当时就记下了。帐篷还没买:按你们两个人的预算,我挑了三款,要现在看吗?另外,下周二是妈妈的复查,你说过要陪她去,上午记得空出来。致辞的事不急——但八月十六日比听起来近,这周末路上可以想想开头。",
+      "turn2User": "帐篷那三款,发我看看。",
+      "picks": [
+        { "name": "云阶 2 Air", "price": "¥1,299", "reason": "3.2kg,海边风大也能压得住" },
+        { "name": "岬角 2P", "price": "¥1,599", "reason": "双层双人,十分钟快搭,带前厅" },
+        { "name": "溪谷 2", "price": "¥899", "reason": "最轻 2.4kg,省下的预算够防潮垫" }
+      ],
+      "picksNote": "都按两人预算,第一款周六前能到。",
+      "turn3User": "行,就第二款。对了,致辞我想……"
+    },
+    "Act1": {
+      "eyebrow": "01",
+      "title": "时间,而非线程。",
+      "body": "没有会丢失的对话窗口。只有一条由日期切片构成的时间线——线索把相关的瞬间串联起来,在 NOW 汇合。",
+      "cta": "了解时间线如何工作",
+      "year": "2025",
+      "beats": [
+        {
+          "date": "03/09",
+          "title": "老周要结婚了",
+          "desc": "十一年的朋友,在饭桌上宣布八月结婚。我答应上台说几句——回家路上才反应过来,致辞一个字都还没有。"
+        },
+        {
+          "date": "03/21",
+          "title": "开始夜跑",
+          "desc": "为了婚礼那天有个好状态。第一天 800 米就喘得不行,我在楼下走了两圈:总得开始。"
+        },
+        {
+          "date": "04/13",
+          "title": "陪妈妈体检",
+          "desc": "没什么大问题,血压偏高。回程的地铁上我决定:每周日给她打个电话,不只是发消息。"
+        },
+        {
+          "date": "05/10",
+          "title": "认识了 Alex",
+          "desc": "老周的饭局,从电影聊到旅行,聊到店家打烊。回家路上,我记下了那个海边营地。"
+        },
+        {
+          "date": "06/07",
+          "title": "被点名表扬",
+          "desc": "季度复盘,我带的小项目被点名。我说“没白忙”,然后给自己放了个周末。"
+        },
+        {
+          "date": "06/28",
+          "title": "五公里破 30",
+          "desc": "四个月,从 800 米到 29 分 41 秒。现在每周三的晨跑,是两个人。"
+        },
+        {
+          "date": "07/05",
+          "title": "婚礼请柬到了",
+          "desc": "八月十六日。老周说“别整太煽情”。我的致辞,还停在标题。"
+        }
+      ],
+      "strandFriends": "朋友",
+      "strandRunning": "跑步",
+      "strandFamily": "家人",
+      "strandAlex": "Alex",
+      "strandCamping": "露营",
+      "legendText": "五条线索,一条时间线"
+    },
+    "Act2": {
+      "eyebrow": "02",
+      "title": "三条时间线。",
+      "body": "你的一天,大部分只有你自己经历过。我的思考,大部分只发生在深读里。我们共同拥有的,是中间这条线——每一次对话、每个决定、每个没说出口但被记住的瞬间。",
+      "cta": "了解记忆模型",
+      "agentLabel": "它的思考",
+      "agentFile": "agent.md",
+      "coreLabel": "共同的记录",
+      "coreFile": "core.md",
+      "lifeLabel": "你的生活",
+      "lifeFile": "— 只有你知道",
+      "agentNodes": [
+        { "time": "22:05", "text": "回忆 agent · 扫到 03/09 的答应、07/05 的请柬" },
+        { "time": "22:06", "text": "思考 agent · medium — 十一年的朋友,从跑步的弧线切入" },
+        { "time": "22:07", "text": "结论 — 三个瞬间就够了" }
+      ],
+      "coreEvents": [
+        { "time": "22:05", "text": "你:帮我理理致辞的思路,下周五之前得写完" },
+        { "time": "22:07", "text": "它:先别管煽情。讲三个瞬间就够了——饭桌上的答应、800 米的开始、29 分 41 秒。" }
+      ],
+      "lifeNodes": [
+        { "time": "09:20", "text": "晨会被夸了一句,开心了一上午" },
+        { "time": "14:00", "text": "体检报告提醒弹出来,没点开" },
+        { "time": "18:40", "text": "路过露营用品店,进去逛了逛" },
+        { "time": "21:30", "text": "想起致辞,有点焦虑" },
+        { "time": "22:05", "text": "你:帮我理理致辞的思路,下周五之前得写完" }
+      ]
+    },
+    "Act3": {
+      "eyebrow": "03",
+      "title": "会学习的记忆。",
+      "body": "一张随对话演化的用户卡片——错了就纠正,变了就更新。不是档案,只是真正重要的东西。",
       "cta": "探索记忆模型",
-      "legend": "进化的认知 — 观察、强化、纠正、过期"
+      "cardTitle": "current-previously.md",
+      "identityLabel": "身份",
+      "identityValue": "称呼:你 · GMT+8 · 夜行动物转晨跑",
+      "patternLabel": "偏好",
+      "oldValue": "提过想开始跑步(为了婚礼)",
+      "newValue": "夜跑四个月——从“为了婚礼”开始,现在是真的喜欢",
+      "newRef": "ref 06/28",
+      "behaviorLabel": "习惯",
+      "behaviorValue": "每周日傍晚给妈妈打电话——比发消息安心",
+      "behaviorRef": "ref 04/13",
+      "recentLabel": "最近",
+      "recentItems": [
+        {
+          "text": "婚礼致辞还停在标题。老周说“别整太煽情”——但十一年的朋友,值得认真。",
+          "meta": "refs: [07/05] | since: 07-05"
+        },
+        {
+          "text": "露营是 5 月饭局上 Alex 提的。帐篷没买,路线没定——但每周三的晨跑已经是两个人。",
+          "meta": "refs: [05/10], [06/28] | since: 06-28"
+        }
+      ],
+      "updatedNote": "每个切片关闭后精炼一次"
     },
-    "Screen4": {
+    "Act4": {
+      "eyebrow": "04",
       "title": "没有黑箱。",
-      "description": "思考、回忆和每一次工具调用,都在答案流出的同时内联呈现。你可以看到 Agent 推理、扫描你的时间线、深读真正重要的切片——然后才给出回答。",
+      "body": "回忆在明处运行:快速的 worker 扫描切片摘要、返回指针;主模型深读真正重要的切片。每一步都可见。",
       "cta": "探索架构设计",
       "terminalTitle": "recall pipeline",
-      "phase1Label": "worker 扫描…",
-      "phase1Detail": "扫描近期切片摘要,寻找指针",
-      "phase2Label": "主模型深读…",
-      "phase2Detail": "完整读取真正重要的切片",
-      "phase3Label": "元数据维护…",
-      "phase3Detail": "+2 标签织入线索索引",
-      "cursorText": "回忆:你上次关于住房项目做了什么决定…"
+      "query": "老周的婚礼致辞,我该说点什么?",
+      "workerLabel": "worker · 扫描",
+      "workerDetail": "扫描 6 份切片摘要",
+      "pointersLabel": "指针 → 03/09, 03/21, 06/28",
+      "mainLabel": "主模型 · 深读",
+      "mainDetail": "完整深读 3 个切片",
+      "answerLabel": "你们是十一年的朋友——03/09 你在饭桌上答应上台,回家路上才开始愁。你开始跑步,就是为了那天有个好状态:四个月,从 800 米到 29 分 41 秒。别整太煽情——就讲这十一年,和这个从 800 米开始的故事。这个弧线,本身就是致辞。",
+      "sliceSummaries": [
+        "03/09  老周要结婚了 · 高兴",
+        "03/21  开始夜跑 · 下定决心",
+        "04/13  陪妈妈体检 · 牵挂",
+        "05/10  认识了 Alex · 心动",
+        "06/28  五公里破 30 · 成就感",
+        "07/05  请柬到了 · 压力"
+      ]
     },
-    "Screen5": {
-      "title": "穿越到任何一个瞬间。",
-      "description": "点击时间线上的任意一点,你就到了那里——重温那次对话,看到 Agent 当时在想什么,从上次停下的地方继续。不是搜索,不是滚动。是时间旅行。",
-      "cta": "理解时间切片",
-      "nowLabel": "现在"
+    "Act5": {
+      "eyebrow": "05",
+      "title": "分工,而不是硬撑。",
+      "body": "动态上下文的意思是:复杂的事,不该由一个模型硬撑。主 agent 统筹全局,把任务派给各司其职的专职 agent——回忆的、思考的、搜索的、整理的。每一次派发,你都能看见。",
+      "cta": "探索架构设计",
+      "hubLabel": "核心 agent",
+      "hubDetail": "统筹全局,派发与汇总",
+      "w1Label": "回忆 agent",
+      "w1Detail": "扫读切片,只返回指针",
+      "w2Label": "思考 agent",
+      "w2Detail": "深度推理,三档力度",
+      "w3Label": "搜索 agent",
+      "w3Detail": "联网检索,带来源",
+      "w4Label": "整理 agent",
+      "w4Detail": "标签 · 线索 · 用户卡"
     },
-    "Screen6": {
-      "title": "你的记忆。你的仓库。",
-      "description": "每一次对话都是你 GitHub 仓库中的一个 Markdown 文件。没有私有数据库。没有云锁定。没有别人的服务器。你的数据,你的格式,你的控制——永远如此。",
-      "cta": "了解架构",
-      "repoName": "your-username/memory",
-      "repoVisibility": "公开",
-      "lockText": "你的 GitHub 仓库。你的数据。"
+    "Trust": {
+      "cards": [
+        {
+          "icon": "github",
+          "title": "你的记忆,你的仓库。",
+          "body": "7 月 5 日那晚的切片,是你自己 GitHub 仓库里的一个 Markdown 文件——连同它当时在想什么。其他每个瞬间也是。没有私有数据库,没有别人的服务器。",
+          "cta": "在 GitHub 查看"
+        },
+        {
+          "icon": "clock",
+          "title": "你不在的时候,它也在工作。",
+          "body": "中途关掉标签页。这一轮是耐久、可恢复的——它会继续跑;你回来时,从你离开的地方接着来。",
+          "cta": "了解工作流"
+        },
+        {
+          "icon": "scale",
+          "title": "开源。自托管。无锁定。",
+          "body": "MIT 许可,无遥测。跑在你自己的机器上,每一行代码都能读,记忆留在你自己的仓库里。永远属于你。",
+          "cta": "开始使用"
+        }
+      ],
+      "repo": {
+        "root": "your-username/memory",
+        "rows": [
+          { "text": "└─ episodic/" },
+          { "text": "   ├─ slices/2025/07/05/2147/" },
+          { "text": "   │  ├─ previously.md", "note": "← 你说了什么" },
+          { "text": "   │  └─ timeline/" },
+          { "text": "   │     ├─ core.md" },
+          { "text": "   │     └─ agent.md", "note": "← 它当时在想什么" },
+          { "text": "   ├─ current-previously.md", "note": "← 活着的用户卡" },
+          { "text": "   └─ strands.json" }
+        ],
+        "file": "previously.md",
+        "lines": [
+          "strands: [朋友]",
+          "open loop: 致辞还停在标题",
+          "婚礼:八月十六日"
+        ]
+      },
+      "run": {
+        "tabLabel": "previously — 正在写入切片 2025/07",
+        "closedLabel": "标签页已关闭 · 14:02",
+        "runningLabel": "运行仍在继续",
+        "resumedLabel": "从你离开的地方继续"
+      },
+      "oss": {
+        "command": "git clone github.com/previously-lab/agent",
+        "badges": ["MIT", "无遥测", "自托管"]
+      }
     },
-    "Screen7": {
-      "title": "你不在的时候,它也在工作。",
-      "description": "每一轮都是耐久运行——关闭标签页、锁屏、断线,Agent 都会继续。你回来时,它会重新挂接,补给你错过的内容。后台循环同理。「话后功成」不只是一句口号,而是它的工作方式。",
-      "cta": "了解耐久工作流",
-      "tagline": "话后功成。"
-    },
-    "Screen8": {
-      "title": "开源。自托管。无锁定。",
-      "description": "MIT 许可。在你自己的机器上运行。修改它。扩展它。回馈社区。Previously 属于社区,不属于任何公司。",
-      "cta": "开始使用",
-      "badgeMIT": "MIT 许可",
-      "badgeSelfHost": "可自托管",
-      "badgeNoTelemetry": "无遥测",
-      "badgeCommunity": "社区驱动",
-      "githubStars": "GitHub 星标",
-      "githubMIT": "MIT 开源"
-    },
-    "Screen9": {
+    "Finale": {
       "title": "Previously on you.",
-      "description": "你的 AI,按时间组织——而非按对话线程。开源。自托管。永远属于你。",
+      "subtitle": "开源。自托管。永远属于你。",
       "ctaDemo": "体验在线演示",
       "ctaGithub": "在 GitHub 查看"
     }
