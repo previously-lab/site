@@ -1,111 +1,144 @@
 ---
 title: The Timeline
-description: The primary interaction surface — a single vertical scroll of slices with a sticky horizontal date-dot strip, a Now marker, and historical slice views.
+description: One timeline, two faces — the rolling slice wheel you scroll in the UI, and the derived memory index the agent navigates, rebuilt from the slice files on every turn.
 order: 0
 ---
 
 # The Timeline
 
-The timeline is the primary interaction surface of Previously — a single vertical scroll of your conversation history, read top-to-bottom, with the live chat at the bottom edge and the past behind you when you scroll up.
+The timeline is the center of Previously, and it exists twice: as the **interface** you scroll — a rolling wheel of dated slices beside the conversation — and as the **memory index** the agent navigates — a catalog rebuilt from the slice files that gives the agent a map of your past. Both are projections of the same source of truth: the slices themselves.
 
 ## Not a Chat List, Not a Search Bar
 
 The timeline is the explicit alternative to two dominant UI patterns that most AI chat products adopt. It is **not** a list of conversation threads that you must manually manage, rename, delete, and search through. It is **not** a search bar where you type keywords hoping the right memory surfaces. Both of these patterns impose overhead on the human — they assume you will curate your own memory.
 
-Previously rejects that assumption. Instead, it presents a single vertical timeline — your story as an autobiography, oldest at the top, newest at the bottom, with the live conversation happening at the very bottom edge.
+Previously rejects that assumption. Instead, it presents a single timeline — your story as an autobiography, oldest at the top, newest at the bottom, with the live conversation at the now end.
 
 <Callout variant="info">
 **Key takeaway: you do not manage conversations. You scroll through your life.**
 </Callout>
 
-## Four Regions, One Scroller
+## The Interface: A Wheel Beside the Conversation
 
-The page is a single vertically stacked scroll surface with four regions in order:
+The chat page is a split view. On the left, the **timeline wheel** (`TimelineWheel`); on the right, the conversation — live or historical. A fixed input bar sits at the bottom of the screen.
 
-1. **Full-screen hero** — `"Previously on {your name}"`, rendered with a cinematic text-reveal. In demo mode this becomes a persona picker instead of your name.
-2. **Sticky horizontal timeline** — a compact strip of date dots that snaps below the fixed AppHeader. Each dot is a slice; the newest sits on the right, ending in a "now" node. Scroll the strip horizontally, or use the wheel to move it. It stays put while the content below scrolls, so you can jump to any point in your past from anywhere.
-3. **Chat content** — the live conversation when "now" is selected, or a historical slice view when you pick a past dot.
-4. **Sticky input bar** — pinned to the bottom of the screen.
+The wheel is a vertical, virtualized list of **every slice you have**, loaded from the timeline catalog in one shot — oldest at the top, newest at the bottom, ending in a **now** row that returns you to the live chat. Key behaviors:
 
-Scroll up to revisit the past. Scroll down to continue where you left off.
+- **Row = slice** — each row shows the slice's date, time, and focus line. The loaded slice's row is brand-colored; hovering lifts the others.
+- **Rolling digits** — timestamps count up or down odometer-style as you scroll, so moving through the past feels like winding a clock.
+- **Scroll or drag** — scroll down to reveal earlier slices, up to move toward now. The wheel expands in place (widening over the content with a blur mask) when you want the full catalog, and collapses when you pick a slice.
+- **Two gears** — on desktop the wheel shows full rows; on phones it narrows to a lock-screen-style clock spine (small date over large hour and minute).
 
-## The Now Marker
+Selecting a past slice plays a **time-travel transition**: a rolling-digit clock readout spins from where you are to the target slice's moment, under a letter-spaced "PREVIOUSLY ON" eyebrow, before the historical view fades in.
 
-At the boundary between recorded past and live present, a large animated **"Now"** word marks the handoff (i18n key `timeline.panel.now`). Rendered with `TextGenerateEffect` at `text-5xl sm:text-6xl`, light weight, centered. This is the terminal point of the timeline: it runs down and hands off here to the live chat below.
+## The Arrival Briefing
 
-## Time-Gap Title Cards (Cold Open)
+When the live chat is empty — a fresh arrival, or a return after the last slice closed — the right panel shows the **arrival briefing** instead of a blank canvas: a film-title-card "PREVIOUSLY ON" over your name, then a hot-start summary drawn from real memory:
 
-When you return to Previously after an absence and the chat is still empty, a cinematic gap title-card appears above the Now marker — a label that cuts forward from the last recorded moment to the present.
+- **Last topic** — the most recent slice's focus line.
+- **Open loops** — up to four unresolved threads carried forward.
+- **Suggestion chips** — one-tap prompts seeded from the last topic, the open loops, and a recent slice. Each chip sends a real message.
+- **View full previously** — opens the active slice's `previously.md` (the agent's compact user card snapshot) in a dialog.
 
-The gap is computed by `getGapInfo` (chat-page.tsx), which buckets the elapsed time between the last slice's `start` and `Date.now()`:
+Every section renders only when it has real data — nothing says "last time we talked about" followed by nothing. In demo mode your name becomes the persona switcher.
 
-| Elapsed | Renders as |
-|---------|------------|
-| &lt; 5 minutes | "Moments later" |
-| 1–59 minutes | "{N} minute(s) later" |
-| 1–23 hours | "{N} hour(s) later" |
-| 1–6 days | "{N} day(s) later" |
-| 1–4 weeks | "{N} week(s) later" |
-| ≥ 5 weeks | "{N} month(s) later" |
+## The Historical Slice View
 
-The gap is computed after mount only (inside a `useEffect`) to avoid SSR/hydration mismatch on the wall clock. It is shown only when the live chat has no messages yet; once you speak, the gap card disappears. The i18n labels live in `timeline.gap.*` in `messages/{en,zh}.json`, with correct ICU pluralisation.
+Selecting a past slice swaps the right panel into a historical view while the wheel stays mounted:
 
-## The Horizontal Strip
+- **Previously On bar** — a Brain icon + label; clicking opens a dialog with the slice's `previously.md` snapshot, with the slice's summary line beneath.
+- **History turns** — the slice's user/assistant exchanges with timestamps; each agent turn's thinking is available through a Thoughts popover (the cognition log).
+- **Open loops / decisions footer** — the slice's open loops (↗) and decisions (✓) as labeled pills.
 
-The timeline is now a **horizontal** date strip (`HorizontalTimeline` in `src/components/chat/`), replacing the older vertical date-grouped panel. Key behaviors:
+## The Index: A Projection, Never a Second Truth
 
-- **Dot = slice** — each slice renders a date label, a small dot, and a time label. The selected dot is brand-colored and scaled up.
-- **Now node** — the rightmost node marks the present. Selecting it returns you to the live chat.
-- **Load earlier** — a chevron on the left paginates older slices (10 at a time) when more exist.
-- **Wheel-to-scroll** — vertical wheel input is translated into horizontal scrolling.
-- **Sticky** — the strip is `position: sticky` below the AppHeader (`top-12`), so it survives content scrolling.
+Since v0.8 the timeline is also a first-class, maintained **index** over the slice archive. The design rule:
 
-## Historical Slice View
+<Callout variant="info">
+**Slices are the single source of truth; the timeline is a derived projection.** Every catalog entry is rebuildable from the slice files, so a slice can never become unreachable because "the timeline lost it".
+</Callout>
 
-Selecting a past dot swaps the content area into a historical view while the timeline stays mounted:
+The index lives in two renderings of one structure, both under `memory/episodic/`:
 
-- **Previously On bar** — a Brain icon + "Previously On" label; clicking it opens a dialog with the slice's `previously.md` (the agent's compact user card).
-- **History turns** — the slice's user/assistant exchanges with timestamps, each turn's agent thoughts available through a "Thoughts" popover.
-- **Open loops / decisions footer** — the slice's open loops and decisions as labeled pills.
+- **`timeline/index.json`** — the canonical structured catalog, consumed by the UI (the wheel renders from it) and by tools.
+- **`timeline.md`** — the Markdown projection, era- and day-grouped, newest first. This is what the recall agent reads as its map.
 
-## Slice Rows and Pagination
-
-Each slice is one conversation burst stored as a Markdown file at:
+Each catalog entry is a compact **pointer with texture** — id, date, start/end, turn count, status, `focus`, `summary`, `tags`, emotional `tone`, `open_loops`, `decisions`, the `strands` it carries, and a `needs_marking` flag. One line is enough to judge relevance, never enough to answer from:
 
 ```
-memory/episodic/slices/YYYY/MM/DD/HHMM.md
+- **2026-08-11-1115** 回顾滴滴时期绩效背锅/晋升被吃，与当下对比 · 14轮 · mixed [状态回忆,创伤克服,人生思考]
 ```
 
-The path encodes the full timestamp: year/month/day/hour-minute. A calendar day is a directory that may hold multiple slices. A slice opens when you start talking and closes automatically after 30 minutes of silence. There is no capacity limit and no topic-shift rule — slicing is purely time-driven.
+## `weaveTimeline`: Engineering Reconciliation
 
-Each slice carries YAML frontmatter with structured metadata (`focus`, `summary`, `open_loops`, `decisions`, `tags`, `emotional_tone`, `status`, `start`/`end` timestamps), making it machine-readable without proprietary tooling.
+The index is maintained by `weaveTimeline` (`src/lib/episodic/timeline/weave.ts`) — a deterministic pass that runs at the start of every turn's housekeeping, with **zero model calls**:
 
-## The Agent's Episodic Context
+1. **Enumerate** the actual slice directories — the truth. On GitHub this is a single recursive Git Trees API call; locally, a filesystem walk.
+2. **Load** the current projection (migrating legacy monthly `_index.json` files on first run).
+3. **Diff** — a slice on disk but missing from the catalog is added from its frontmatter; a catalog entry with no slice on disk (a phantom) is dropped. **The slice always wins.**
+4. **Rebuild** — resolve strand membership against `strands.json`, sort chronologically, write both views. Inside a turn, the writes join the turn's single git commit.
 
-When the turn runs, the workflow assembles the system prompt from the timeline — the current slice under "Now — Current Session" and any recall hits bucketed by age (Today / This Week, This Month, A Few Months Ago, Last Year, Earlier), relevance-sorted and capped. This is Markdown **injected into the model's context**, not rendered on screen. Recall is handled by the two-tier system: a worker model scans summaries and returns pointers; the main model reads the full slices that matter via `readSlice`.
+A full reconcile is throttled (skipped while the catalog is less than 5 minutes old), so a per-turn weave is usually one cached read; the slice-close path forces a reconcile so a just-closed slice appears immediately. Because reconciliation is structural, orphaned slices — created but never indexed, closed across a day boundary — are picked up automatically.
 
-## Two Distinct Time-Grouped Systems
+## `needs_marking`: The Dry-Slice Queue
 
-There are two separate time-grouping systems in Previously that serve different audiences. Do not conflate them.
+A slice that closed without a `focus`/`summary` is a **dry** slice — anonymous to recall. The weave flags these as `needs_marking` instead of hiding them, and two mechanisms keep the count falling:
 
-### 1. Visible UI (for you)
+- **Deterministic fallback at close** — when the analyzer's close-marking comes back incomplete, the slice is closed with a deterministic mark (first-turn topic + tags) rather than empty fields.
+- **Backfill pass** — at slice-close boundaries (never mid-turn), a worker-model batch (`backfill-marks.ts`) writes focus/summary for a few dry slices and clears their flags. Best-effort by contract: a backfill failure never takes a turn down.
 
-The on-screen timeline is the horizontal dot strip described above — what you see on the page.
+## What the Agent Sees
 
-### 2. LLM Episodic Context (for the agent)
+Every turn, housekeeping builds a **timeline brief** from the catalog and appends it to the system prompt's variable tail:
 
-When the turn assembles the system prompt, it builds a `## Episodic Memory Timeline` section with the current slice and any recall hits. This is the agent's view of your timeline — bucketed by age, relevance-sorted, capped at `MAX_RECALL_HITS`.
+```
+## Timeline (recent)
+- **2026-08-11-1115** (08-11 Tue · 6 days ago) 回顾滴滴时期… · 14轮 · mixed [状态回忆,…]
+- **2026-08-10-1839** …
+- 往前共 152 片，可用 readTimelineWindow / readSliceSummary 回溯
+```
 
-## Data Flow
+Roughly the ten newest pointer lines, each annotated on the user's local calendar (weekday + relative days, so the agent never does date math), plus catalog totals and the dry-slice count. The prompt is explicit: *timeline lines are pointers — if a line looks relevant, read the slice before answering from it.*
 
-The timeline is populated through server actions:
+Reads then follow a cost ladder — the smallest sufficient unit first:
 
-1. **Initial load** — `getEpisodicState()` returns the most recent slice as `active`, an array of `recent` slices (with summaries and metadata), and a `hasMore` boolean.
-2. **Pagination** — `getMoreSlices(before: ISO timestamp, limit: 10)` fetches older slices.
-3. **Slice content** — `getSliceContent(slice_id)` lazily loads a slice's full body on selection, with an in-memory cache so revisits are instant.
+| Tool | Returns | Tier |
+|------|---------|------|
+| `recall(query)` | Worker-model scan: hits + recommended reads | 1 — primary past access |
+| `readTimelineWindow(from?, to?)` | Pointer lines over a date window (default 20, max 50) | 1 — orient by time |
+| `readSliceSummary(sliceId)` | Frontmatter only: focus, summary, tags, tone, loops, decisions | 1 — relevance check |
+| `readStrand(strand)` | A strand's slice paths | 1 — trace a topic |
+| `readSlice(sliceId, range)` | Specific turns / last N / after a date / keyword matches / line range | 2 — need actual text |
+| `readPreviously(sliceId)` | The slice's user-card snapshot | 2 |
+| `readSlice(sliceId)` full, `readAgentTimeline` | Whole slice / cognition log | 3 — explicit last resort |
+
+The recall agent works the same map: it reads the global timeline paginated newest-first, uses `readTimelineWindow` for older ranges, and stays on summaries — deep reads are the main model's job. See [Recall](/docs/recall).
+
+## Three Timelines
+
+One naming collision worth knowing: each slice *directory* also contains a `timeline/` subfolder — that is the per-slice pair the landing page calls **three timelines**:
+
+- **`core.md`** — the shared record: what you and the agent actually said.
+- **`agent.md`** — its thinking: the cognition log behind each turn.
+- **Your life** — the third line only you know; the part that never gets written down.
+
+The global timeline described on this page is the catalog *over* all slices' shared records — the index that makes a hundred slices navigable as one line.
+
+## Where Slices Live
+
+Each slice is a directory under `memory/episodic/slices/YYYY/MM/DD/HHMM/` (UTC), containing `previously.md` and `timeline/core.md` + `timeline/agent.md`. A slice opens when you start talking and closes after about 15 minutes of silence by default (configurable) — purely time-driven, no capacity limit, no topic-shift rule. Details: [Slices](/docs/slices).
+
+## Data Flow (UI)
+
+The interface is populated through server actions:
+
+1. **Initial load** — `getEpisodicState()` returns the most recent slice as `active`, an array of `recent` slices, and a `hasMore` flag; this seeds the briefing and the send window.
+2. **The wheel** — `getTimelineCatalog()` returns the full catalog from `index.json` (oldest → newest, virtualized client-side); there is no page-by-page fetching.
+3. **Slice content** — `getSliceContent(slice_id)` lazily loads a slice's turns, summary, previously snapshot, loops, and decisions on selection.
 
 ## Related
 
-- [Memory Model](/docs/memory-model) — how slices fit into the full episodic + semantic memory architecture
-- [Recall](/docs/recall) — how the worker and main models use the timeline for context retrieval
-- [Architecture](/docs/architecture) — the component tree that renders the timeline alongside live messages
+- [Slices](/docs/slices) — the storage unit the timeline indexes: lifecycle, frontmatter, layout
+- [Strands](/docs/strands) — the topic axis across slices; the timeline is the time axis
+- [Recall](/docs/recall) — how worker and main models navigate the timeline
+- [Memory Model](/docs/memory-model) — how slices fit into the full episodic + semantic architecture

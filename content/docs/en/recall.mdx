@@ -1,64 +1,79 @@
 ---
 title: Recall
-description: The two-tier retrieval engine — a worker model scans slice summaries for pointers, then the main model reads the slices that matter, all in a single turn.
+description: The two-tier retrieval engine — a worker model navigates the timeline and strands for pointers, then the main model reads the slices that matter, all in a single turn.
 order: 4
 ---
 
 # Recall
 
-Recall is how Previously retrieves relevant past conversations — a two-tier engine where a cheap worker model returns lightweight pointers, then the main model reads the slices it chooses, all in a single turn.
+Recall is how Previously retrieves relevant past conversations — a two-tier engine where a cheap worker model returns lightweight pointers, then the main model reads the slices it chooses, all in a single turn. Every step renders live in the chat: recall runs in the open, not behind a spinner.
 
 ## The Two-Tier Recall Engine
 
-Episodic memory in Previously is stored as **slices** — Markdown files at paths like `memory/episodic/slices/2025/11/21/0825.md`, one per conversation burst, opened when you talk and closed after 30 minutes of silence. Over weeks and months these accumulate into a deep archive. The challenge: how does the agent find what matters without reading everything every time?
+Episodic memory in Previously is stored as **slices** — directories at paths like `memory/episodic/slices/2025/11/21/0825/`, one per conversation burst, opened when you talk and closed after about 15 minutes of silence by default. Over weeks and months these accumulate into a deep archive. The challenge: how does the agent find what matters without reading everything every time?
 
 Previously splits the problem into two reflexes:
 
 | Layer | Model | Cost | What it does |
 |-------|-------|------|-------------|
-| **Worker scan** (conditioned reflex) | The resolved worker model | Cheap, fast | Scans recent slice summaries, returns **pointers** — `{ slice_id, relevance, reason }` — never full content |
-| **Main deep read** (deliberate reasoning) | The main model you pick in the toolbar | Slower, thinking enabled | Receives pointers, reads full slices on demand via `readSlice`, explores the directory when the scan finds nothing |
+| **Worker scan** (conditioned reflex) | The resolved worker model | Cheap, fast | A small multi-step agent: reads the global timeline's pointer lines, scopes date windows, traces matching strands — returns **pointers** (`{ slice_id, relevance, reason }`) plus recommended reads, never slice content |
+| **Main deep read** (deliberate reasoning) | The main model you pick in the toolbar | Slower, thinking enabled | Receives pointers, checks summaries via `readSliceSummary`, opens full slices via `readSlice` only when the content itself matters |
 
-The worker is fallible by design. It trades completeness for speed: it reads summaries, not full bodies. The main model is the safety net — it can dig deeper wherever the pointers lead, or start from scratch and explore the directory tree.
+The worker is fallible by design. It trades completeness for speed: it navigates pointer lines and the strand map, never full bodies. The main model is the safety net — it digs deeper wherever the pointers lead.
 
 <Callout variant="info">
 **Key takeaway**: the worker answers "where to look." The main model answers "what does it mean." Neither replaces the other.
 </Callout>
 
-### Step 1: Worker Scan (~500ms observed)
+### Step 1: Worker Scan
 
-The scan runs **before** the response stream opens. Each user request triggers the `recall` tool (`recallExecute` in `src/app/api/agent/tool-executors.ts`), which calls the worker model in one round-trip. The scan reads recent closed-slice summaries and judges relevance.
+Recall is not automatic — the main model calls the `recall` tool (`recallExecute` in `src/app/api/agent/tool-executors.ts`) when a query references the past, primed by a menu of known strands in its system prompt. The tool hands the query to a recall mini-agent (`runRecallSearch` in `src/lib/episodic/flash/recall.ts`) running on the worker model.
 
-The scan returns a structured result with a `hits` array. Each hit is a pointer — a slice id, a relevance score (0–1), and a one-line reason why it matches. The model is prompted to return up to 5.
+The worker is a small multi-step agent with three read-only tools of its own:
 
-**The worker does NOT read the strand index** (`strands.json`). The strand index — a keyword-to-slice-paths map built at slice-close — is present on disk, and the main model can reach it via `readStrand` on demand, but the worker scan itself searches recent slice summaries.
+- `readGlobalTimeline` — the entry point: the newest slice pointer lines (id · focus · tags · turns) from the global timeline
+- `readTimelineWindow` — the same catalog scoped to a date range, for "what happened around …" queries
+- `readStrand` — trace a keyword strand to every slice that carries it
+
+After a few exploration steps it files one structured report: a `hits` array of pointers — slice id, relevance score (0–1), one-line reason — plus a confidence score, a short reasoning line, and up to five **recommended reads** (slice id, priority, why, what to look for). The ongoing conversation's slice is excluded by construction, and any slice id not in the timeline catalog is dropped before the pointers reach the main model — a hallucinated pointer can't send the main model to a file that doesn't exist.
+
+**The worker never reads slice bodies.** It has no `readSlice` tool — the timeline and the strand map are its whole world, so its answers are navigation, not quotation. Tracing strands is a first-class part of the scan: the strand index (`strands.json`, a keyword-to-slice-paths map built at slice-close) is injected into its prompt, and matching strands give it a direct path to relevant slices.
 
 > **One recall, then stop.** If the scan finds nothing, that is a definitive answer — there is no past context for that query. The agent is instructed not to call `recall` again for the same topic, and to answer from the conversation and its own knowledge instead.
 
-The recall phase renders as a collapsible card with a History icon. Collapsed: the query and hit count. Expanded: each hit as a `slice_id` + reason + relevance percentage, an italic reasoning line, and confidence.
+The recall phase renders as a collapsible card with a History icon. While the worker explores, its steps stream live into the card — "Reading global timeline…", "Tracing strand: X…" — settling on the hit count when the report lands. Expanded: each hit as a `slice_id` + reason + relevance percentage, an italic reasoning line, and confidence.
 
 ### Step 2: Deep Read
 
-The worker's pointer list is injected into the main model's context. The main model decides which slices to open in full by calling the `readSlice` tool. It can also follow strands (`readStrand`), browse the timeline (`readTimeline`, `listSlices`, `listStrands`), or check what it already believes (`readPreviously`).
+The worker's pointers and recommended reads land in the main model's context as the `recall` tool result. The main model decides how deep to dig with its own memory tools:
 
 | Tool | Purpose |
 |------|---------|
-| `readSlice` | Read a slice's turns, optionally a `range` |
-| `readStrand` | Follow a keyword across the slices that carry it |
+| `readSliceSummary` | The cheapest check — a slice's frontmatter only (focus, summary, tags, open loops) |
+| `readTimelineWindow` | Orient by time — pointer lines over a date range |
 | `readPreviously` | Read the user-card belief snapshot |
-| `readTimeline` / `listSlices` / `listStrands` | Explore the timeline and indexes |
+| `readSlice` | Read a slice's turns — the last resort; an optional `range` fetches only the turns it needs |
 
-When the worker found hits, the main model receives guidance: "These summaries are usually enough — only read a specific slice if you need a detail they don't carry." When the scan found nothing, the main model is told to explore the directory directly — starting with `strands.json` if it wants a keyword index.
+The raw browsing tools (`readStrand`, `listSlices`, `listStrands`) belong to the recall worker — the main model never walks the directory tree itself.
+
+The rule it follows: timeline lines and summaries are enough to decide **whether** to dig — never enough to **quote**. Before citing specifics from a past conversation, it opens the slice with `readSlice`. And when the scan found nothing, that result is definitive — there is no past context to find, so it answers from the current conversation instead of searching again.
 
 ### Step 3: Metadata Maintenance
 
-The same housekeeping pass that runs the scan also proposes metadata updates for the **active slice** — the one currently being written in this conversation. The turn analyzer (`src/lib/episodic/flash/turn-analyzer.ts`) is the single worker-model call inside housekeeping, producing three things in one cheap pass:
+Recall is separate from the per-turn housekeeping pass, which proposes metadata updates for the **active slice** — the one currently being written in this conversation. The turn analyzer (`src/lib/episodic/flash/turn-analyzer.ts`) is the single worker-model call inside housekeeping, producing in one cheap pass:
 
-- **message_tags** — keyword tags for the current user message (woven into strands)
+- **message_tags** — merge-first tags for the current user message: reuse existing strand names verbatim, create a genuinely new durable topic only when nothing covers it
 - **semantic_hint** — which existing strands this message is about, plus why
-- **closed_marking** — focus, summary, refined tags, and tone for a slice that is about to close
+- **intent** — what the user is trying to do this turn (debug, write, explain, chat, review, clarify)
+- **emotional_signal** — how emotionally weighted the message is, so the agent can match the user's register
+- **memory_update** — the exact content to fold into the user card, when the user explicitly asks to record something or states a durable correction
 
-A **semantic gate** runs alongside: trivial turns ("thanks", "continue") produce no tags, no strands, and no evolution — so one-off noise doesn't pollute the timeline.
+And only when a slice closes this turn:
+
+- **closed_marking** — focus, summary, refined tags, and tone for the closing slice
+- **evolve_card** — whether anything in it deserves sedimenting onto the user card (on analyzer failure the default is to run — a wasted review is cheap, a missed evolution is permanent memory loss)
+
+A **memory-worthiness gate** runs alongside: trivial turns ("thanks", "continue") produce no tags, no strands, and no evolution — so one-off noise doesn't pollute the timeline.
 
 ## Three-Phase Chat Rendering
 
@@ -83,14 +98,7 @@ When the main model has thinking enabled (default: on, reasoning effort per your
 
 ### 2. Recall / Tool Phase
 
-Tool calls render inline as expandable cards via `ToolRenderer`, each with a human-friendly label:
-
-| Tool | You See |
-|------|---------|
-| `recall` | Recalling "..." |
-| `readSlice` | Viewing {date} |
-| `readStrand` | Following "..." |
-| `readPreviously` | Reading 前情提要… |
+Tool calls render inline as expandable cards via `ToolRenderer`. Each memory tool — `recall`, `readSliceSummary`, `readTimelineWindow`, `readSlice`, `readPreviously` — gets a content-aware label rather than a raw tool name: the recall card carries the query, a slice card names the date ("Viewing the July 25 conversation", not "readSlice"). While a tool runs, a live status line streams its progress.
 
 Each card has five visual states: **running** (spinner), **completed** (dot), **error** (red), **interrupted** (yellow), **denied** (red). Click to expand and see the full tool output — a CSS `grid-template-rows` transition, no JS height measurement.
 

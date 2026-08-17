@@ -36,6 +36,7 @@ export const docsManifest: DocSection[] = [
       { slug: "slices", title: "Slices" },
       { slug: "strands", title: "Strands" },
       { slug: "memory-model", title: "Memory Model" },
+      { slug: "user-card", title: "User Card" },
       { slug: "recall", title: "Recall" },
     ],
   },

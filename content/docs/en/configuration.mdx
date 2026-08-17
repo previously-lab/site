@@ -1,30 +1,45 @@
 ---
 title: Configuration
-description: Environment variables only — six shipped vars, zero config files, and the implicit storage backend switch between GitHub, local files, and demo.
+description: Environment variables for deployment, a per-user config file in the data directory, and the implicit storage backend switch between GitHub, local files, and demo.
 order: 0
 ---
 
 # Configuration
 
-Previously is configured exclusively through environment variables — six shipped vars, zero config files, one implicit backend switch that determines whether reads hit GitHub's API or your local filesystem.
+Deployment configuration is entirely environment variables — no project config files, no settings YAML. Seven variables appear in the shipped `.env.example`, plus one optional API key per additional model provider. Day-to-day preferences (model choice, thinking, slicing) live in a per-user config file stored inside the memory data directory, not in the deployment.
 
 <Callout variant="info">
-**Key takeaway:** Three variables are required (`DEEPSEEK_API_KEY`, `GITHUB_REPO_OWNER`, `GITHUB_REPO_NAME`). A fourth (`GITHUB_TOKEN`) is what you think of as required — it gates the entire GitHub backend. Without it, the app reads and writes the local filesystem instead.
+**Key takeaway:** `DEEPSEEK_API_KEY` is required for the default setup — it powers the default models and web search. `GITHUB_TOKEN` is the variable you think of as required — its presence gates the entire GitHub backend; without it the app reads and writes the local filesystem instead. `GITHUB_REPO_OWNER` and `GITHUB_REPO_NAME` are required only when the GitHub backend is active.
 </Callout>
 
 ## Environment variable reference
 
 Every variable the runtime actually reads, in one table:
 
-| Variable | Required | Shipped | Default | Runtime effect |
+| Variable | Required | In `.env.example` | Default | Runtime effect |
 |---|---|---|---|---|
-| `DEEPSEEK_API_KEY` | Yes | Yes | — | Powers both the worker and main model tiers. The `@ai-sdk/deepseek` provider reads it automatically from the environment — no source file references `process.env.DEEPSEEK_API_KEY` directly. |
-| `GITHUB_TOKEN` | See note | Yes | — | Presence of this variable **is the backend switch**. When set, the app uses the Octokit/GitHub API backend; when absent, the app falls back to the local filesystem. Leave unset or commented out for local development. An empty string `GITHUB_TOKEN=` will now correctly fall back to local filesystem. A fine-grained PAT with Contents read/write scoped to a single repository. |
-| `GITHUB_REPO_OWNER` | When using GitHub backend | Yes | `local` | GitHub username or organization that owns the memory repository. Read at multiple modules including the chat route, flush endpoint, episodic manager, and identity/profile. |
-| `GITHUB_REPO_NAME` | When using GitHub backend | Yes | `local` | The repository name for memory data. Same consumption points as `GITHUB_REPO_OWNER`. |
-| `STORAGE` | No | Yes | Auto-detected | Selects the data source: `local` (filesystem), `github` (GitHub API), or `demo` (read-only pre-seeded persona). When unset, auto-detects: `GITHUB_TOKEN` present → `github`; `NODE_ENV=development` → `local`; otherwise → `demo`. In `demo` mode, `memory/` reads are served from a pre-seeded persona dataset (default: Caleb, `personal_14`) and writes are accepted but never persisted — the app returns a success response but discards the data. |
-| `BENCHMARK_BASE_URL` | No | No | — | Base URL for the remote benchmark-data repo used in `demo` mode (e.g. `https://raw.githubusercontent.com/previously-lab/benchmark-data/main`). When unset in `demo` mode, reads fall back to a local `../benchmark-data` sibling directory on disk. |
-| `ANTHROPIC_API_KEY` | No | Roadmap only | — | Appears in `README.md` and the `@ai-sdk/anthropic` dependency is installed, but **no shipped code reads `process.env.ANTHROPIC_API_KEY`** or instantiates an Anthropic provider. Multi-provider support is typed in the model registry (`provider: "deepseek" \| "anthropic" \| "openai"`) but `DEFAULT_MODELS` ships only DeepSeek entries. Setting this variable has zero runtime effect in v0.7. |
+| `DEEPSEEK_API_KEY` | Yes (default setup) | Yes | — | API key for DeepSeek, the default provider. Powers the default main/worker models and — regardless of which provider you switch to — the web-search tool, which runs on DeepSeek V4 Flash through DeepSeek's Anthropic-compatible endpoint. |
+| `GITHUB_TOKEN` | See note | Yes | — | Presence of this variable **is the backend switch**. When set (and `STORAGE` unset), the app uses the Octokit/GitHub API backend; when absent, auto-detection falls through to local filesystem or demo. Leave unset or commented out for local development. An empty string `GITHUB_TOKEN=` correctly falls back. A fine-grained PAT with Contents read/write scoped to a single repository. |
+| `GITHUB_REPO_OWNER` | When using GitHub backend | Yes | `local` | GitHub username or organization that owns the memory repository. |
+| `GITHUB_REPO_NAME` | When using GitHub backend | Yes | `local` | The repository name for memory data. |
+| `STORAGE` | No | Yes | Auto-detected | Selects the data source: `local` (filesystem), `github` (GitHub API), or `demo` (read-only pre-seeded persona). When unset, auto-detects: `GITHUB_TOKEN` present → `github`; `NODE_ENV=development` → `local`; otherwise → `demo`. |
+| `BENCHMARK_BASE_URL` | No | Yes (commented) | — | Base URL for the remote benchmark-data repo used in `demo` mode (e.g. `https://raw.githubusercontent.com/previously-lab/benchmark-data/main`). When unset in `demo` mode, reads fall back to a local `../benchmark-data` sibling directory on disk. |
+| `ACCESS_SECRET` | No | Yes (commented) | — | Opt-in access key for non-browser callers. When set, POST requests to the mutation endpoints (`/api/chat`, `/api/loops`, `/api/episodic/flush`) that lack a same-origin signal must send an `x-access-key` header with this value, or they get a 403. Same-origin browser calls always pass. Leave unset to keep a private deployment frictionless. |
+
+### Additional provider keys
+
+The model catalog (`src/lib/models/catalog.ts`) activates one provider per configured API key. Setting any of these makes that provider's models selectable in Settings — no other configuration is needed:
+
+| Variable | Provider |
+|---|---|
+| `ANTHROPIC_API_KEY` | Anthropic |
+| `OPENAI_API_KEY` | OpenAI |
+| `MOONSHOT_API_KEY` | Moonshot AI |
+| `DASHSCOPE_API_KEY` | Alibaba (DashScope) |
+| `GOOGLE_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY`, or `GEMINI_API_KEY` | Google (first set wins) |
+| `MISTRAL_API_KEY` | Mistral |
+| `XAI_API_KEY` | xAI |
+| `GROQ_API_KEY` | Groq |
 
 > **Note on `GITHUB_TOKEN`:** When `STORAGE` is unset, the data source is auto-detected in one place — `src/lib/data-source/resolve.ts`: `GITHUB_TOKEN` present → GitHub API; `NODE_ENV=development` → local filesystem; otherwise → demo. There is no dedicated `USE_GITHUB` environment variable. This is intentional: the simplest possible toggle, no config file, no extra surface area.
 
@@ -39,14 +54,14 @@ resolveDataSource(); // "local" | "github" | "demo" — STORAGE override, else a
 | Backend | When selected | How reads work | How writes work |
 |---|---|---|---|
 | **GitHub API** | `STORAGE=github`, or auto-detected when `GITHUB_TOKEN` is set | `octokit.rest.repos.getContent`, base64-decoded. Requires `GITHUB_REPO_OWNER` and `GITHUB_REPO_NAME`. | `createOrUpdateFileContents` on the same repo. |
-| **Local filesystem** | `STORAGE=local`, or auto-detected in development | `fs.readFileSync` from `DATA_ROOT = join(process.cwd())`. Reads physical files from the project root. | `fs.writeFileSync` to the same root. |
+| **Local filesystem** | `STORAGE=local`, or auto-detected in development | `fs.readFileSync` from the project root. Reads physical files from disk. | `fs.writeFileSync` to the same root. |
 | **Demo (read-only)** | `STORAGE=demo`, or auto-detected otherwise | Reads from a pre-seeded persona dataset — a local `../benchmark-data/{persona}/...` sibling or the `BENCHMARK_BASE_URL` remote. | No-op: returns success, discards data. |
 
 The storage backends enforce the same security boundary:
 - **Path whitelist**: only `memory/`, `tasks/`, and `sessions/` are read-write; `src/` is agent read-only
-- **Size cap**: `MAX_FILE_SIZE_BYTES = 1_000_000` (1 MB) on all file reads
+- **Size cap**: `MAX_FILE_SIZE_BYTES = 1_000_000` (1 MB) on file reads and writes
 
-The local-filesystem backend is what you use during development (`pnpm dev`). It reads and writes real files on disk — no GitHub, no network, no rate limits. The GitHub backend is what you deploy to Vercel. The code paths diverge at the route handlers (see `src/app/api/chat/route.ts` lines ~434-475), but the interface is identical.
+The local-filesystem backend is what you use during development (`pnpm dev`). It reads and writes real files on disk — no GitHub, no network, no rate limits. The GitHub backend is what you deploy to Vercel. Both implement the same interface, so the rest of the app never branches on which one is active.
 
 ## Demo mode behavior
 
@@ -86,52 +101,70 @@ With the variable set, demo reads fetch from that base URL; unset, they fall bac
 
 In demo mode the hero becomes a persona picker (`hero-section.tsx` loads the persona list via `listDemoPersonas`), so you can switch between pre-seeded personas.
 
-## Model registry and model routing
+## Model catalog and model routing
 
-Previously ships with a models.dev-driven model registry. Two tiers, one catalog:
+Previously resolves its available models at runtime from each configured provider's live model-list API (`src/lib/models/catalog.ts`). Two tiers, one catalog:
 
-| Tier | Purpose | Model | Temperature | Tool mode |
+| Tier | Purpose | Model | Thinking |
+|---|---|---|---|
+| **Worker** | Cheap internal calls: turn analysis, recall search, tag extraction, belief evolution, background loops | Resolved worker model (a lightweight of the main provider) | Always off |
+| **Main** | Deep reasoning, full-slice reads, response generation | User-selected main model | User's choice |
+
+For every provider whose API key is set, the catalog calls the provider's list endpoint, normalizes legacy ids to current names, and enriches known ids with curated metadata. Unknown ids get sensible provider defaults; a provider whose list call fails falls back to its curated entries so it stays usable offline. The result is cached for 30 minutes — env changes take effect after the TTL.
+
+The curated fallback registry (`src/lib/models/registry.ts`) ships five entries:
+
+| Model ID | Provider | Thinking | Vision | Max tokens |
 |---|---|---|---|---|
-| **Worker** | Unified intent classification + recall scanning + metadata maintenance | Resolved worker model (a cheap tier of the main provider) | Low | Structured, non-thinking |
-| **Main** | Deep reasoning, full-slice reads, response generation | User-selected main model | SDK default | User choice |
+| `deepseek-v4-flash` | DeepSeek | Yes | No | 393216 |
+| `deepseek-v4-pro` | DeepSeek | Yes | No | 393216 |
+| `claude-haiku-4-5` | Anthropic | Yes | Yes | 200000 |
+| `claude-sonnet-5` | Anthropic | Yes | Yes | 200000 |
+| `claude-opus-4-8` | Anthropic | Yes | Yes | 200000 |
 
-### The worker is resolved, not hardcoded
-
-The worker pass runs **before** the response stream opens. It makes one cheap call — the turn analyzer — that performs three jobs in a single round-trip: intent classification, recall scanning, and metadata maintenance. The worker model is resolved by `resolveWorkerModel()` (`src/lib/models/worker.ts`): a manual pin → a same-provider lightweight → the main model itself. Worker calls are always cheap, structured, and non-thinking.
+Legacy ids are normalized forward: a stored `deepseek-chat` becomes `deepseek-v4-flash`, and `deepseek-reasoner` becomes `deepseek-v4-pro`.
 
 ### Main model selection
 
-The main model is selected per-request from the client:
+The main model is resolved per request, in this order:
 
-```typescript
-const model = (body.model as string) ?? 'deepseek-chat';
-```
+1. **Request override** — the client sends `body.model` with each chat request.
+2. **User config default** — `model.provider` in `memory/user/config.json` (editable in Settings). Ships as `deepseek-v4-pro`.
+3. **Deployment default** — the first curated model whose provider key is set.
 
-The client default is `deepseek-chat` as well (`getClientSetting('PREVIOUSLY_MODEL', 'deepseek-chat')`). The model registry (`src/lib/models/registry.ts`) defines exactly two models:
+Unknown or unavailable ids fall back to the deployment default; the resolved model is logged per turn (`[Turn] model=…`) so a switch is verifiable in the server log.
 
-| Model ID | Display name | Supports thinking | Vision | Max tokens |
-|---|---|---|---|---|
-| `deepseek-chat` | DeepSeek Chat | Yes | No | 65536 |
-| `deepseek-reasoner` | DeepSeek Reasoner | Yes | No | 65536 |
+### The worker is resolved, not hardcoded
 
-`deepseek-reasoner` exists in the registry and is available as a user-selectable option, but it is **not the default** and is **not auto-selected** by the thinking toggle. The shipped path stays on `deepseek-chat`.
+Internal calls never reuse the main model blindly — `resolveWorkerModel()` (`src/lib/models/worker.ts`) resolves a cheaper tier in this order:
 
-### Thinking toggle
+1. **Manual pin** — an explicit `worker.provider` in the user config (mode `"manual"`).
+2. **Same-provider lightweight** — curated for known providers (`deepseek-v4-flash` for DeepSeek, `claude-haiku-4-5` for Anthropic); otherwise the smallest non-thinking model of the same provider from the live catalog.
+3. **The main model itself** — same provider, always correct.
 
-The thinking toggle is a request-level boolean (`body.thinking`, default `true`) that is **not** a model switch. When enabled, the server adds provider options to the `deepseek-chat` call:
+The worker's central call is the turn analyzer (`src/lib/episodic/flash/turn-analyzer.ts`): one cheap, structured, thinking-off pass that produces the message's keyword tags, a semantic hint about which existing Strands it belongs to, marking for any slice that closed this turn, and a decision on whether the closing slice should evolve the user card.
 
-```typescript
-providerOptions: {
-  deepseek: {
-    thinking: { type: 'enabled' },
-    reasoningEffort: 'medium',
-  },
-}
-```
+### Thinking toggle and reasoning effort
 
-When disabled, no `providerOptions` are sent. The thinking duration is measured server-side (wall-clock time between the first reasoning chunk and the first text chunk) and emitted as a `data-reasoning` event — not tracked client-side via timers.
+The thinking toggle is a request-level boolean (`body.thinking`, falling back to `model.thinking` in the user config, default `true`) that is **not** a model switch. A separate effort control (`body.effort`, falling back to `model.reasoningEffort`, default `"medium"`) takes `low | medium | high`. Both are mapped onto each provider's own options shape by a single module (`src/lib/models/effort-injector.ts`): `reasoningEffort` for DeepSeek and OpenAI-compatible providers, `budgetTokens` for Anthropic. Thinking off always means an explicit thinking-disabled shape, on every provider.
 
-> **Nuance:** `deepseek-reasoner` exists in the registry but the thinking toggle does not switch to it. Both the route code and the client default are `deepseek-chat`. The toggle is a **provider-level option on deepseek-chat**, not a model swap.
+> **Nuance:** the thinking toggle and effort slider never swap models. `deepseek-v4-pro` and the effort axis are independent choices — the toggle is a provider-level option on whichever model is selected, not a model swap.
+
+## The user config file
+
+Deployment is env-only, but per-user preferences live in `memory/user/config.json`, stored in the memory repo itself (so it syncs with the rest of your data) and editable via the Settings UI. Every field is optional; missing fields fall back to shipped defaults (`src/lib/config/defaults.ts`):
+
+| Field | Default | Purpose |
+|---|---|---|
+| `model.provider` | `deepseek-v4-pro` | Main model id |
+| `model.thinking` | `true` | Thinking on/off |
+| `model.reasoningEffort` | `medium` | Thinking depth: `low` / `medium` / `high` |
+| `worker.mode` / `worker.provider` | `auto` / — | Worker resolution: derive from main model, or pin a model id |
+| `slicing.maxTurnsPerSlice` | `20` | Force-close the active Slice after this many turns |
+| `slicing.timeSilenceMinutes` | `15` | Minutes of inactivity before a time-silence split |
+| `context.recentTurnsLimit` | `20` | Recent turns included in the assembled prompt |
+
+The file is read at request time through the same data-source channel as the rest of memory, and cached for 60 seconds.
 
 ## Internationalization
 
@@ -142,20 +175,7 @@ i18n uses `next-intl` with exactly two locales:
 | English | `en` | Yes |
 | Chinese | `zh` | No |
 
-Configuration lives in `src/i18n/routing.ts`:
-
-```typescript
-defineRouting({
-  locales: ['en', 'zh'],
-  defaultLocale: 'en',
-});
-```
-
-Translation files:
-- `messages/en.json`
-- `messages/zh.json`
-
-Navigation must use utilities from `@/i18n/navigation` instead of `next/navigation` (enforced by project convention). The locale layout wraps content in `NextIntlClientProvider`.
+Configuration lives in `src/i18n/routing.ts`, translations in `messages/en.json` and `messages/zh.json`. Navigation must use utilities from `@/i18n/navigation` instead of `next/navigation`.
 
 ## The omitted vars
 
@@ -164,10 +184,10 @@ A few environment variables you might expect, and why they do not exist:
 | You might expect | Reality |
 |---|---|
 | `USE_GITHUB` | Does not exist. The backend switch is the `STORAGE` env var with auto-detection in `src/lib/data-source/resolve.ts` — implicit, zero-config, intentional. |
+| `DEMO_MODE` | Does not exist. Demo is just another `STORAGE` value; no module reads a separate demo flag. |
 | `LOG_LEVEL` | Not implemented. Logging is thin. |
 | `DATABASE_URL` | There is no database. State lives in GitHub files. |
 | `PORT` | Not read by the app; Next.js handles it. |
-| `ANTHROPIC_API_KEY` | Installed dependency, README mentions it, **but no shipped code reads it**. Roadmap/aspirational. |
 
 ## Related
 

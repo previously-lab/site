@@ -1,116 +1,71 @@
 ---
 title: Memory Model
-description: How memory is structured — episodic slices, semantic strands and nodes, the whitelist boundary, and context assembly under a token budget.
+description: How memory is structured — the build-time identity constitution, the episodic timeline of slices and strands, the living user card, the whitelist boundary, and per-turn context assembly.
 order: 3
 ---
 
 # Memory Model
 
-Previously eschews databases and vector stores. Memory is plain Markdown files in a git repository — episodic time slices for what happened when, semantic strands and knowledge nodes for what things are — assembled under a token budget at inference time.
+Previously has no database and no vector store. Memory is plain Markdown files in a git repository, organized by time. Three timelines run through the product, and only one of them is shared:
 
-## Episodic Memory: The Timeline
+- **Your life** — everything you lived. Most of it was only ever experienced by you; Previously does not see it.
+- **The shared record** — every conversation, every decision, every unspoken moment that got remembered. This is what Previously stores, as a timeline of episodic slices.
+- **Its thinking** — the agent's own cognition while it worked: what it recalled, what it reasoned, what it concluded. This is recorded too, alongside each slice.
 
-Previously records every conversation burst as a **slice**: a single Markdown file on your personal timeline. The path tells you exactly when it happened:
+The memory model is how these lines are kept: an immutable identity bundled at build time, a lossless episodic timeline at runtime, and a compact user card that distills the timeline into who you are.
+
+## L0: The Identity Constitution
+
+The deepest layer is not data at all — it is who the agent is. `identity/agent/SOUL.md` and `identity/agent/DIRECTIVES.md` hold the agent's constitution: its character and its standing rules.
+
+At build time, `scripts/generate-identity.mjs` compiles both files into a generated TypeScript module (`src/lib/identity/agent-prompt.generated.ts`), so the constitution is frozen into the deployment. It is never read from disk at runtime, and its source sits outside the tool whitelist — the agent cannot rewrite its own soul, and neither can a bad edit to the repo change the live prompt.
+
+## The Episodic Layer: Slices on a Timeline
+
+Every conversation burst becomes a **slice** — a directory on your personal timeline whose path encodes exactly when it happened:
 
 ```
-memory/episodic/slices/2025/11/21/0825.md
+memory/episodic/slices/2025/11/21/0825/
+  timeline/
+    core.md      -- the shared record: YAML frontmatter + conversation turns
+    agent.md     -- its thinking: the agent's cognition log for this slice
+  previously.md  -- a snapshot of the user card as of this slice
 ```
 
-A calendar day is a directory that may hold multiple slice files. A slice opens when you start talking, stays active while you stay engaged, and closes automatically after 30 minutes of silence (`src/lib/episodic/slicer.ts`). Read top-to-bottom across months and years, slices are your autobiography — what happened, when it happened, in chronological order.
+Note the two files under `timeline/`: `core.md` is the shared record (what was said, with structured metadata — `focus`, `summary`, `open_loops`, `decisions`, `tags`, `emotional_tone`, `status`, `start`/`end`), while `agent.md` is the agent's own line — its thinking at the time, mechanically extracted. A slice opens when you start talking and closes after about 15 minutes of silence by default (or context loss, or a turn-count cap). There is no topic-shift rule: slicing is purely time-driven, so the timeline stays a lossless autobiography. See [Slices](/docs/slices) for the full lifecycle.
 
-Every slice carries YAML frontmatter with structured metadata:
-
-```yaml
----
-focus: Planning the M8 flash overhaul
-summary: Reviewed slicer architecture, decided on time-only slicing
-open_loops: [strand integration, demo mode scope]
-decisions: [Slice by time only; no topic-based splitting]
-tags: [m8, episodic, architecture]
-related_slices: [2025/11/20/1430.md]
-emotional_tone: focused
-status: closed
-start: 2025-11-21T08:25:00Z
-end: 2025-11-21T09:10:00Z
----
-```
-
-Conversation turns are rendered as `## Turn N -- ISO_TIMESTAMP (role)` headers in the Markdown body. This format is managed by the gray-matter library — every git client, every editor, and every LLM can parse it without proprietary tooling.
+**Strands** are the thin semantic index over that timeline: a keyword like `work` or `family` woven through every slice that carries it, stored in `memory/episodic/strands.json` as a strand-to-slice-paths mapping. A slice is what happened; a strand is what it was about. See [Strands](/docs/strands).
 
 <Callout variant="info">
-**Key takeaway: the timeline is time-driven, not topic-driven.** A slice opens on talk and closes on silence. There is no capacity limit and no topic-shift rule. Your conversation history is lossless and chronological.
+**Key takeaway: slices are the single source of truth.** Everything else — the strand index, the timeline catalog, the user card — is a derived, rebuildable projection over the slice files.
 </Callout>
 
-## Semantic Memory, Layer 1: Strands
+## The Timeline Index
 
-A **strand** is a keyword — like `work`, `family`, `health`, `housing` — woven through every slice that carries it. The file `memory/episodic/strands.json` maps each strand to its slice paths:
+Reading a hundred slices to answer one question wastes context, so Previously maintains a first-class, derived index over the whole history (`src/lib/episodic/timeline/`):
 
-```json
-{
-  "strands": {
-    "housing": [
-      "memory/episodic/slices/2025/03/10/0915.md",
-      "memory/episodic/slices/2025/04/02/1400.md",
-      "memory/episodic/slices/2025/06/18/1100.md"
-    ],
-    "work": [
-      "memory/episodic/slices/2025/06/18/1100.md",
-      "memory/episodic/slices/2025/07/01/0800.md"
-    ]
-  }
-}
-```
+- `memory/episodic/timeline/index.json` — the canonical structured catalog: one entry per slice with its `focus`, `summary`, `tags`, `strands`, `open_loops`, `decisions`, and a `needs_marking` flag for slices whose semantics haven't been filled yet.
+- `memory/episodic/timeline.md` — a Markdown projection of the same catalog, grouped by month and day, readable by the agent (and by you).
 
-Strands are built at slice-close via `updateStrands`. A slice = what happened; a strand = what it was about. Strands form the thin, lossless semantic index over the episodic timeline — the whole history of a topic across time, without duplicating the content.
+Both are rebuilt deterministically by `weaveTimeline` — enumerate the slice files, diff, reconcile — with zero model calls. A fresh slice is upserted into the catalog the turn it is created; a worker model later backfills `focus`/`summary` for any entry flagged `needs_marking`, off the turn's critical path.
 
-<Callout variant="warning">
-**Roadmap:** Strands currently carry no rolling summary. A richer first-class strand with its own narrative summary and recall integration is a future milestone.
-</Callout>
+The index is a map, not an answer source: each line carries enough texture to judge relevance, but correctness always comes from opening the raw slice with `readSlice`. The agent is explicitly instructed that a timeline line is a pointer, never a source to cite from.
 
-## Semantic Memory, Layer 2: Memory Nodes
+## The User Card
 
-**Memory nodes** are separate structured knowledge units at `memory/nodes/`, authored by Previously itself (the main model, via `writeFile`) when a conversation reveals genuinely notable information about you. Unlike strands — which are an auto-built keyword index — nodes are hand- or agent-authored knowledge units with a typed schema:
+`memory/episodic/current-previously.md` is the living distillation of the timeline — a compact card that answers *who you are*, refined after slice boundaries. It is the difference between an agent that stores your history and one that arrives already knowing you: it is what makes an arrival briefing possible.
 
-| Field | Purpose |
-|-------|---------|
-| `type` | `concept`, `experience`, `project`, `people`, or `personality` |
-| `priority` | 1–10, defaults to 5 |
-| `domain` | Classification domain, defaults to `general` |
-| `tags` | Keyword labels for matching |
-| `related` | Links to other node IDs |
-| `backlinks` | Reverse links from YAML frontmatter (static) |
-| `status` | `active` or `deprecated` |
-| `access_count` | Not yet implemented (consumed by scorer but never written) |
-| `last_accessed` | Date-only string (YYYY-MM-DD) |
-| `superseded_by` | Node ID that replaces this one |
+The card has five sections:
 
-Node relevance is scored at recall time:
+| Section | Contents |
+|---------|----------|
+| **Identity** | Structured head: name, how to address you, aliases |
+| **Past** | A rolling third-person profile paragraph, updated in place, plus anchor facts — durable dates, decisions, and red lines that will still be true in years |
+| **Now** | Current-state hooks, not narratives — mechanically expired after 7 days |
+| **Horizon** | Future-facing commitments and deadlines, each with a `by:` date; overdue items are flagged, never silently dropped |
+| **Self-model** | The agent's operating lessons about working with you — deltas from its standing directives only |
 
-```
-score = (priority
-         + keyword-tag-match[+5 each]
-         + graph_bonus[+2 per already-selected linked node]
-         + freq_bonus[min(access_count * 0.3, 3)])
-         * time_decay
-
-where time_decay = 0.9^(daysSinceAccess / 7)  ~10% decay per week
-```
-
-Deprecated nodes always score 0. This scoring feeds the context assembler's selection.
-
-## Layered Memory: L0/L1 vs L2
-
-Memory is organized in three tiers, split by when they load:
-
-| Tier | What | When | Mutable? |
-|------|------|------|----------|
-| **L0** | Agent constitution (SOUL) | Bundled at build time | Immutable at runtime |
-| **L1** | Agent directives (DIRECTIVES) | Bundled at build time | Immutable at runtime |
-| **L2** | Episodic slices + strands + nodes | Fetched on demand at runtime | Writable by tools |
-
-L0 and L1 are produced by `scripts/generate-identity.mjs` at build time and compiled into strings. Their source sits outside the tool whitelist — the agent cannot rewrite its own soul. L2 is read live from the filesystem via tools, and that is where the episodic memory, strands, and nodes live.
-
-The user profile (`memory/user/profile.md`) is a hybrid: it loads live from memory/ (L2 at runtime), but the generic `writeFile` tool is blocked from editing it — only a dedicated `updateUserProfile` tool can modify it.
+Every entry carries `refs` pointers back to the slices that evidence it, so any claim can be drilled down to the raw record. The card is never rewritten wholesale and never touched by the generic write tool: a dedicated worker-model agent edits it through validated per-entry mutations (`addNow`, `updatePastProfile`, `resolveHorizon`, …), and over-limit writes are rejected with compression instructions. Hard caps keep the whole card under ~8 KB, so it stays cheap to inject into every prompt. See [The User Card](/docs/user-card) for the full format and evolution loop.
 
 ## The Whitelist Boundary
 
@@ -120,53 +75,43 @@ Agent tools are confined to three writable directories (`src/lib/whitelist/index
 memory/   tasks/   sessions/
 ```
 
-The `src/` directory is agent-**read-only**, never modifiable by any tool. Path validation normalizes inputs — decoding URI components, converting backslashes to forward slashes, resolving `./` and `../`, stripping leading slashes — then rejects empty paths, absolute paths (`/`), and drive-letter paths (`A:`) before matching against the allowed prefixes.
+The `src/` directory is agent-**read-only** — no tool may modify it. Path validation normalizes inputs first — decoding URI components, converting backslashes to forward slashes, resolving `./` and `../`, stripping leading slashes — then rejects empty paths, absolute paths (`/`), and drive-letter paths (`A:`) before matching against the allowed prefixes.
 
-Within the whitelist, certain paths are readable but write-blocked:
+Within the whitelist, system-managed paths are readable but write-blocked for the generic write tool:
 
-- `memory/episodic/` — system-owned slices and indexes
+- `memory/episodic/` — slices, indexes, and the user card are system-owned
 - Any `_index.json` file
-- `strands.json`
-- `memory/user/profile.md` — editable only via its dedicated tool
+- Any `strands.json` file
 
-This prevents accidental or malicious corruption of the episodic timeline and structural indexes.
+This keeps the episodic timeline and its structural indexes safe from accidental or malicious corruption; the card evolves only through its dedicated mutation tools.
 
-## Context Assembly Under a Token Budget
+## Context Assembly: Built Fresh Every Turn
 
-When Previously constructs a prompt, the `src/lib/context/assembler.ts` packs a 5-layer payload under a default budget of 8,000 tokens:
+There is no ever-growing prompt window. Each turn, the workflow assembles the system prompt dynamically from the timeline (`assembleSystemPrompt` in `src/app/api/chat/turn-workflow.ts`):
 
-| Layer | Content | Budget Rule |
-|-------|---------|-------------|
-| 0 | System prompt (constitution + directives) | Full, always included |
-| 1 | Core memory nodes (full content) | Capped at budget × 0.7 (reserves 30% for later layers) |
-| 2 | Session summary + recent turns | Turns truncated to 300 characters each |
-| 3 | Extended nodes (summary only) | First paragraph ≤ 200 characters; stops at budget − 500 |
-| 4 | Reference nodes | `[[wikilink]]` titles only |
+1. **Identity constitution** — SOUL + DIRECTIVES, stable across turns.
+2. **The user card** — changes only when it evolves.
+3. **The per-turn brief** — timestamp, intent, continuity, semantic links.
+4. **Timeline and strands blocks** — a pointer view of recent slices and the strand menu.
+5. **Notices** — evolution results, demo mode.
 
-Token estimation is a heuristic (`ceil(chars / 4)`) — not a real tokenizer. As the budget fills, detail degrades: full node content gives way to summaries, which give way to bare titles. This guarantees every request fits within the model's context window without hard truncation of critical layers.
+The ordering is a cache decision, not just layout: the stable blocks form a long byte-identical prefix the provider's prompt cache reuses across turns, while the variable tail changes freely without invalidating it. Deep context is never stuffed into the prompt by default — recall works the timeline in two tiers: a worker model scans summaries and returns pointers, and the main model deep-reads only the slices that matter via `readSlice`. See [Recall](/docs/recall).
 
 ## Why Plain Markdown + YAML
 
-There is no database, no vector store, and no proprietary format. Every piece of memory is a Markdown file with YAML frontmatter. This choice is deliberate:
+Every piece of memory is a Markdown file with YAML frontmatter. This choice is deliberate:
 
 - **Portable** — `git clone` anywhere, read on any device, no server needed.
-- **Git-diffable** — every change to a slice, node, or strand is tracked in version history. You can see what Previously learned and when.
-- **Human-editable** — open any slice in VS Code, fix a summary, add a tag. No admin UI, no SDK.
+- **Git-diffable** — every change to a slice, the card, or the strand index is tracked in version history. You can see what Previously learned, and when.
+- **Human-editable** — open any file in your editor, fix a summary, add a tag. No admin UI, no SDK.
 - **Any tool reads it** — Previously writes, Claude Code reads, Codex extends. No lock-in, no integration tax, no schema migration.
 
 Files are the interface.
 
-## Two-Tier Recall
-
-Recall follows the episodic-then-semantic order grounded in Tulving: scan WHEN first, then retrieve WHAT.
-
-1. **Worker scan** (the resolved worker model) — scans recent slice summaries, returning pointers to relevant slices. Per-round metadata maintenance (tags, strands, summaries) is folded into this single round-trip — the turn analyzer — which retries once after 300ms and falls back to safe defaults.
-2. **Main deep read** (the main model) — calls the `readSlice` tool to read full slice bodies for deep recall. This is the expensive, thorough pass that reconstructs context from the raw timeline.
-
-This split keeps fast operations fast while reserving model capacity for the work that needs it.
-
 ## Related
 
-- [Architecture Overview](/docs/architecture)
+- [The Timeline](/docs/timeline) — the interaction surface this memory model powers
 - [Slices](/docs/slices) — the episodic layer in detail
 - [Strands](/docs/strands) — the semantic keyword index
+- [The User Card](/docs/user-card) — the living distillation of you
+- [Recall](/docs/recall) — how the agent works the timeline at inference time

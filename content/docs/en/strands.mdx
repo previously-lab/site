@@ -54,8 +54,10 @@ Strands have no separate authoring step. They are **derived entirely** from the 
 The cycle is:
 
 1. **The worker runs metadata maintenance** → writes `tags` into the active slice's frontmatter
-2. **The slice is persisted** (either closed after 30 min of silence, or snapshotted mid-conversation)
-3. **`updateStrands(slice)` runs** → reads `strands.json`, merges each tag as a key, appends the slice's relative path (deduplicated), writes back
+2. **The slice is persisted** (either closed after about 15 min of silence by default, or snapshotted mid-conversation)
+3. **`updateStrands(slice)` runs** → reads `strands.json`, weaves each tag in as a key, appends the slice's relative path (deduplicated), writes back
+
+The weave is **merge-first**: before a tag creates a new key, it is normalized (trimmed, ASCII-lowercased, full-width forms folded to half-width, inner whitespace collapsed) and matched against existing keys — so `Apex` and `apex` land on the same strand instead of splitting one topic into two. Only a genuinely new tag creates a new key.
 
 Tags weave into strands. You never write a strand directly.
 
@@ -67,6 +69,25 @@ Tags weave into strands. You never write a strand directly.
 - **On active-slice snapshots** (`ensureIndexEntries` in `manager.ts`): when a snapshot is saved mid-conversation, `updateStrands` also runs — but only if the slice has at least one tag. This means an in-progress slice appears in the strand index before it closes.
 
 The result: `strands.json` stays current even for active slices, so a recall scan never misses a tag just because the slice hasn't closed yet.
+
+## Keeping the Index Clean
+
+A naive append-only index rots: typos split one concept across two keys, and a tag used once a year ago stays forever. At every slice close, a consolidation pass (`consolidateStrands`) runs in two stages:
+
+1. **Deterministic pruning (always).** A strand that never became a thread is pruned — specifically, one with fewer than 2 slices whose slices are all older than 14 days. A strand survives if it has enough slices *or* at least one recent slice, so a genuinely new topic is never pruned the day it appears.
+2. **LLM merge pass (only when the index has 25+ strands).** Normalization catches mechanical duplicates like `Apex`/`apex`, but the worker model itself mints semantic duplicates — typos in names, the same concept under two names. The worker model reviews the index and proposes a from→to merge map (capped at 30 merges per pass, precision over recall: when in doubt, do not merge). The engineering layer then unions the path lists and removes the redundant keys.
+
+The whole pass is defensive: on any failure it returns the index unchanged, so slice close never breaks because consolidation did.
+
+## How Strands Are Read
+
+The index is not write-only — it feeds the agent on every turn, through three paths:
+
+- **The memory-topics menu.** During turn housekeeping, the system prompt's variable tail gets a `## Memory topics` block: up to 20 strands, sorted by most recently active slice, each annotated with when it was last seen. When the user mentions one of these topics, the main agent is instructed to run `recall`.
+- **The recall pipeline.** The `recall` tool hands the query to a Flash sub-agent that searches memory from pointers only. That sub-agent receives the strand list up front, is told to check which strands match the query, and has its own `readStrand` tool to trace a matching strand to every slice path that carries it. Strands are the topic axis of recall; `readTimelineWindow` is the time axis.
+- **The timeline projection.** Every `weaveTimeline` pass reads `strands.json` once and resolves each timeline entry's `strands` field — the subset of the slice's tags that are woven strands. The structured timeline index therefore records which strands pass through which slices, ready for consumers like a UI that renders a strand as a parallel timeline.
+
+The main agent itself does not walk the raw index — `readStrand` and `listStrands` stay with the recall engine. What the main agent sees is the menu plus whatever `recall` returns.
 
 ## The Type
 
@@ -84,21 +105,11 @@ If `strands.json` does not exist yet — no slices have ever had tags — `readS
 
 The read/write path goes through `fsReadFile`/`fsWriteFile` wrappers that transparently target the local filesystem in development or the GitHub API in production. The strand index itself (`strands.json`) is a runtime data artifact — it lives in the same memory repo as the slices, not in the application source tree. Nothing in the working tree of this code repository contains a committed `strands.json`.
 
-## What Strands Are Not (Yet)
+## What a Strand Is Not (Yet)
 
-As of v0.7 the strand index is **write-only**. It is built and maintained, but no recall code programmatically reads `strands.json` to drive the worker's recall scan. The only path that surfaces strands to the model is a prompt hint added to the main model's context:
-
-> "Use readStrand to explore `memory/episodic/strands.json` if deeper context is needed."
-
-This means the strand index is accurate and up to date, but it is not yet queried automatically. The main model must choose to open the file via the `readStrand` tool. The system trusts the main model to navigate the index, pick relevant strands, and follow their paths to the actual slice files.
-
-<Callout variant="warning">
-A richer **first-class strand** — one with its own rolling summary, its own metadata, and direct integration into the recall pipeline — is an explicit future milestone. The current strand is the thin, lossless index only: the map from keyword to slice paths, nothing more.
+<Callout variant="info">
+A strand is still the thin, lossless index: the map from keyword to slice paths, nothing more. A richer **first-class strand** — one with its own rolling summary, its own metadata, and a visual rendering as a parallel timeline — is an explicit future milestone. The v0.8 timeline schema already carries per-slice strand membership so that view can be built without reworking the data.
 </Callout>
-
-## The Only Current Artifact
-
-The only code artifact of topic-based indexing today is a `suggested_topics` field in the worker model's output, which has no downstream consumer. Strands are the sole production semantic index. Topic-based indexing — richer than keyword paths, with its own summaries and metadata — is on the roadmap as a future milestone.
 
 ## Related
 

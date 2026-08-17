@@ -19,20 +19,22 @@ The system is split into three layers, each with a distinct responsibility and a
 | **GitHub Private Repo** | The single source of truth | Holds everything: `src/` (agent-read-only), `memory/`, `tasks/`, `sessions/` (agent-read-write). Code and data coexist in one repo. |
 
 <Callout variant="info">
-**Key takeaway: no database, no always-on agent, no persistent connection.** Previously runs entirely inside Vercel's request lifecycle. You send a message, the turn workflow fires, and the response streams back. When the response ends, there is no background process — unless a durable loop is running, and even that persists its state to the repo, not to a server.
+**Key takeaway: no database, no always-on agent, no persistent connection.** Previously runs entirely inside Vercel's request lifecycle. You send a message, the turn workflow fires, and the response streams back. When the response ends, there is no background process. (Durable background loops are part of the design but temporarily disabled — and even they persist their state to the repo, not to a server.)
 </Callout>
 
 ## The Durable Turn Workflow
 
 The whole agent is `src/app/api/chat/turn-workflow.ts` — a `"use workflow"` controller. Every user message triggers one of these runs:
 
-1. **Housekeeping** — resolve or recover the active time slice, apply the 30-minute silence rule, append the incoming turn.
-2. **Worker pass** — a cheap worker model (derived from the main model's provider) scans recent slice summaries for recall pointers and maintains the slice's metadata, in one call. It also applies the **semantic gate**: trivial turns ("thanks", "continue") produce no tags and no strands.
-3. **Prompt assembly** — the system prompt is assembled from identity, the user card, and the episodic timeline context.
-4. **Pro agent loop** — the main model runs as a `WorkflowAgent` (`@ai-sdk/workflow`). Each LLM call and each tool call is its own durable step: tool executors are standalone `"use step"` functions in `src/app/api/agent/tool-executors.ts`, so the runtime retries them on transient failures. The agent reasons, recalls, reads, and answers.
-5. **Finalize** — the turn is appended, the slice snapshot is saved, indexes and strands are updated.
+1. **Housekeeping** — resolve or recover the active time slice, apply the about 15-minute silence rule (configurable), append the incoming turn.
+2. **Worker pass** — a cheap worker model (derived from the main model's provider) scans recent slice summaries for recall pointers and maintains the slice's metadata, in one call. It also applies the **semantic gate**: trivial turns ("thanks", "continue") produce no tags and no strands. At slice close, a separate worker pass consolidates the strand index (merging semantic duplicates) and the timeline projection is reconciled.
+3. **Prompt assembly** — the system prompt is assembled from identity, the user card, and the episodic timeline context. Order is a cache decision: stable blocks first (identity constitution, user card), variable blocks last (turn brief, timeline pointers, strands menu, evolution and demo notices), so the provider's prompt cache reuses the long prefix across turns.
+4. **Pro agent loop** — the main model runs as a `WorkflowAgent` (`@ai-sdk/workflow`). Each LLM call and each tool call is its own durable step: tool executors are standalone `"use step"` functions in `src/app/api/agent/tool-executors.ts`, so the runtime retries them on transient failures. The agent reasons, recalls, reads, and answers. If a step is platform-killed or the model hits the token cap, the turn doesn't die — a bounded continuation rebuilds the messages from the completed steps and resumes where it left off.
+5. **Finalize** — the turn is appended to the slice's `timeline/core.md` (the shared record), the agent's cognition — thinking, tool calls, sub-agent reports — is written to `timeline/agent.md` (its own timeline), and the timeline projection and strands are updated.
 
-Because every step is durable, the run survives dropped connections. `WorkflowChatTransport` on the client re-attaches to the same run when the tab returns to the foreground, and replays what was missed. Background loops use the same agent layer as separate workflow runs.
+Because every step is durable, the run survives dropped connections. `WorkflowChatTransport` on the client re-attaches to the same run when the tab returns to the foreground, and replays what was missed. Background loops use the same agent layer as separate workflow runs (currently disabled — see Tools below).
+
+Each slice therefore stores two of the product's three timelines: `core.md`, the record you share, and `agent.md`, what the agent was thinking at the time. The third timeline — your life outside the chat — is never stored; the agent only ever sees what passes through the conversation.
 
 ## Agent Layer
 
@@ -47,31 +49,36 @@ The agent layer lives in `src/app/api/agent/` and is shared by chat turns and an
 
 ### Tools
 
-The chat agent gets a small, deliberate tool set. Concept tools (read a slice / belief / cognition you were given an id for):
+The chat agent gets a small, deliberate tool set — **specialists, not brute force**. The main model orchestrates; focused work is dispatched to dedicated agents, and every dispatch is a visible tool call.
+
+Pointer-first memory reads, cheapest to most expensive:
 
 | Tool | Purpose |
 |------|---------|
-| `readSlice` | Read a slice's turns, optionally a `range` |
-| `readPreviously` | Read the user-card belief snapshot across time |
-| `readAgentTimeline` | Read the agent's own past reasoning |
-| `listSlices` / `readTimeline` | Explore the timeline (recall-engine job, mostly) |
-| `listStrands` / `readStrand` | Follow a keyword across slices |
+| `readSliceSummary` | A slice's frontmatter only — focus, summary, tags, open loops. The cheap relevance check |
+| `readTimelineWindow` | The timeline catalog over a date window — one pointer line per slice, for orienting by time |
+| `readSlice` | The actual conversation text — last resort. Optional `range` (turns / last N / date / search / lines) |
+| `readPreviously` | The user-card snapshot for a slice, current or historical |
+| `readAgentTimeline` | The agent's own past reasoning for a slice |
 
-Delegation tools:
+Specialist dispatch:
 
 | Tool | Purpose |
 |------|---------|
-| `recall` | Hands the actual search to the worker model's recall engine, returns pointers |
-| `webSearch` / `webFetch` | Look things up on the web |
+| `recall` | The recall agent — hands the actual search to the worker model's recall engine, returns pointers, never content |
+| `webSearch` / `webFetch` | The search agent — cited answers from the live web, then targeted page reads |
+| `thinkDeep` | The think agent — a think-only copy of the main model reasons through one self-contained fragment at low / medium / high effort; substantive turns fan out into fragments before answering |
 
-> **One recall, then stop.** The main agent does not browse memory itself — exploration is the recall engine's job. It asks `recall` once, reads what it needs with `readSlice`, and moves on. `startLoop` is defined but currently commented out (background loops are temporarily disabled while being stabilized).
+> **One recall, then stop.** The main agent does not browse memory itself — exploration is the recall engine's job. It asks `recall` once, reads what it needs with `readSlice`, and moves on. The raw browse tools (`listSlices`, `readTimeline`, `listStrands`, `readStrand`) stay with the recall engine and the loop tool set. `startLoop` is defined but currently commented out in `tools.ts` (background loops are temporarily disabled while being stabilized).
+
+Curation is a specialist job too: tags, strands, and the user card are maintained by the worker model during housekeeping — never by the main agent mid-answer. `thinkDeep` fragments reuse the turn's resolved main model and share the assembled system prompt as a prefix, so provider prompt-cache hits span main and sub-agent calls within one turn.
 
 ## Two-Tier Model Split
 
 The model layer (`src/lib/models/`) resolves two tiers:
 
 - **Main model** — user-selected in the chat toolbar, persisted to `memory/user/config.json`. Does the reasoning, tool calling, and response generation.
-- **Worker model** — a cheap tier derived from the main model's provider (or manually pinned). Runs the housekeeping calls: recall scanning, metadata maintenance, the semantic gate. This keeps the per-turn cost low while the main model does the heavy lifting.
+- **Worker model** — a cheap tier derived from the main model's provider (or manually pinned). Runs the housekeeping calls: recall scanning, metadata maintenance, the semantic gate, strand consolidation. This keeps the per-turn cost low while the main model does the heavy lifting.
 
 `resolveWorkerModel()` (`src/lib/models/worker.ts`) picks it: manual pin → same-provider lightweight → the main model. The catalog is models.dev-driven (`src/lib/models/catalog.ts`), gated by configured API-key env vars and reverse-filtered against each provider's live `/models` endpoint.
 
@@ -94,12 +101,15 @@ Message rendering is a unified stream pipeline (`buildStream` in `src/lib/chat/b
 |--------|------|---------|
 | Capabilities | `src/lib/capabilities.ts` | Global app-mode checks (isAIConfigured, isDemo, canWrite) |
 | Episodic Memory | `src/lib/episodic/` | Time-slice management, slicing rules, strands index |
+| Timeline Catalog | `src/lib/episodic/timeline/` | The timeline subsystem: `index.json` + `timeline.md` are pure projections of the slice files, reconciled by `weaveTimeline` (enumerate → diff → rebuild; throttled per turn, forced at slice close) |
 | Turn Analyzer | `src/lib/episodic/flash/turn-analyzer.ts` | The worker-model housekeeping call |
+| Strand Consolidator | `src/lib/episodic/flash/strand-consolidator.ts` | Worker-model semantic dedupe of the strand index at slice close |
 | Time Localization | `src/lib/episodic/time-localize.ts` | Server-side local-time annotation for read tools |
-| User Card | `src/lib/episodic/previously-*` | The compact user card + `applyCardUpdate` |
+| User Card | `src/lib/episodic/previously-*` | The compact user card + mutation tools in `card-session.ts` |
 | Model Registry | `src/lib/models/` | models.dev catalog, provider dispatch, worker resolution |
 | GitHub Tools | `src/lib/tools/` | readFile/writeFile/listFiles via Octokit |
 | Path Whitelist | `src/lib/whitelist/` | Security boundary: memory/tasks/sessions only |
+| Origin Guard | `src/lib/security/origin-guard.ts` | Same-origin guard on mutation endpoints + optional `ACCESS_SECRET` |
 
 ## Security Model
 
@@ -118,6 +128,20 @@ memory/   tasks/   sessions/
 ### `src/` Is Agent-Read-Only
 
 The `src/` directory simply does not appear in the whitelist. No agent tool can write there. The agent can read `src/` through git, but cannot modify it — the path whitelist rejects write attempts. This keeps the codebase integrity independent of the agent's execution.
+
+### Same-Origin Guard
+
+This is a single-user, privately deployed product — there is deliberately no login system. Instead, `guardRequest()` (`src/lib/security/origin-guard.ts`) keeps drive-by traffic off the expensive POST mutation endpoints (`/api/chat`, `/api/loops`, `/api/episodic/flush`):
+
+1. An `Origin` header whose host matches the request's own host is a same-origin browser fetch → allow.
+2. No `Origin` but `Sec-Fetch-Site: same-origin` / `same-site` → allow.
+3. Anything else (curl, scripts, cron, cross-site posts) must send an `x-access-key` header equal to `ACCESS_SECRET` — but only when that variable is set. Unset, the private-deployment default stays frictionless; operators opt into the key check by setting it.
+
+GET stream-replay endpoints and preflights stay open.
+
+### Flush Endpoint Constraints
+
+`POST /api/episodic/flush` is the emergency save the browser fires on `beforeunload` via `sendBeacon`, appending in-flight turns to the active slice. Because the `sliceId` is interpolated into a file path, it is validated against the strict `YYYY-MM-DD-HHMM` format before anything is computed — a loose string would be a path-traversal hole. Defense in depth: the resolved write target must also land in an explicit allow-set of that slice's own `timeline/core.md` / `timeline/agent.md`, inside the system-managed episodic zone the generic write tools refuse to touch.
 
 ### GitHub Token Scope
 

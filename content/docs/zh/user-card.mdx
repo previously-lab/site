@@ -1,0 +1,105 @@
+---
+title: 用户卡片
+description: 用户卡片——"Previously on you." 的紧凑、可演化模型,记录"你是谁"。v5 格式(Identity / Past / Now / Horizon / Self-model),以及它如何通过受验证的 mutation 演化,而非整体重写。
+order: 4
+---
+
+# 用户卡片
+
+Slice 记录发生了什么,**用户卡片**记录你是谁。它是一个单独的 Markdown 文件——`memory/episodic/current-previously.md`——把整条时间线蒸馏成一份紧凑的简报:你的身份、一段滚动更新的画像、此刻正在发生的事、你承诺过的事,以及 Previously 学到的与你协作的方式。
+
+这就是 "A memory that learns."(会学习的记忆)的具体形态:卡片随对话演化——错了就纠正,变了就更新。不是档案,只是真正重要的东西。
+
+卡片会被注入每一轮对话的系统提示词,紧随身份宪法之后。由于它只在演化时改变——在 slice 存续期间绝不变化——提示词前缀保持字节级稳定,供应商的 prompt cache 得以持续命中(`src/app/api/chat/turn-workflow.ts`)。存储的卡片保留原始 ISO 日期;注入的副本会按你的本地时钟标注相对时间("3 天前"),模型无需自己做日期换算。
+
+## v5 格式
+
+卡片由五个部分组成,把你的时间轴显式化——Past、Now 与 Horizon:
+
+```markdown
+# Previously On
+
+_Active slice: 2026-08-17-0515 | Format: user card v2 | Updated: 2026-08-17T05:27:48Z_
+
+## Identity
+
+- Name: Alex
+- Address them as: you
+- Alias: 小艾
+
+## Past
+
+Alex is an engineer who prefers answers grounded in real evidence over
+abstraction. They left a draining job in 2024 and now work somewhere they
+chose deliberately. What they want most is to spend their time on things
+they themselves chose — a north star they still hold today.
+
+- Graduated 2021; changed jobs in May 2024 — refs: [2026/07/26/1539]
+- Red line: no databases for single-user tools — refs: [2026/08/02/1105]
+
+## Now
+
+- Training for a 5K — Wednesday morning runs are a two-person thing now — refs: [2026/08/11/1426] | since: 2026-08-11
+
+## Horizon
+
+- Draft the wedding speech for Lao Zhou — by: 2026-08-21 — refs: [2026/08/15/2030]
+
+## Self-model
+
+- When Alex is venting, lead with empathy first, then weave their own narrative back as evidence — refs: [2026/08/11/1426]
+```
+
+**Identity** —— 结构化的、可被机器解析的头部:Name、Address them as、Pronouns、Alias(最多 8 行)。这让 Previously 能在到达简报(arrival briefing)中用你的名字问候你,也知道该如何称呼你。
+
+**Past** —— 持久记忆,分两部分:
+
+- 一段**滚动画像段落**——第三人称,随着对你的认识加深而就地重写,硬上限 2,400 字符(约 600 token)。
+- **Anchor facts(锚点事实)**——逐条列出的日期、决定与红线,每条都带证据 refs。准入标准是:"三年后几乎可以肯定仍然成立吗?"上限:8 条。
+
+**Now** —— 当前状态的语义压缩池:是钩子,不是叙事。每条都带指向证据 slice 的 `refs` 和一个 `since` 日期。上限:5 条。超过 7 天的条目会被标记给演化 agent,由它逐条决定:把持久的内容提升到 Past,或丢弃这个钩子。代码不会静默删除任何内容。
+
+**Horizon** —— 面向未来的悬而未决之事:承诺、截止日期、等待中的回复。每条都带显式的 `by:` 日期。Horizon 条目**永不因过期而移除**——它们只能通过被解决离开卡片。逾期的条目会被保留并标记:下一轮的简报会告诉 agent 主动问你事情的结果如何。
+
+**Self-model** —— Previously 学到的关于如何与你协作的紧凑操作经验("对方倾诉时,先共情")。它们只是对常驻指令(DIRECTIVES)的**增量**——一条复述或违背核心规则的经验会被拒绝,除非它引用了你明确的覆盖指示。上限:10 条。
+
+<Callout variant="info">
+**卡片回答的是"你是谁",而不是"说过什么"。** 每个条目都带 `refs`——形如 `2026/08/11/1426` 的指针,指回 slice;slice 才是无损的事实来源。引用过去事件的具体细节之前,agent 会用 `readSlice` 向下钻取。
+</Callout>
+
+## 基于 Mutation 的演化
+
+卡片从不被整体重写。一个专门的 worker 模型 agent——**Previously Agent**(`src/lib/episodic/flash/previously-agent.ts`)——持有卡片的内存副本,并通过细粒度、受验证的 mutation 工具来编辑它:
+
+| 工具 | 作用 |
+|------|------|
+| `setIdentity` | 就地设置或更新一个 Identity 字段 |
+| `updatePastProfile` | 重写 Past 画像段落 |
+| `addPastAnchor` / `removePastAnchor` | 添加或移除一条锚点事实 |
+| `addNow` / `removeNow` | 添加或移除一条 Now 钩子 |
+| `promoteNowToPast` | 把一条 Now 钩子毕业为 Past 锚点,保留其 refs |
+| `addHorizon` / `resolveHorizon` | 开启或解决一个 Horizon 事项 |
+| `addSelfModel` / `removeSelfModel` | 添加或移除一条操作经验 |
+
+验证逻辑在**工具内部**,而不是事后的一道检查(`src/lib/episodic/card-session.ts`)。超限或格式错误的写入会被拒绝,并附带具体的反馈——"2630 chars,limit 2400——压缩后重试"——由 agent 自己决定在上限内保留什么。Refs 是必需的:没有证据,就没有写入。卡片未被触及的部分在构造上就被保留;mutation 会话不可能静默丢弃一条它没看过的内容。
+
+只有当卡片的实质内容真正改变时,结果才会被写回(头部时间戳每次都会刷新,比较时会被忽略)。实时卡片与按 slice 的快照(`memory/episodic/slices/YYYY/MM/DD/HHMM/previously.md`)在同一轮的单次提交中一起写入——因此时间线上的每个 slice 都携带着那段对话结束时卡片的样子,UI 中的 "Previously On" 对话框可以展示它。
+
+## 卡片何时演化
+
+演化在对话轮次的 housekeeping 步骤中内联运行,而非每条消息都跑。工程层只负责触发;内容完全由模型决定。有两个触发器:
+
+1. **Slice 边界。** 当一个 slice 关闭时,turn analyzer 会判断其中是否有值得沉淀的内容(`evolve_card.worth`)。如果有,Previously Agent 会对整个已关闭的 slice 做一次深度回顾——按需读取它的轮次、认知日志和过去的卡片。如果 analyzer 本身失败了,闸门默认**运行**:浪费一次 worker 调用代价很低,错过一次演化则是永久的记忆损失。旧格式(v5 之前)的卡片会强制触发一次运行,让格式迁移不必等待一个"值得"的边界。
+2. **显式请求或纠正。** 当你说"记住……"、"更新你的卡片",或陈述一条行为纠正——"别再做 X"、"以后总是……"——analyzer 会标记它(`memory_update`),演化立即在 slice 存续期间运行。
+
+进展会实时流式推送给客户端;当卡片发生变化时,演化指示器会展示一句话的变化说明和逐行 diff。被跳过的运行也会连同原因一起上报——静默的跳过读起来就像"它从没运行过"。
+
+<Callout variant="warning">
+**实验阶段:** 卡片的演化自上而下都是模型判断——记录什么、提升什么、丢弃什么。验证护栏(上限、refs、拒绝)保证它格式良好,而非保证它正确。因为一切都是 git 中的纯 Markdown,你随时可以查看 diff、手工编辑卡片,或回滚它。
+</Callout>
+
+## 相关
+
+- [记忆模型](/docs/memory-model) —— 卡片在分层记忆体系中的位置
+- [时间线](/docs/timeline) —— slice,卡片所指向的无损事实来源
+- [Recall](/docs/recall) —— agent 如何从卡片 refs 向下钻取到完整 slice
