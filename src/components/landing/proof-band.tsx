@@ -90,7 +90,7 @@ export function ProofBand({
   return (
     <section
       ref={ref}
-      className="relative flex min-h-screen w-full flex-col items-center justify-center px-4 py-24 sm:px-6 lg:px-8"
+      className="relative flex min-h-screen w-full flex-col items-center justify-center overflow-hidden px-5 py-20 sm:px-6 sm:py-24 lg:px-8"
     >
       <motion.p
         className="max-w-xl text-balance text-center text-sm text-muted-foreground sm:text-base"
@@ -149,10 +149,11 @@ export function ProofBand({
           </div>
 
           <div className="flex min-h-[320px]">
-            {/* Left — timeline rail */}
-            <div className="landing-border relative hidden w-44 shrink-0 border-r py-5 pl-6 pr-3 sm:block">
+            {/* Left — timeline rail: narrow dates-only strip on mobile,
+                labels appear from sm up */}
+            <div className="landing-border relative w-14 shrink-0 border-r py-5 pl-3 pr-2 sm:w-44 sm:pl-6 sm:pr-3">
               <div
-                className="absolute bottom-6 left-[1.92rem] top-6 w-px bg-foreground/15"
+                className="absolute bottom-6 left-[0.95rem] top-6 w-px bg-foreground/15 sm:left-[1.92rem]"
                 aria-hidden="true"
               />
               <ul className="relative space-y-5">
@@ -166,14 +167,14 @@ export function ProofBand({
                       <span className="block font-mono text-[0.6rem] tabular-nums text-muted-foreground/70">
                         {slice.date}
                       </span>
-                      <span className="block text-xs text-foreground/85">
+                      <span className="hidden text-xs text-foreground/85 sm:block">
                         {slice.label}
                       </span>
                     </span>
                   </li>
                 ))}
-                <li className="flex items-center gap-2.5">
-                  <NowDot size={9} className="-ml-[3px]" />
+                <li className="flex items-center gap-1.5 sm:gap-2.5">
+                  <NowDot size={9} className="-ml-[3px] shrink-0" />
                   <span className="font-mono text-[0.6rem] font-semibold text-[oklch(0.6_0.23_260)]">
                     {nowLabel}
                   </span>

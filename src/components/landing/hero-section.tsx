@@ -99,7 +99,7 @@ export function HeroSection({
   const word = line2.endsWith(".") ? line2.slice(0, -1) : line2;
 
   return (
-    <section className="relative flex min-h-screen flex-col items-center justify-center px-4 py-16 text-center sm:px-6 lg:px-8">
+    <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-5 py-16 text-center sm:px-6 lg:px-8">
       {/* Headline — type carries the emotion, over a brand aurora */}
       <div className="relative">
         <motion.div

@@ -172,7 +172,7 @@ export function ThreeTimelinesVisual({
   const reduced = useReducedMotion();
   const { scrollYProgress: p } = useScroll({
     target: ref,
-    offset: ["start 0.9", "end 0.3"],
+    offset: ["start 0.85", "end 0.4"],
   });
 
   /* Chip endpoints — measured from real node positions */
@@ -223,7 +223,7 @@ export function ThreeTimelinesVisual({
   return (
     <div
       ref={ref}
-      className="relative w-full max-w-6xl py-[15vh]"
+      className="relative w-full max-w-6xl py-[7vh]"
       role="img"
       aria-label={`${lifeLabel} · ${coreLabel} · ${agentLabel}`}
     >

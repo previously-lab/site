@@ -68,7 +68,7 @@ export function SelfModelVisual({
         }}
       />
       <motion.div
-        className="landing-glass relative rounded-xl border p-6 font-mono text-sm shadow-2xl shadow-black/50 backdrop-blur sm:text-base"
+        className="landing-glass relative rounded-xl border p-5 font-mono text-sm shadow-2xl shadow-black/50 backdrop-blur sm:p-6 sm:text-base"
         style={{
           boxShadow: `0 0 0 1px oklch(0.7 0.15 160 / 8%), 0 25px 50px -12px oklch(0 0 0 / 50%)`,
         }}
