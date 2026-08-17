@@ -22,13 +22,19 @@ These are two faces of the same mistake: building the product around the convers
 
 If an agent genuinely remembers you — across time, across topics, across gaps of days or weeks — then conversation management becomes unnecessary. You do not need to choose or create the right thread. You do not need to remind the agent who you are and what you were doing. You just show up and talk.
 
-Previously replaces the chat-thread list with a **timeline**: a vertical, top-to-bottom view of time slices. Each slice is one uninterrupted conversation burst — opened when you start talking, closed automatically after 30 minutes of silence. The path tells you exactly when it happened:
+Previously replaces the chat-thread list with a **timeline**: a vertical, top-to-bottom view of time slices. Each slice is one uninterrupted conversation burst — opened when you start talking, closed automatically after about 15 minutes of silence by default. The path tells you exactly when it happened:
 
 ```
-memory/episodic/slices/YYYY/MM/DD/HHMM.md
+memory/episodic/slices/YYYY/MM/DD/HHMM/
+├── previously.md      ← the user card as of that moment
+└── timeline/
+    ├── core.md        ← the conversation itself
+    └── agent.md       ← what the agent was thinking
 ```
 
 A calendar day is a directory that can hold multiple slices. There are no conversations to name, organize, or search through — just one continuous relationship, scrolled up to revisit the past or down to continue.
+
+The timeline is also a first-class, derived index: `memory/episodic/timeline/` is rebuilt deterministically from the slice files, grouped by day and era, so the agent can orient by time before it reads anything. A line on the timeline is a pointer, never the answer itself — the slice files remain the single source of truth.
 
 Context stays bounded per request because the prompt is assembled from relevant slices on the timeline, not from an ever-growing conversation window. The agent does not forget the start of a long history because the start was never in the window — only the pieces that matter, assembled fresh each time.
 
@@ -40,11 +46,11 @@ Context stays bounded per request because the prompt is assembled from relevant 
 
 ### A full agent, not just a memory tool
 
-Previously reads, writes, reasons, and acts. Memory is what makes interaction feel continuous, but it is not the only capability. The agent runs tools against your GitHub repository, uses a two-tier model architecture (a cheap worker model for fast recall and metadata maintenance, the main model you pick in the toolbar for deep reasoning and response generation), and operates within a whitelist security boundary that restricts agent writes to `memory/`, `tasks/`, and `sessions/` — the `src/` directory is read-only.
+Previously reads, writes, reasons, and acts. Memory is what makes interaction feel continuous, but it is not the only capability. The agent runs tools against your GitHub repository, uses a two-tier model architecture (a cheap worker model for housekeeping analysis and the recall sub-agent, the main model you pick in the toolbar for deep reasoning and response generation), and operates within a whitelist security boundary that restricts agent writes to `memory/`, `tasks/`, and `sessions/` — the `src/` directory is read-only.
 
 ### Memory is the hard problem
 
-Storing conversations is trivial. Retrieving the *right* memory at the *right* moment with the *right* depth is the genuinely hard part — and that is where the effort goes. The architecture reflects this priority: a single worker-model call per request combines recall scanning, the semantic gate, and metadata maintenance. The complexity budget goes to the core store-index-recall loop, not to configuration knobs or edge cases.
+Storing conversations is trivial. Retrieving the *right* memory at the *right* moment with the *right* depth is the genuinely hard part — and that is where the effort goes. The architecture reflects this priority: a single worker-model call per turn handles tagging, the semantic gate, slice-close marking, and user-card evolution; recall itself runs as a dedicated sub-agent that explores the timeline and returns pointers, never content. The complexity budget goes to the core store-index-recall loop, not to configuration knobs or edge cases.
 
 ### Your memory belongs to you
 
@@ -54,7 +60,7 @@ The whitelist security layer enforces this ownership. Agent tools can write only
 
 ### Simplicity over sophistication
 
-One slicing rule governs when a conversation burst becomes a new slice: 30 minutes of silence. Earlier iterations had capacity checks and continuity checks; those were removed. A single hard-coded threshold — that is the whole rule. One worker-model call per request handles recall, the semantic gate, and metadata maintenance in a single round-trip, with a retry and a fallback to safe defaults.
+One number decides when a conversation burst becomes a closed slice: about 15 minutes of silence by default. Context loss (a refresh, a device switch) closes a slice too, and a turn cap sits in the background as a safety net — but the richer continuity heuristics of earlier iterations were removed, not tuned. One worker-model call per turn handles the analysis — tagging, the semantic gate, close marking, card evolution — in a single round-trip, with a fallback to safe defaults.
 
 Simplicity is a deliberate choice: every configurable knob, every edge-case handler, every stored flag is a tax on future reasoning. Previously pays that tax only where it earns out — in the core loop.
 
@@ -63,19 +69,20 @@ Simplicity is a deliberate choice: every configurable knob, every edge-case hand
 The architecture maps directly to cognitive science. Endel Tulving's 1972 distinction between **episodic memory** (events tied to a time and place) and **semantic memory** (abstract knowledge, facts, concepts) is the blueprint:
 
 - **Slices** are episodic — "what happened" organized by when.
-- **Strands and memory nodes** are semantic — "what it was about." A strand is a keyword woven across every slice that carries it; `memory/episodic/strands.json` maps each strand to its slice paths. (Experimental: strands are written at slice-close but not yet scanned at recall time.)
+- **Strands** are semantic — "what it was about." A strand is a keyword woven across every slice that carries it; `memory/episodic/strands.json` maps each strand to its slice paths, and the recall engine follows strands at query time to trace a topic across months.
 
-Recall follows this layered pattern. The **worker model** (the fast, lightweight, intentionally fallible tier) scans recent slice summaries and returns pointers with relevance scores — a quick conditioned reflex. The **main model** receives those pointers and decides which slices to read in full via `readSlice` — deliberate, deep, and resourceful. If the scan finds nothing, the main model explores the slice directory directly.
+Recall follows this layered pattern. The **worker model** (the fast, lightweight, intentionally fallible tier) drives the recall sub-agent: it scans the timeline catalog and strands and returns pointers with relevance scores — a quick conditioned reflex. The **main model** receives those pointers and decides what to actually read, drilling from a slice summary to a date window to specific turns via `readSlice` — deliberate, deep, and resourceful.
 
 Context-dependent memory research (Godden & Baddeley, 1975; Smith & Vela, 2001) shows that recall improves when retrieval context matches encoding context. The timeline preserves temporal context, and recall uses it.
 
-*Two-tier recall is shipped for the live demo at `previously-demo.ldwid.com` (read-only, memory writes disabled, resets on refresh). Richer strand-based recall — scanning `strands.json` actively at query time — is an explicit future milestone.*
+*Two-tier recall is shipped for the live demo at `previously-demo.ldwid.com` (read-only, memory writes disabled, resets on refresh).*
 
 ## Status
 
-Previously is **experimental**. It is a one-person research project, not yet ready for personal or production use. Everything described here reflects design intent and working code as of v0.7 — features marked as roadmap are actively evolving, not finalized guarantees.
+Previously is **experimental**. It is a one-person research project, not yet ready for personal or production use. Everything described here reflects design intent and working code as of v0.8 — features marked as roadmap are actively evolving, not finalized guarantees.
 
 ## Related
 
-- [Memory Model](/docs/memory-model) — slices, strands, nodes, and the whitelist
-- [Recall](/docs/recall) — two-tier recall engine
+- [The Timeline](/docs/timeline) — the first-class index of your past
+- [Memory Model](/docs/memory-model) — slices, strands, and the whitelist
+- [Recall](/docs/recall) — the two-tier recall engine

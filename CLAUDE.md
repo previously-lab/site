@@ -27,9 +27,9 @@ Related repos: the product itself lives in `previously-lab/agent`; this repo is 
 
 ### Landing Page (`src/app/[locale]/page.tsx`)
 
-- **Hero**: `TextGenerateEffect` ("Previously on") + `NameCycler`/`FlipWords` (random full names → "You.") + CTAs
-- **Timeline sections**: `TimelineShell` (decorative spine) + `TimelineRow` (indicator dot + `TickerLabel`/`NumberTicker` chapter numbers, out-of-flow; content stays centered). Each section is full-screen, wrapped in `ScrollReveal` (fade-up on scroll), even sections tinted `bg-muted/20`
-- Landing components live in `src/components/landing/`
+- **Design**: "cinematic dark" (放映厅) — a cold open of "Previously on you." in five acts + finale. The `.landing-scope` wrapper (globals.css) is theme-aware: dark = cinematic palette (canvas `oklch(0.145 0 0)`, white/10 hairlines), light = the product's light theme (near-white, black/10 hairlines, translucent white glass); glass/hairline/glow/grid/vignette all run on `--landing-*`/`--glow-*` tokens with per-theme values. Site chrome just follows the theme. Three-accent system mirroring the product: brand blue `oklch(0.6 0.23 260)` = time, amber = strands, emerald = evolution. `StageAtmosphere` (fixed aurora glows + grid + vignette) sits under everything; the hollow NOW dot is the recurring motif.
+- **Structure**: `HeroSection` (giant tagline + self-typing `BriefingCard`) → `ProofBand` (code-drawn app UI mock) → three `ActSection`s (varied layouts, visuals `TimelineVisual` / `SelfModelVisual` / `ThinkingVisual`) → `TrustBand` (3 cards) → `FinaleSection`. Base scroll reveals via `ScrollReveal`; all copy via `messages/{en,zh}/landing.json`.
+- Landing components live in `src/components/landing/`; client only where motion/interaction needs it.
 
 ### Docs (`src/app/[locale]/docs/[slug]`)
 
@@ -59,7 +59,7 @@ Related repos: the product itself lives in `previously-lab/agent`; this repo is 
 
 - `next-themes` with `attribute="class"`, `defaultTheme="system"`
 - Provider wrapper: `src/providers/theme-provider.tsx`
-- Neutral oklch palette in `globals.css`; monochrome design language — no accent colors
+- Neutral oklch palette in `globals.css`; the landing page is the exception — a cinematic, theme-aware scope (dark 放映厅 / product light) with the three-accent system (scoped via `.landing-scope`)
 
 ### shadcn/ui
 
@@ -75,7 +75,7 @@ Related repos: the product itself lives in `previously-lab/agent`; this repo is 
 
 - All user-facing strings go through next-intl messages — no hardcoded copy
 - The brand tagline "Previously on you." stays in English in both locales (untranslatable wordplay); always ASCII period, never full-width `。`
-- Design language: centered content, decorative timeline on the left, semibold headings, `text-sm sm:text-base` body — see `src/components/landing/timeline-section.tsx`
+- Design language: huge type in hero/act titles, restrained body copy, semantic motion (each animation mirrors a real product mechanism) — see `src/components/landing/act-section.tsx`
 
 ## Extending
 

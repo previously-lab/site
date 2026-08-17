@@ -1,20 +1,19 @@
 import { setRequestLocale, getTranslations, getMessages } from "next-intl/server";
 import type { Metadata } from "next";
 import { siteConfig } from "@/lib/site";
-import { Link } from "@/i18n/navigation";
-import { buttonVariants } from "@/components/ui/button";
 import { HeroSection } from "@/components/landing/hero-section";
-import { ProductSection } from "@/components/landing/product-section";
-import { TimelineVisual } from "@/components/landing/timeline-visual";
+import type { BriefingData } from "@/components/landing/briefing-card";
+import { ProofBand, type ProofSlice, type ProofPick } from "@/components/landing/proof-band";
+import { ActSection } from "@/components/landing/act-section";
+import { TimelineVisual, type TimelineBeat } from "@/components/landing/timeline-visual";
 import { SelfModelVisual } from "@/components/landing/self-model-visual";
 import { ThinkingVisual } from "@/components/landing/thinking-visual";
-import { TimeTravelVisual } from "@/components/landing/time-travel-visual";
-import { GitHubRepoVisual } from "@/components/landing/github-repo-visual";
-import { BackgroundLoopVisual } from "@/components/landing/background-loop-visual";
-import { OpenSourceVisual } from "@/components/landing/open-source-visual";
-import { ScrollReveal } from "@/components/landing/scroll-reveal";
+import { ThreeTimelinesVisual, type ThreeTimelineNode } from "@/components/landing/three-timelines-visual";
+import { OrchestrationVisual } from "@/components/landing/orchestration-visual";
+import { TrustBand, type TrustCard } from "@/components/landing/trust-band";
+import { FinaleSection } from "@/components/landing/finale-section";
+import { StageAtmosphere } from "@/components/landing/stage-atmosphere";
 import { JsonLd } from "@/components/landing/json-ld";
-import { cn } from "@/lib/utils";
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -40,22 +39,39 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-function getArray(messages: unknown, path: string): string[] {
-  try {
-    let current: any = messages;
-    for (const key of path.split(".")) current = current?.[key];
-    return Array.isArray(current) ? current : [];
-  } catch { return []; }
-}
-
 function getString(messages: unknown, path: string): string {
-  try {
-    let current: any = messages;
-    for (const key of path.split(".")) current = current?.[key];
-    return typeof current === "string" ? current : "";
-  } catch { return ""; }
+  let current: unknown = messages;
+  for (const key of path.split(".")) {
+    current = (current as Record<string, unknown>)?.[key];
+  }
+  return typeof current === "string" ? current : "";
 }
 
+function getList<T>(messages: unknown, path: string): T[] {
+  let current: unknown = messages;
+  for (const key of path.split(".")) {
+    current = (current as Record<string, unknown>)?.[key];
+  }
+  return Array.isArray(current) ? (current as T[]) : [];
+}
+
+/**
+ * The landing page — a cinematic dark cold open of "Previously on you."
+ * Six acts + finale:
+ *   0 Hero        — giant tagline + self-typing arrival briefing
+ *   1 Proof       — code-drawn mock of the real app UI
+ *   2 Act 01      — Time, not threads.       (centered stack)
+ *   3 Act 02      — Three timelines.         (centered stack)
+ *   4 Act 03      — A memory that learns.    (visual left, text right)
+ *   5 Act 04      — No black box.            (centered stack)
+ *   6 Act 05      — Specialists, not brute force. (centered stack)
+ *   7 Trust band  — three compact cards
+ *   8 Finale      — tagline + NOW dot pulse + CTAs
+ *
+ * The .landing-scope wrapper makes this route theme-aware (cinematic
+ * dark palette in dark mode, product light theme in light mode);
+ * /docs keeps its own styling.
+ */
 export default async function HomePage({ params }: Props): Promise<React.ReactElement> {
   const { locale } = await params;
   setRequestLocale(locale);
@@ -63,145 +79,208 @@ export default async function HomePage({ params }: Props): Promise<React.ReactEl
   const m = await getMessages();
 
   const s = (key: string) => getString(m, `Landing.${key}`);
-  const a = (key: string) => getArray(m, `Landing.${key}`);
+  const list = <T,>(key: string) => getList<T>(m, `Landing.${key}`);
+
+  const briefing: BriefingData = {
+    title: s("Hero.briefingTitle"),
+    recapLabel: s("Hero.recapLabel"),
+    entries: list<BriefingData["entries"][number]>("Hero.briefingEntries"),
+    focusLabel: s("Hero.focusLabel"),
+    focusText: s("Hero.focusText"),
+    threadsLabel: s("Hero.threadsLabel"),
+    threadsText: s("Hero.threadsText"),
+  };
 
   return (
-    <>
-      {/* ── Screen 1: Hero ──────────────────────────────── */}
+    <div className="landing-scope">
+      {/* Stage atmosphere — aurora glows, grid texture, vignette */}
+      <StageAtmosphere />
+
+      {/* ── Act 0: Hero — the cold open ─────────────────── */}
       <HeroSection
+        line1={t("Hero.line1")}
+        line2={t("Hero.line2")}
+        briefing={briefing}
+        beatDates={list<TimelineBeat>("Act1.beats").map((b) => b.date)}
+        earlierLabel={t("Hero.earlierLabel")}
+        nowLabel={t("Hero.nowLabel")}
         ctaDemo={t("Hero.ctaDemo")}
-        ctaDocs={t("Hero.ctaDocs")}
         ctaGithub={t("Hero.ctaGithub")}
+        ctaDocs={t("Hero.ctaDocs")}
         demoUrl={siteConfig.demoUrl}
         githubUrl={siteConfig.githubUrl}
       />
 
-      {/* ── Screen 2: Timeline ──────────────────────────── */}
-      <ProductSection
-        title={t("Screen2.title")}
-        description={t("Screen2.description")}
+      {/* ── Product proof band ──────────────────────────── */}
+      <ProofBand
+        caption={t("Proof.caption")}
+        windowTitle={s("Proof.windowTitle")}
+        slices={list<ProofSlice>("Proof.slices")}
+        nowLabel={s("Proof.nowLabel")}
+        userMsg={t("Proof.userMsg")}
+        recallStep={t("Proof.recallStep")}
+        agentMsg={t("Proof.agentMsg")}
+        turn2User={t("Proof.turn2User")}
+        picks={list<ProofPick>("Proof.picks")}
+        picksNote={t("Proof.picksNote")}
+        turn3User={t("Proof.turn3User")}
+      />
+
+      {/* ── Act 01: Time, not threads. ──────────────────── */}
+      <ActSection
+        eyebrow={t("Act1.eyebrow")}
+        title={t("Act1.title")}
+        body={t("Act1.body")}
         docsHref="/docs/timeline"
-        docsLabel={t("Screen2.cta")}
+        docsLabel={t("Act1.cta")}
+        layout="center"
         visual={
           <TimelineVisual
-            beforeCardLabels={a("Screen2.beforeCardLabels")}
-            afterCardLabels={a("Screen2.afterCardLabels")}
-            beforeLabel={s("Screen2.beforeLabel")}
-            afterLabel={s("Screen2.afterLabel")}
-            strandWork={s("Screen2.strandWork")}
-            strandTravel={s("Screen2.strandTravel")}
-            earlierLabel={s("Screen2.earlierLabel")}
-            nowLabel={s("Screen2.nowLabel")}
-            legendText={s("Screen2.legendText")}
+            year={s("Act1.year")}
+            beats={list<TimelineBeat>("Act1.beats")}
+            strandFriends={s("Act1.strandFriends")}
+            strandRunning={s("Act1.strandRunning")}
+            strandFamily={s("Act1.strandFamily")}
+            strandAlex={s("Act1.strandAlex")}
+            strandCamping={s("Act1.strandCamping")}
+            legendText={s("Act1.legendText")}
           />
         }
-        variant="muted"
       />
 
-      {/* ── Screen 3: Self-Model ────────────────────────── */}
-      <ProductSection
-        title={t("Screen3.title")}
-        description={t("Screen3.description")}
+      {/* ── Act 02: Three timelines. ────────────────────── */}
+      <ActSection
+        eyebrow={t("Act2.eyebrow")}
+        title={t("Act2.title")}
+        body={t("Act2.body")}
         docsHref="/docs/memory-model"
-        docsLabel={t("Screen3.cta")}
-        visual={<SelfModelVisual legend={s("Screen3.legend")} />}
+        docsLabel={t("Act2.cta")}
+        layout="center"
+        visual={
+          <ThreeTimelinesVisual
+            agentLabel={s("Act2.agentLabel")}
+            agentFile={s("Act2.agentFile")}
+            coreLabel={s("Act2.coreLabel")}
+            coreFile={s("Act2.coreFile")}
+            lifeLabel={s("Act2.lifeLabel")}
+            lifeFile={s("Act2.lifeFile")}
+            agentNodes={list<ThreeTimelineNode>("Act2.agentNodes")}
+            coreEvents={list<ThreeTimelineNode>("Act2.coreEvents")}
+            lifeNodes={list<ThreeTimelineNode>("Act2.lifeNodes")}
+          />
+        }
       />
 
-      {/* ── Screen 4: Raw Context ───────────────────────── */}
-      <ProductSection
-        title={t("Screen4.title")}
-        description={t("Screen4.description")}
+      {/* ── Act 03: A memory that learns. ───────────────── */}
+      <ActSection
+        eyebrow={t("Act3.eyebrow")}
+        title={t("Act3.title")}
+        body={t("Act3.body")}
+        docsHref="/docs/memory-model"
+        docsLabel={t("Act3.cta")}
+        layout="text-right"
+        accent="emerald"
+        visual={
+          <SelfModelVisual
+            cardTitle={s("Act3.cardTitle")}
+            identityLabel={s("Act3.identityLabel")}
+            identityValue={t("Act3.identityValue")}
+            patternLabel={s("Act3.patternLabel")}
+            oldValue={t("Act3.oldValue")}
+            newValue={t("Act3.newValue")}
+            newRef={s("Act3.newRef")}
+            behaviorLabel={s("Act3.behaviorLabel")}
+            behaviorValue={t("Act3.behaviorValue")}
+            behaviorRef={s("Act3.behaviorRef")}
+            recentLabel={s("Act3.recentLabel")}
+            recentItems={list<{ text: string; meta: string }>("Act3.recentItems")}
+            updatedNote={s("Act3.updatedNote")}
+          />
+        }
+      />
+
+      {/* ── Act 04: No black box. ───────────────────────── */}
+      <ActSection
+        eyebrow={t("Act4.eyebrow")}
+        title={t("Act4.title")}
+        body={t("Act4.body")}
         docsHref="/docs/architecture"
-        docsLabel={t("Screen4.cta")}
+        docsLabel={t("Act4.cta")}
+        layout="center"
         visual={
           <ThinkingVisual
-            terminalTitle={s("Screen4.terminalTitle")}
-            phase1Label={s("Screen4.phase1Label")}
-            phase1Detail={s("Screen4.phase1Detail")}
-            phase2Label={s("Screen4.phase2Label")}
-            phase2Detail={s("Screen4.phase2Detail")}
-            phase3Label={s("Screen4.phase3Label")}
-            phase3Detail={s("Screen4.phase3Detail")}
-            cursorText={s("Screen4.cursorText")}
+            terminalTitle={s("Act4.terminalTitle")}
+            query={t("Act4.query")}
+            workerLabel={s("Act4.workerLabel")}
+            workerDetail={s("Act4.workerDetail")}
+            pointersLabel={s("Act4.pointersLabel")}
+            mainLabel={s("Act4.mainLabel")}
+            mainDetail={s("Act4.mainDetail")}
+            answerLabel={s("Act4.answerLabel")}
+            sliceSummaries={list<string>("Act4.sliceSummaries")}
           />
         }
-        variant="muted"
       />
 
-      {/* ── Screen 5: Time Travel ───────────────────────── */}
-      <ProductSection
-        title={t("Screen5.title")}
-        description={t("Screen5.description")}
-        docsHref="/docs/slices"
-        docsLabel={t("Screen5.cta")}
-        visual={<TimeTravelVisual nowLabel={s("Screen5.nowLabel")} />}
-      />
-
-      {/* ── Screen 6: GitHub-native ─────────────────────── */}
-      <ProductSection
-        title={t("Screen6.title")}
-        description={t("Screen6.description")}
+      {/* ── Act 05: Specialists, not brute force. ───────── */}
+      <ActSection
+        eyebrow={t("Act5.eyebrow")}
+        title={t("Act5.title")}
+        body={t("Act5.body")}
         docsHref="/docs/architecture"
-        docsLabel={t("Screen6.cta")}
+        docsLabel={t("Act5.cta")}
+        layout="center"
+        accent="blue"
         visual={
-          <GitHubRepoVisual
-            repoName={s("Screen6.repoName")}
-            repoVisibility={s("Screen6.repoVisibility")}
-            lockText={s("Screen6.lockText")}
-          />
-        }
-        variant="muted"
-      />
-
-      {/* ── Screen 7: Durable Runs ──────────────────────── */}
-      <ProductSection
-        title={t("Screen7.title")}
-        description={t("Screen7.description")}
-        docsHref="/docs/architecture"
-        docsLabel={t("Screen7.cta")}
-        visual={<BackgroundLoopVisual tagline={s("Screen7.tagline")} />}
-        variant="muted"
-      />
-
-      {/* ── Screen 8: Open Source ───────────────────────── */}
-      <ProductSection
-        title={t("Screen8.title")}
-        description={t("Screen8.description")}
-        docsHref="/docs/getting-started"
-        docsLabel={t("Screen8.cta")}
-        visual={
-          <OpenSourceVisual
-            badgeMIT={s("Screen8.badgeMIT")}
-            badgeSelfHost={s("Screen8.badgeSelfHost")}
-            badgeNoTelemetry={s("Screen8.badgeNoTelemetry")}
-            badgeCommunity={s("Screen8.badgeCommunity")}
-            githubStars={s("Screen8.githubStars")}
-            githubMIT={s("Screen8.githubMIT")}
+          <OrchestrationVisual
+            hubLabel={s("Act5.hubLabel")}
+            hubDetail={s("Act5.hubDetail")}
+            w1Label={s("Act5.w1Label")}
+            w1Detail={s("Act5.w1Detail")}
+            w2Label={s("Act5.w2Label")}
+            w2Detail={s("Act5.w2Detail")}
+            w3Label={s("Act5.w3Label")}
+            w3Detail={s("Act5.w3Detail")}
+            w4Label={s("Act5.w4Label")}
+            w4Detail={s("Act5.w4Detail")}
           />
         }
       />
 
-      {/* ── Screen 9: CTA ───────────────────────────────── */}
-      <ScrollReveal className="relative flex min-h-screen w-full flex-col items-center justify-center px-4 text-center sm:px-6 lg:px-8">
-        <h2 className="max-w-4xl text-balance text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl">
-          {t("Screen9.title")}
-        </h2>
-        <p className="mt-4 max-w-2xl text-balance text-xs leading-relaxed text-muted-foreground sm:text-sm">
-          {t("Screen9.description")}
-        </p>
-        <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <a href={siteConfig.demoUrl} target="_blank" rel="noopener noreferrer"
-            className={cn(buttonVariants({ variant: "default", size: "lg" }), "w-full sm:w-auto")}>
-            {t("Screen9.ctaDemo")}
-          </a>
-          <a href={siteConfig.githubUrl} target="_blank" rel="noopener noreferrer"
-            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full sm:w-auto")}>
-            {t("Screen9.ctaGithub")}
-          </a>
-        </div>
-      </ScrollReveal>
+      {/* ── Trust band ──────────────────────────────────── */}
+      <TrustBand
+        cards={list<TrustCard>("Trust.cards")}
+        visuals={{
+          repo: {
+            root: s("Trust.repo.root"),
+            rows: list<{ text: string; note?: string }>("Trust.repo.rows"),
+            file: s("Trust.repo.file"),
+            lines: list<string>("Trust.repo.lines"),
+          },
+          run: {
+            tabLabel: s("Trust.run.tabLabel"),
+            closedLabel: s("Trust.run.closedLabel"),
+            runningLabel: s("Trust.run.runningLabel"),
+            resumedLabel: s("Trust.run.resumedLabel"),
+          },
+          oss: {
+            command: s("Trust.oss.command"),
+            badges: list<string>("Trust.oss.badges"),
+          },
+        }}
+      />
+
+      {/* ── Finale — loop back to the cold open ─────────── */}
+      <FinaleSection
+        title={t("Finale.title")}
+        subtitle={t("Finale.subtitle")}
+        ctaDemo={t("Finale.ctaDemo")}
+        ctaGithub={t("Finale.ctaGithub")}
+        demoUrl={siteConfig.demoUrl}
+        githubUrl={siteConfig.githubUrl}
+      />
 
       <JsonLd locale={locale} />
-    </>
+    </div>
   );
 }

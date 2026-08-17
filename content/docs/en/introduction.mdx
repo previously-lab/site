@@ -16,7 +16,7 @@ There are no conversations. There is no conversation management. There is one ti
 
 ## The "Previously on..." Metaphor
 
-The name comes from television: before a new episode, a brief recap reminds you what happened last time — just enough context to resume. Previously does the same thing. Every time you return, it recaps your own timeline, pulling forward what matters so you never start cold.
+The name comes from television: before a new episode, a brief recap reminds you what happened last time — just enough context to resume. Previously does the same thing. Every time you return, it recaps your own timeline, pulling forward what matters so you never start cold. On screen, that recap is your **arrival briefing**: what happened recently, what is in focus now, and which threads are still open.
 
 <Callout variant="info">
 **Key takeaway: Previously replaces the chat-thread model with time slices, so memory and interaction are unified. Fix the memory model and you remove the need to manage conversations at all.**
@@ -32,18 +32,18 @@ Previously replaces threads with **time slices**. Because interaction history an
 
 Three terms carry the architecture.
 
-**Slice** — One conversation burst. A single Markdown file on the timeline at `memory/episodic/slices/YYYY/MM/DD/HHMM.md`. Opens when you start talking, stays active while you stay engaged, closes automatically after 30 minutes of silence. Carries structured YAML frontmatter: focus, summary, decisions, open loops, tags, emotional tone. Slice = *what happened, and when.*
+**Slice** — One conversation burst. A directory on the timeline at `memory/episodic/slices/YYYY/MM/DD/HHMM/`. Opens when you start talking, stays active while you stay engaged, closes automatically after about 15 minutes of silence by default (or a configurable turn cap, 20 by default). Carries structured YAML frontmatter: focus, summary, decisions, open loops, tags, emotional tone. Slice = *what happened, and when.*
 
-**Strand** — A keyword (like `health`, `work`, `housing`) that recurs across slices. The index `memory/episodic/strands.json` maps each keyword to every slice path that carries it. Strands are built at slice-close from the slice's tags. A slice = what happened; a strand = what it was about. Strands form the thin, lossless semantic layer over the timeline.
+**Strand** — A keyword (like `health`, `work`, `housing`) that recurs across slices. The index `memory/episodic/strands.json` maps each keyword to every slice path that carries it. Strands are built at slice-close from the slice's tags, and a worker-model pass then consolidates the index — merging near-duplicate keywords and pruning stale entries. A slice = what happened; a strand = what it was about. Strands form the thin, lossless semantic layer over the timeline.
 
-**Recall** — The two-tier retrieval engine. A **worker** model (a cheap tier derived from the main model's provider) scans recent closed-slice summaries in a single fast round-trip, returning up to five pointers with relevance scores. It handles the semantic gate and metadata maintenance in the same call. The **main model** (the one you pick in the toolbar, thinking enabled) receives those pointers and reads the full slices via the `readSlice` tool — the expensive, thorough pass. The worker is expected to be imperfect; the main model does the deeper work when the scan returns nothing.
+**Recall** — The two-tier retrieval engine. A **worker** model (a cheap tier derived from the main model's provider, thinking off) runs a small, bounded recall agent: it starts from the global timeline catalog, traces matching strands, and returns up to five pointers with relevance scores plus recommended reads. The **main model** (the one you pick in the toolbar, thinking enabled) receives those pointers and reads the actual slices through granular tools — `readSliceSummary` for a relevance check, `readTimelineWindow` to orient by date, `readSlice` with turn ranges or grep for specifics — with full-slice reads kept as the explicit last resort. The worker is expected to be imperfect; the main model does the deeper work when the scan returns nothing.
 
 | Term | Layer | Role | Speed |
 |------|-------|------|-------|
 | Slice | Episodic (when) | Records what happened | Storage, not retrieval |
 | Strand | Semantic (what) | Keywords across slices | Built at slice-close |
-| Worker recall | Retrieval tier 1 | Scan + pointers + maintenance | ~500 ms (typical) |
-| Main recall | Retrieval tier 2 | Deep read + reasoning | Seconds (per tool call) |
+| Worker recall | Retrieval tier 1 | Scans catalog + strands, returns pointers | One fast worker agent run |
+| Main recall | Retrieval tier 2 | Granular deep read + reasoning | Seconds (per tool call) |
 
 ## Research Grounding
 
@@ -51,11 +51,12 @@ The episodic / semantic split is not arbitrary. It is grounded in Endel Tulving'
 
 ## Status
 
-Previously is **EXPERIMENTAL** — early development, not yet ready for personal or production use. It is a one-person research project, but intended to be maintained long-term. What works today: streaming chat with visible thinking, recall, and tool calls; time-slice storage with automatic 30-minute-silence slicing; a two-tier recall pipeline (worker scan + main-model deep read); a compact user card that evolves once per closed slice; server-side local-time annotation; a semantic gate that keeps trivial turns out of memory; GitHub file tools with a path whitelist; multi-provider model support (DeepSeek, Anthropic, OpenAI-compatible); durable background runs via Vercel Workflow; and English-plus-Chinese internationalization.
+Previously is **EXPERIMENTAL** — early development, not yet ready for personal or production use. It is a one-person research project, but intended to be maintained long-term. What works today: streaming chat with visible thinking, recall, and tool calls; time-slice storage with automatic time-silence slicing; a first-class timeline catalog (`memory/episodic/timeline/index.json` plus a rendered Markdown projection) rebuilt deterministically from slice frontmatter and injected into the agent's prompt as a brief; a two-tier recall pipeline (worker scan + main-model deep read) with turn-granular read tools; a compact user card — Identity, Past, Now, Horizon, Self-model — that evolves once per closed slice, plus explicit user-confirmed memory updates; server-side local-time annotation; a semantic gate that keeps trivial turns out of memory; GitHub file tools with a path whitelist; multi-provider model support (DeepSeek, Anthropic, OpenAI-compatible); durable background runs via Vercel Workflow; and English-plus-Chinese internationalization.
 
-The strand index is built at slice-close and the main model can read it on demand, but the worker scan still searches recent slice summaries first. A first-class strand with its own rolling summary and recall integration is a future milestone.
+What is still missing: per-strand rolling summaries with deeper recall integration, and the timeline visualization UI the catalog schema is designed for. Both are future milestones.
 
 ## Related
 
+- [The Timeline](/docs/timeline)
 - [Memory Model](/docs/memory-model)
 - [Architecture Overview](/docs/architecture)

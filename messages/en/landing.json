@@ -5,94 +5,247 @@
       "description": "an open-source personal AI agent that remembers by when, not by chat thread — a single timeline of episodic time slices"
     },
     "Hero": {
-      "eyebrow": "Previously on you.",
-      "title": "Your AI, organized by time — not by threads.",
-      "subtitle": "an open-source personal AI agent that remembers by when, not by chat thread — a single timeline of episodic time slices",
-      "ctaDemo": "Try the live demo",
-      "ctaDocs": "Read the docs",
-      "ctaGithub": "View on GitHub"
-    },
-    "Screen2": {
-      "title": "Time, not conversations.",
-      "description": "Most AI agents organize your content by conversation threads. Previously has no conversations — just one continuous relationship on a single timeline of time slices, where every moment has its place.",
-      "cta": "How the timeline works",
-      "beforeLabel": "Chat threads — isolated conversations",
-      "afterLabel": "Previously — one continuous timeline",
-      "beforeCardLabels": [
-        "Work progress update",
-        "Planning a weekend trip",
-        "Recent books I'm reading",
-        "Where to have dinner",
-        "Learning to cook",
-        "Fitness goals"
+      "line1": "Previously on",
+      "line2": "you.",
+      "briefingTitle": "arrival briefing",
+      "recapLabel": "Recap",
+      "briefingEntries": [
+        { "time": "Jun 28", "text": "5K under 30 minutes — Wednesday morning runs are a two-person thing now." },
+        { "time": "Apr 13", "text": "Mom's checkup results are in; you've been calling her every Sunday." }
       ],
-      "afterCardLabels": [
-        "Work progress update",
-        "Planning a weekend trip",
-        "Job change notice",
-        "Picked the destination",
-        "Dinner venue decided",
-        "Tech stack discussion"
-      ],
-      "strandWork": "Work",
-      "strandTravel": "Travel",
-      "earlierLabel": "← Earlier",
+      "focusLabel": "Focus",
+      "focusText": "Camping with Alex this Saturday — no tent yet.",
+      "threadsLabel": "Open threads",
+      "threadsText": "3 — the wedding speech, Mom's follow-up Tuesday, camping gear.",
+      "earlierLabel": "← earlier",
       "nowLabel": "NOW",
-      "legendText": "Strands connect related topics across time"
+      "ctaDemo": "Try the live demo",
+      "ctaGithub": "View on GitHub",
+      "ctaDocs": "Read the docs"
     },
-    "Screen3": {
-      "title": "A memory that learns about you.",
-      "description": "Previously keeps a compact user card — identity, profile, recent work — that evolves as you talk. Once per closed slice it refines how it understands you: not a bloated dossier, just what matters.",
+    "Proof": {
+      "caption": "This is the whole product — one timeline, and a conversation that remembers it.",
+      "windowTitle": "previously",
+      "slices": [
+        { "date": "03/09", "label": "Lao Zhou's wedding" },
+        { "date": "03/21", "label": "Night runs begin" },
+        { "date": "04/13", "label": "Mom's checkup" },
+        { "date": "05/10", "label": "Met Alex" },
+        { "date": "06/07", "label": "Called out in review" },
+        { "date": "06/28", "label": "5K under 30" },
+        { "date": "07/05", "label": "The invitation" }
+      ],
+      "nowLabel": "NOW",
+      "userMsg": "What's the plan this weekend again?",
+      "recallStep": "Recalling — scanning 14 slices, deep-reading 3",
+      "agentMsg": "Saturday: camping with Alex — the seaside campsite from that May dinner; you noted it down back then. No tent yet: within your shared budget I've shortlisted three — want to see them now? Also, Tuesday is Mom's follow-up; you said you'd go with her, so keep the morning free. The speech isn't urgent — but August 16 is closer than it sounds; think about the opening on the road this weekend.",
+      "turn2User": "The three tents — send them over.",
+      "picks": [
+        { "name": "Ridgeline 2 Air", "price": "$179", "reason": "3.2 kg — stays put in coastal wind" },
+        { "name": "Cape 2P", "price": "$219", "reason": "double-wall, 10-min pitch, with a vestibule" },
+        { "name": "Creek 2", "price": "$129", "reason": "lightest at 2.4 kg — leaves room for pads" }
+      ],
+      "picksNote": "All within the two-person budget; the first one arrives before Saturday.",
+      "turn3User": "Okay, the second one. Also, about the speech — I think…"
+    },
+    "Act1": {
+      "eyebrow": "01",
+      "title": "Time, not threads.",
+      "body": "No conversation windows to lose. One timeline of dated slices — and strands that thread related moments across months, converging at NOW.",
+      "cta": "How the timeline works",
+      "year": "2025",
+      "beats": [
+        {
+          "date": "03/09",
+          "title": "Lao Zhou is getting married",
+          "desc": "Eleven years of friendship, and over dinner comes the news: wedding in August. I promised a few words on stage — only on the way home did it sink in: not a single word exists yet."
+        },
+        {
+          "date": "03/21",
+          "title": "Night runs begin",
+          "desc": "To be in good shape for the wedding day. Day one: winded after 800 meters. I walked two laps around the block — you have to start somewhere."
+        },
+        {
+          "date": "04/13",
+          "title": "Mom's checkup",
+          "desc": "Nothing serious, blood pressure a little high. On the subway home I decided: a call every Sunday, not just messages."
+        },
+        {
+          "date": "05/10",
+          "title": "Met Alex",
+          "desc": "Lao Zhou's dinner — movies, then travel, until the staff turned the lights off. On the way home I noted down that seaside campsite."
+        },
+        {
+          "date": "06/07",
+          "title": "Called out in review",
+          "desc": "Quarterly review: my little project got named. I said 'worth the effort' — then gave myself a weekend."
+        },
+        {
+          "date": "06/28",
+          "title": "5K under 30",
+          "desc": "Four months, from 800 meters to 29:41. Wednesday morning runs are a two-person thing now."
+        },
+        {
+          "date": "07/05",
+          "title": "The invitation arrived",
+          "desc": "August 16. Lao Zhou said 'don't make it too sappy'. My speech is still just a title."
+        }
+      ],
+      "strandFriends": "friends",
+      "strandRunning": "running",
+      "strandFamily": "family",
+      "strandAlex": "Alex",
+      "strandCamping": "camping",
+      "legendText": "five strands, one timeline"
+    },
+    "Act2": {
+      "eyebrow": "02",
+      "title": "Three timelines.",
+      "body": "Most of your day was only ever lived by you. Most of my thinking only ever happens in deep reads. What we share is the line in the middle — every conversation, every decision, every unspoken moment that got remembered.",
+      "cta": "How memory works",
+      "agentLabel": "its thinking",
+      "agentFile": "agent.md",
+      "coreLabel": "the shared record",
+      "coreFile": "core.md",
+      "lifeLabel": "your life",
+      "lifeFile": "— only you know",
+      "agentNodes": [
+        { "time": "22:05", "text": "recall agent · caught the 03/09 promise, the 07/05 invitation" },
+        { "time": "22:06", "text": "think agent · medium — eleven years of friendship; enter through the running arc" },
+        { "time": "22:07", "text": "conclusion — three moments are enough" }
+      ],
+      "coreEvents": [
+        { "time": "22:05", "text": "you: help me structure the speech — due by next Friday" },
+        { "time": "22:07", "text": "it: skip the sappy. Three moments are enough — the promise at dinner, the 800-meter start, 29:41." }
+      ],
+      "lifeNodes": [
+        { "time": "09:20", "text": "a compliment in standup — floated all morning" },
+        { "time": "14:00", "text": "checkup report notification popped up — never opened" },
+        { "time": "18:40", "text": "walked past the camping store, wandered in" },
+        { "time": "21:30", "text": "thought of the speech — a little anxious" },
+        { "time": "22:05", "text": "you: help me structure the speech — due by next Friday" }
+      ]
+    },
+    "Act3": {
+      "eyebrow": "03",
+      "title": "A memory that learns.",
+      "body": "A compact user card that evolves as you talk — corrected when wrong, refined when things change. Not a dossier. Just what matters.",
       "cta": "Explore the memory model",
-      "legend": "Evolving understanding — observe, reinforce, correct, expire"
+      "cardTitle": "current-previously.md",
+      "identityLabel": "Identity",
+      "identityValue": "address as: you · GMT+8 · night owl turned morning runner",
+      "patternLabel": "Pattern",
+      "oldValue": "mentioned wanting to start running (for the wedding)",
+      "newValue": "four months of night runs — started 'for the wedding', now genuinely loved",
+      "newRef": "ref 06/28",
+      "behaviorLabel": "Habit",
+      "behaviorValue": "calls Mom every Sunday evening — calmer than texting",
+      "behaviorRef": "ref 04/13",
+      "recentLabel": "Recent",
+      "recentItems": [
+        {
+          "text": "The wedding speech is still just a title. Lao Zhou said 'don't make it too sappy' — but eleven years of friendship deserves care.",
+          "meta": "refs: [07/05] | since: 07-05"
+        },
+        {
+          "text": "Camping was Alex's idea at that May dinner. No tent, no route yet — but Wednesday morning runs are already a two-person thing.",
+          "meta": "refs: [05/10], [06/28] | since: 06-28"
+        }
+      ],
+      "updatedNote": "refined after each closed slice"
     },
-    "Screen4": {
-      "title": "Nothing happens in a black box.",
-      "description": "Thinking, recall, and every tool call stream inline as the answer arrives. You watch the agent reason, scan your timeline, and deep-read the slices that matter — before it answers.",
+    "Act4": {
+      "eyebrow": "04",
+      "title": "No black box.",
+      "body": "Recall runs in the open. A fast worker scans slice summaries and returns pointers; the main model deep-reads what matters. Every step is visible.",
       "cta": "Explore the architecture",
       "terminalTitle": "recall pipeline",
-      "phase1Label": "Worker scan…",
-      "phase1Detail": "Scanning recent slice summaries for pointers",
-      "phase2Label": "Main deep read…",
-      "phase2Detail": "Reading the slices that matter, in full",
-      "phase3Label": "Metadata maintained…",
-      "phase3Detail": "+2 tags woven into strands",
-      "cursorText": "recalling what you decided about the housing project…"
+      "query": "What should I say at Lao Zhou's wedding?",
+      "workerLabel": "worker · scan",
+      "workerDetail": "scanning 6 slice summaries",
+      "pointersLabel": "pointers → 03/09, 03/21, 06/28",
+      "mainLabel": "main · deep read",
+      "mainDetail": "deep-reading 3 slices, in full",
+      "answerLabel": "You've been friends for eleven years — on 03/09 you promised a few words at dinner, and only started worrying on the way home. You started running to be in good shape for that day: four months, from 800 meters to 29:41. Don't make it too sappy — just tell those eleven years, and the story that began at 800 meters. That arc is the speech.",
+      "sliceSummaries": [
+        "03/09  Lao Zhou is getting married · joy",
+        "03/21  night runs begin · determined",
+        "04/13  Mom's checkup · concern",
+        "05/10  met Alex · a spark",
+        "06/28  5K under 30 · accomplished",
+        "07/05  the invitation arrived · pressure"
+      ]
     },
-    "Screen5": {
-      "title": "Travel back to any moment.",
-      "description": "Click any point on your timeline and you're there — reliving that conversation, seeing what the agent was thinking, picking up exactly where you left off. Not search. Not scroll. Time travel.",
-      "cta": "Understanding slices",
-      "nowLabel": "NOW"
+    "Act5": {
+      "eyebrow": "05",
+      "title": "Specialists, not brute force.",
+      "body": "Dynamic context means complex work shouldn't be brute-forced by one model. The main agent orchestrates, dispatching tasks to dedicated agents — recall, reasoning, search, curation. Every dispatch is visible.",
+      "cta": "Explore the architecture",
+      "hubLabel": "core agent",
+      "hubDetail": "orchestrates — dispatches and synthesizes",
+      "w1Label": "recall agent",
+      "w1Detail": "skims slices, returns only pointers",
+      "w2Label": "think agent",
+      "w2Detail": "deep reasoning, three effort levels",
+      "w3Label": "search agent",
+      "w3Detail": "web retrieval, with sources",
+      "w4Label": "curate agent",
+      "w4Detail": "tags · strands · user card"
     },
-    "Screen6": {
-      "title": "Your memory. Your repository.",
-      "description": "Every conversation is a Markdown file in your own GitHub repo. No proprietary database. No cloud lock-in. No one else's server. Your data, your format, your control — forever.",
-      "cta": "See the architecture",
-      "repoName": "your-username/memory",
-      "repoVisibility": "public",
-      "lockText": "Your GitHub repo. Your data."
+    "Trust": {
+      "cards": [
+        {
+          "icon": "github",
+          "title": "Your memory, your repository.",
+          "body": "The slice from the night of July 5 is a Markdown file in your own GitHub repo — along with what the agent was thinking at the time. So is every other moment. No proprietary database, no one else's server.",
+          "cta": "View on GitHub"
+        },
+        {
+          "icon": "clock",
+          "title": "It works while you're away.",
+          "body": "Close the tab mid-turn. The run is durable and resumable — it keeps going, and when you're back it picks up exactly where it left off.",
+          "cta": "See the workflow"
+        },
+        {
+          "icon": "scale",
+          "title": "Open source. Self-host. No lock-in.",
+          "body": "MIT licensed, no telemetry. Run it on your own machine, read every line, keep your memory in your repo. Forever yours.",
+          "cta": "Get started"
+        }
+      ],
+      "repo": {
+        "root": "your-username/memory",
+        "rows": [
+          { "text": "└─ episodic/" },
+          { "text": "   ├─ slices/2025/07/05/2147/" },
+          { "text": "   │  ├─ previously.md", "note": "← what you said" },
+          { "text": "   │  └─ timeline/" },
+          { "text": "   │     ├─ core.md" },
+          { "text": "   │     └─ agent.md", "note": "← what it was thinking" },
+          { "text": "   ├─ current-previously.md", "note": "← the living user card" },
+          { "text": "   └─ strands.json" }
+        ],
+        "file": "previously.md",
+        "lines": [
+          "strands: [friends]",
+          "open loop: speech still just a title",
+          "wedding: August 16"
+        ]
+      },
+      "run": {
+        "tabLabel": "previously — writing slice 2025/07",
+        "closedLabel": "tab closed · 14:02",
+        "runningLabel": "turn keeps running",
+        "resumedLabel": "resumed where you left off"
+      },
+      "oss": {
+        "command": "git clone github.com/previously-lab/agent",
+        "badges": ["MIT", "No telemetry", "Self-host"]
+      }
     },
-    "Screen7": {
-      "title": "It works while you're away.",
-      "description": "Every turn is a durable run — close the tab, lock your phone, drop the connection, and the agent keeps going. When you come back, it re-attaches and shows you what you missed. Background loops work the same way.",
-      "cta": "See the durable workflow",
-      "tagline": "I come after you're done."
-    },
-    "Screen8": {
-      "title": "Open source. Self-host. No lock-in.",
-      "description": "MIT licensed. Run it on your own machine. Modify it. Extend it. Contribute back. Previously belongs to the community, not a corporation.",
-      "cta": "Get started",
-      "badgeMIT": "MIT License",
-      "badgeSelfHost": "Self-hosted",
-      "badgeNoTelemetry": "No telemetry",
-      "badgeCommunity": "Community-driven",
-      "githubStars": "Stars on GitHub",
-      "githubMIT": "MIT Licensed"
-    },
-    "Screen9": {
+    "Finale": {
       "title": "Previously on you.",
-      "description": "Your AI, organized by time — not by threads. Open source. Self-hosted. Always yours.",
+      "subtitle": "Open source. Self-hosted. Always yours.",
       "ctaDemo": "Try the live demo",
       "ctaGithub": "View on GitHub"
     }

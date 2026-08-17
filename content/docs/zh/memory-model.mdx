@@ -1,116 +1,71 @@
 ---
 title: 记忆模型
-description: 记忆如何构建——情景切片、语义 strand 与记忆节点、白名单边界,以及 token 预算下的上下文组装。
+description: 记忆如何构建——构建时打包的身份宪法、由 slice 与 strand 组成的情景时间线、持续演化的用户卡、白名单边界,以及逐轮动态组装的上下文。
 order: 3
 ---
 
 # 记忆模型
 
-Previously 摒弃了数据库和向量存储。记忆是 git 仓库中的纯 Markdown 文件——情景时间片记录发生了什么、何时发生,语义 strand 和知识节点记录事物是什么——在推理时根据 token 预算进行组装。
+Previously 没有数据库,也没有向量存储。记忆是 git 仓库里的纯 Markdown 文件,按时间组织。产品里流淌着三条时间线,而只有一条是共享的:
 
-## 情景记忆:时间线
+- **你的生活** —— 你经历的一切。其中大部分只有你自己经历过,Previously 看不见。
+- **共同的记录** —— 每一次对话、每个决定、每个没说出口但被记住的瞬间。这就是 Previously 存储的东西:一条由情景 slice 组成的时间线。
+- **它的思考** —— 代理工作时的认知过程:它回忆了什么、推理了什么、得出了什么结论。这也被记录下来,就存在每个 slice 旁边。
 
-Previously 将每次对话爆发记录为一个 **slice**:个人时间线上的一篇 Markdown 文件。路径精确告诉你它发生在何时:
+记忆模型就是这三条线的维护方式:构建时打包的不可变身份、运行时无损的情景时间线,以及一张把时间线蒸馏成"你是谁"的紧凑用户卡。
+
+## L0:身份宪法
+
+最底层根本不是数据——而是代理是谁。`identity/agent/SOUL.md` 与 `identity/agent/DIRECTIVES.md` 承载着代理的宪法:它的品格与常驻规则。
+
+构建时,`scripts/generate-identity.mjs` 把这两个文件编译成一个生成的 TypeScript 模块(`src/lib/identity/agent-prompt.generated.ts`),宪法由此被冻结进部署产物。它在运行时从不从磁盘读取,源文件也位于工具白名单之外——代理无法重写自己的灵魂,对仓库的错误修改也无法改变线上的提示词。
+
+## 情景层:时间线上的 Slice
+
+每段对话爆发都会成为一个 **slice** —— 你个人时间线上的一个目录,路径精确编码了它发生的时刻:
 
 ```
-memory/episodic/slices/2025/11/21/0825.md
+memory/episodic/slices/2025/11/21/0825/
+  timeline/
+    core.md      -- 共同的记录:YAML frontmatter + 对话轮次
+    agent.md     -- 它的思考:该 slice 的代理认知日志
+  previously.md  -- 截至此 slice 的用户卡快照
 ```
 
-一个日历天是一个目录,可能包含多个 slice 文件。Slice 在你开始说话时开启,在你保持参与期间持续活跃,并在静默 30 分钟后自动关闭(`src/lib/episodic/slicer.ts`)。跨月跨年地自上而下阅读,slices 构成了你的自传——发生了什么、何时发生,按时间顺序排列。
+注意 `timeline/` 下的两个文件:`core.md` 是共同的记录(说了什么,附带结构化元数据——`focus`、`summary`、`open_loops`、`decisions`、`tags`、`emotional_tone`、`status`、`start`/`end`),而 `agent.md` 是代理自己的那条线——它当时的思考,由机械提取生成。Slice 在你开始说话时开启,在默认约 15 分钟静默后关闭(或因上下文丢失、轮次上限)。没有主题切换规则:切片完全由时间驱动,因此时间线始终是一份无损的自传。完整生命周期见 [Slices](/docs/slices)。
 
-每个 slice 都带有包含结构化元数据的 YAML frontmatter:
-
-```yaml
----
-focus: Planning the M8 flash overhaul
-summary: Reviewed slicer architecture, decided on time-only slicing
-open_loops: [strand integration, demo mode scope]
-decisions: [Slice by time only; no topic-based splitting]
-tags: [m8, episodic, architecture]
-related_slices: [2025/11/20/1430.md]
-emotional_tone: focused
-status: closed
-start: 2025-11-21T08:25:00Z
-end: 2025-11-21T09:10:00Z
----
-```
-
-对话轮次以 `## Turn N -- ISO_TIMESTAMP (role)` 标题的形式呈现在 Markdown 正文中。此格式由 gray-matter 库管理——每个 git 客户端、每个编辑器以及每个 LLM 都能解析它,无需专有工具。
+**Strand** 是时间线之上薄薄的语义索引:一个像 `work`、`family` 这样的关键词,贯穿所有携带它的 slice,以 strand → slice 路径的映射形式存于 `memory/episodic/strands.json`。Slice 是发生了什么;strand 是它关于什么。详见 [Strands](/docs/strands)。
 
 <Callout variant="info">
-**关键要点:时间线是由时间驱动的,而非主题驱动的。** 有对话时 slice 开启,静默时关闭。没有容量限制,也没有主题切换规则。你的对话历史是无损且按时间顺序排列的。
+**关键要点:slice 是唯一事实来源。** 其他一切——strand 索引、时间线目录、用户卡——都是从 slice 文件派生、可重建的投影。
 </Callout>
 
-## 语义记忆,第一层:Strands
+## 时间线索引
 
-**Strand** 是一个关键词——比如 `work`、`family`、`health`、`housing`——贯穿所有携带它的 slice。文件 `memory/episodic/strands.json` 将每个 strand 映射到其 slice 路径:
+为了回答一个问题而去读上百个 slice 是对上下文的浪费,因此 Previously 维护着覆盖全部历史的第一类派生索引(`src/lib/episodic/timeline/`):
 
-```json
-{
-  "strands": {
-    "housing": [
-      "memory/episodic/slices/2025/03/10/0915.md",
-      "memory/episodic/slices/2025/04/02/1400.md",
-      "memory/episodic/slices/2025/06/18/1100.md"
-    ],
-    "work": [
-      "memory/episodic/slices/2025/06/18/1100.md",
-      "memory/episodic/slices/2025/07/01/0800.md"
-    ]
-  }
-}
-```
+- `memory/episodic/timeline/index.json` —— 权威的结构化目录:每个 slice 一条记录,携带 `focus`、`summary`、`tags`、`strands`、`open_loops`、`decisions`,以及标记语义尚未填充的 `needs_marking` 标志。
+- `memory/episodic/timeline.md` —— 同一份目录的 Markdown 投影,按月、按日分组,代理(和你)都可读。
 
-Strands 在 slice 关闭时通过 `updateStrands` 构建。Slice = 发生了什么;strand = 它关于什么。Strands 构成了情景时间线上薄而无损的语义索引——某个主题跨时间的完整历史,无需复制内容。
+两者都由 `weaveTimeline` 确定性地重建——枚举 slice 文件、diff、调和——零模型调用。新 slice 在创建的当轮就会被插入目录;任何被标记为 `needs_marking` 的记录,随后由 worker 模型在回合关键路径之外补全 `focus`/`summary`。
 
-<Callout variant="warning">
-**路线图:** Strands 目前不含滚动摘要。更丰富的第一类 strand(带有自己的叙事摘要和召回集成)是未来的里程碑。
-</Callout>
+索引是地图,不是答案来源:每行携带足以判断相关性的纹理,但正确性永远来自用 `readSlice` 打开原始 slice。代理被明确指示:时间线上的一行是指针,绝不是可以引用的来源。
 
-## 语义记忆,第二层:记忆节点
+## 用户卡
 
-**记忆节点** 是 `memory/nodes/` 下独立的结构化知识单元,由 Previously 自己(主模型,通过 `writeFile`)在对话揭示出关于你的真正值得注意的信息时编写。与自动构建的关键词索引 strands 不同,nodes 是手动或代理撰写的知识单元,具有类型化 schema:
+`memory/episodic/current-previously.md` 是时间线的活体蒸馏——一张回答"你是谁"的紧凑卡片,在 slice 边界之后被精炼。它是"存储你历史的代理"与"抵达时已经认识你的代理"之间的差别:arrival briefing 因它而成可能。
 
-| 字段 | 用途 |
-|-------|---------|
-| `type` | `concept`、`experience`、`project`、`people` 或 `personality` |
-| `priority` | 1–10,默认为 5 |
-| `domain` | 分类领域,默认为 `general` |
-| `tags` | 用于匹配的关键词标签 |
-| `related` | 链接到其他节点 ID |
-| `backlinks` | 来自 YAML frontmatter 的反向链接(静态) |
-| `status` | `active` 或 `deprecated` |
-| `access_count` | 尚未实现(scorer 会读取但从未写入) |
-| `last_accessed` | 仅日期字符串(YYYY-MM-DD) |
-| `superseded_by` | 取代此节点的节点 ID |
+卡片有五个区块:
 
-节点相关性在召回时进行评分:
+| 区块 | 内容 |
+|------|------|
+| **Identity** | 结构化头部:姓名、称呼方式、别名 |
+| **Past** | 一段原地更新的第三人称画像段落,外加锚定事实——多年后依然成立的日期、决定与红线 |
+| **Now** | 当下状态的钩子,不是叙事——7 天后机械过期 |
+| **Horizon** | 面向未来的承诺与截止期限,每条带 `by:` 日期;逾期项会被标记,绝不会被静默丢弃 |
+| **Self-model** | 代理关于如何与你共事的操作经验——只记录相对常驻指令的增量 |
 
-```
-score = (priority
-         + keyword-tag-match[+5 each]
-         + graph_bonus[+2 per already-selected linked node]
-         + freq_bonus[min(access_count * 0.3, 3)])
-         * time_decay
-
-where time_decay = 0.9^(daysSinceAccess / 7)  ~10% decay per week
-```
-
-已弃用的节点始终得分为 0。此评分为上下文组装器的选择提供依据。
-
-## 分层记忆:L0/L1 与 L2
-
-记忆按加载时机分为三个层级:
-
-| 层级 | 内容 | 加载时机 | 可变? |
-|------|------|----------|--------|
-| **L0** | 代理宪法(SOUL) | 构建时打包 | 运行时不可变 |
-| **L1** | 代理指令(DIRECTIVES) | 构建时打包 | 运行时不可变 |
-| **L2** | 情景 slices + strands + nodes | 运行时按需获取 | 工具可写 |
-
-L0 和 L1 由 `scripts/generate-identity.mjs` 在构建时生成并编译为字符串。它们的源文件位于工具白名单之外——代理无法重写自己的灵魂。L2 通过工具从文件系统实时读取,情景记忆、strands 和 nodes 就存在于此。
-
-用户档案(`memory/user/profile.md`)是一种混合体:它从 `memory/` 实时加载(运行时 L2),但通用的 `writeFile` 工具被阻止编辑它——只有专用的 `updateUserProfile` 工具才能修改它。
+每条记录都带有指回证据 slice 的 `refs` 指针,任何论断都可以下钻到原始记录。卡片从不被整体重写,通用写入工具也碰不到它:一个专门的 worker 模型代理通过经过校验的逐条变更(`addNow`、`updatePastProfile`、`resolveHorizon`……)来编辑它,超限的写入会被拒绝并附带回压指令。硬性上限把整张卡控制在约 8 KB 以内,因此它可以便宜地注入每个提示词。完整格式与演化循环见 [用户卡](/docs/user-card)。
 
 ## 白名单边界
 
@@ -120,53 +75,43 @@ L0 和 L1 由 `scripts/generate-identity.mjs` 在构建时生成并编译为字�
 memory/   tasks/   sessions/
 ```
 
-`src/` 目录是代理**只读**的,任何工具都不可修改。路径验证会规范化输入——解码 URI 组件、将反斜杠转为正斜杠、解析 `./` 和 `../`、去除前导斜杠——然后在匹配允许的前缀之前拒绝空路径、绝对路径(`/`)和驱动器字母路径(`A:`)。
+`src/` 目录对代理**只读**——任何工具都不能修改它。路径验证会先规范化输入——解码 URI 编码字符、把反斜杠转为正斜杠、解析 `./` 与 `../`、去除前导斜杠——然后在匹配允许前缀之前拒绝空路径、绝对路径(`/`)和盘符路径(`A:`)。
 
-在白名单内,某些路径可读但禁止写入:
+在白名单之内,系统管理的路径对通用写入工具可读但禁止写入:
 
-- `memory/episodic/`——系统拥有的 slices 和索引
+- `memory/episodic/` —— slice、索引与用户卡均为系统所有
 - 任何 `_index.json` 文件
-- `strands.json`
-- `memory/user/profile.md`——只能通过其专用工具编辑
+- 任何 `strands.json` 文件
 
-这可以防止意外或恶意损坏情景时间线和结构索引。
+这保护了情景时间线及其结构索引免受意外或恶意破坏;用户卡只能通过它专用的变更工具演化。
 
-## 基于 Token 预算的上下文组装
+## 上下文组装:每轮重新构建
 
-当 Previously 构建提示词时,`src/lib/context/assembler.ts` 在默认 8,000 token 预算下打包 5 层负载:
+不存在不断膨胀的提示词窗口。每一轮,工作流都会从时间线动态组装系统提示词(`src/app/api/chat/turn-workflow.ts` 中的 `assembleSystemPrompt`):
 
-| 层 | 内容 | 预算规则 |
-|-----|---------|-------------|
-| 0 | 系统提示词(宪法 + 指令) | 完整,始终包含 |
-| 1 | 核心记忆节点(完整内容) | 上限为 budget × 0.7(为后续层预留 30%) |
-| 2 | 会话摘要 + 最近轮次 | 每轮截断至 300 字符 |
-| 3 | 扩展节点(仅摘要) | 第一段 ≤ 200 字符;到达 budget − 500 时停止 |
-| 4 | 引用节点 | 仅 `[[wikilink]]` 标题 |
+1. **身份宪法** —— SOUL + DIRECTIVES,跨轮稳定。
+2. **用户卡** —— 只在演化时变化。
+3. **当轮简报** —— 时间戳、意图、连续性、语义链接。
+4. **时间线与 strand 区块** —— 近期 slice 的指针视图与 strand 菜单。
+5. **通知** —— 演化结果、演示模式。
 
-Token 估算采用启发式方法(`ceil(chars / 4)`)——不是真正的 tokenizer。随着预算填满,详细程度逐步下降:完整节点内容让位于摘要,摘要再让位于纯标题。这保证了每个请求都适合模型的上下文窗口,而不会硬性截断关键层。
+排序是缓存决策,不只是排版:稳定的区块构成一段长长的字节级一致前缀,供服务商的提示词缓存跨轮复用;可变的尾部则可以自由变化而不使其失效。深层上下文默认不会被塞进提示词——召回分两层在时间线上工作:worker 模型扫描摘要并返回指针,主模型只通过 `readSlice` 深读真正重要的 slice。详见 [Recall](/docs/recall)。
 
-## 为什么选择纯 Markdown + YAML
+## 为什么是纯 Markdown + YAML
 
-没有数据库,没有向量存储,也没有专有格式。每一段记忆都是一个带 YAML frontmatter 的 Markdown 文件。这个选择是经过深思熟虑的:
+每一段记忆都是带 YAML frontmatter 的 Markdown 文件。这个选择是深思熟虑的:
 
 - **可移植** —— `git clone` 到任何地方,在任何设备上阅读,无需服务器。
-- **Git 可比较** —— 对 slice、node 或 strand 的每次更改都记录在版本历史中。你可以看到 Previously 学习了什么以及何时学习的。
-- **人类可编辑** —— 在 VS Code 中打开任意 slice,修正摘要,添加标签。无需管理 UI,无需 SDK。
-- **任何工具都能读取** —— Previously 编写,Claude Code 读取,Codex 扩展。无锁定,无集成成本,无 schema 迁移。
+- **git 可 diff** —— 对 slice、用户卡或 strand 索引的每次更改都记录在版本历史里。你能看到 Previously 学到了什么、什么时候学到的。
+- **人类可编辑** —— 在编辑器里打开任意文件,改摘要、加标签。没有管理后台,没有 SDK。
+- **任何工具都能读** —— Previously 写,Claude Code 读,Codex 扩展。无锁定,无集成成本,无 schema 迁移。
 
 文件即接口。
 
-## 两层召回
-
-召回遵循 Tulving 奠基的情景优先、语义其次的顺序:先扫描何时发生,再检索发生了什么。
-
-1. **worker 扫描**(已解析的 worker 模型)——扫描最近的 slice 摘要,返回指向相关 slice 的指针。每轮元数据维护(tags、strands、summaries)通过 turn analyzer 折叠到这一轮往返中,该方法在 300ms 后重试一次,并回退到安全默认值。
-2. **主模型深度读取**(主模型)——调用 `readSlice` 工具读取完整的 slice 内容以进行深度召回。这是昂贵、彻底的传递,从原始时间线中重建上下文。
-
-这种分工让快速操作保持快速,同时将模型容量保留给需要它的工作。
-
 ## 相关
 
-- [架构概览](/docs/architecture)
+- [时间线](/docs/timeline) —— 这套记忆模型所驱动的交互界面
 - [Slices](/docs/slices) —— 情景层详解
 - [Strands](/docs/strands) —— 语义关键词索引
+- [用户卡](/docs/user-card) —— 关于你的活体蒸馏
+- [Recall](/docs/recall) —— 代理如何在推理时调取时间线

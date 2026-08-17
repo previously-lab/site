@@ -1,64 +1,79 @@
 ---
 title: 召回
-description: 双层检索引擎——worker 模型扫描切片摘要返回指针,主模型再读取真正重要的切片,整个过程在一次回合内完成。
+description: 双层检索引擎——worker 模型在时间线与 Strand 间导航返回指针,主模型再读取真正重要的切片,整个过程在一次回合内完成。
 order: 4
 ---
 
 # 回忆(Recall)
 
-回忆是 Previously 检索相关历史对话的方式——这是一个双层引擎:廉价的 worker 模型返回轻量级指针,然后主模型读取它选中的切片,整个过程在一次回合内完成。
+回忆是 Previously 检索相关历史对话的方式——这是一个双层引擎:廉价的 worker 模型返回轻量级指针,然后主模型读取它选中的切片,整个过程在一次回合内完成。每一步都实时渲染在聊天中:回忆在明处运行,而不是藏在 spinner 后面。
 
 ## 双层回忆引擎
 
-Previously 中的情景记忆以**切片(slice)**的形式存储——位于 `memory/episodic/slices/2025/11/21/0825.md` 这类路径下的 Markdown 文件,每个文件对应一次对话爆发,在你说话时打开,在静默 30 分钟后关闭。经过数周和数月,这些切片会积累成一个深度档案。挑战在于:Agent 如何在不每次读取所有内容的情况下找到重要的信息?
+Previously 中的情景记忆以**切片(slice)**的形式存储——位于 `memory/episodic/slices/2025/11/21/0825/` 这类路径下的目录,每个目录对应一次对话爆发,在你说话时打开,在默认约 15 分钟静默后关闭。经过数周和数月,这些切片会积累成一个深度档案。挑战在于:Agent 如何在不每次读取所有内容的情况下找到重要的信息?
 
 Previously 将这个问题拆分为两个反射层次:
 
 | 层次 | 模型 | 成本 | 作用 |
 |-------|-------|------|-------------|
-| **worker 扫描**(条件反射) | 解析出的 worker 模型 | 便宜、快速 | 扫描近期切片摘要,返回**指针**——`{ slice_id, relevance, reason }`——从不返回完整内容 |
-| **主模型深读**(审慎推理) | 你在工具栏选的主模型 | 较慢,启用思考 | 接收指针,通过 `readSlice` 按需读取完整切片,当扫描未找到结果时直接探索目录 |
+| **worker 扫描**(条件反射) | 解析出的 worker 模型 | 便宜、快速 | 一个小型多步 agent:读取全局时间线的指针行、圈定日期窗口、追踪匹配的 Strand——返回**指针**(`{ slice_id, relevance, reason }`)与推荐阅读,从不返回切片正文 |
+| **主模型深读**(审慎推理) | 你在工具栏选的主模型 | 较慢,启用思考 | 接收指针,通过 `readSliceSummary` 检查摘要,只在内容本身重要时才用 `readSlice` 打开完整切片 |
 
-worker 的设计允许出错。它以完整性换取速度:它读取的是摘要,而非完整正文。主模型是安全网——它可以在指针所指的方向深入挖掘,或者从头开始探索目录树。
+worker 的设计允许出错。它以完整性换取速度:它导航的是指针行与 Strand 图谱,而非完整正文。主模型是安全网——它在指针所指的方向深入挖掘。
 
 <Callout variant="info">
 **要点**:worker 回答"往哪里找。"主模型回答"这意味着什么。"两者不可互相替代。
 </Callout>
 
-### 第 1 步:worker 扫描(观察约 500ms)
+### 第 1 步:worker 扫描
 
-扫描在**响应流打开之前**运行。每个用户请求触发 `recall` 工具(`src/app/api/agent/tool-executors.ts` 中的 `recallExecute`),在单次往返中调用 worker 模型。扫描读取近期已关闭切片的摘要并判断相关性。
+回忆不是自动发生的——当查询涉及过去时,主模型会调用 `recall` 工具(`src/app/api/agent/tool-executors.ts` 中的 `recallExecute`),它的系统提示里带有一份已知 Strand 菜单作为引导。该工具把查询交给一个运行在 worker 模型上的回忆 mini-agent(`src/lib/episodic/flash/recall.ts` 中的 `runRecallSearch`)。
 
-扫描返回带 `hits` 数组的结构化结果。每个命中是一个指针——切片 ID、相关性分数(0–1)以及一行匹配原因。模型被提示最多返回 5 个。
+worker 是一个小型多步 agent,自带三个只读工具:
 
-**worker 不读取主题索引**(strand index,即 `strands.json`)。主题索引(在切片关闭时建立的从关键词到切片路径的映射)存在于磁盘上,主模型可以通过 `readStrand` 按需访问它,但 worker 扫描本身只搜索近期切片摘要。
+- `readGlobalTimeline` —— 入口:全局时间线中最新切片的指针行(id · focus · tags · turns)
+- `readTimelineWindow` —— 同一份目录按日期范围圈定,用于"那段时间发生了什么"这类查询
+- `readStrand` —— 追踪一个关键词 Strand,找到所有携带它的切片
+
+经过几步探索后,它提交一份结构化报告:`hits` 指针数组——切片 ID、相关性分数(0–1)、一行原因——外加置信度、一行简短的推理说明,以及最多五条**推荐阅读**(切片 ID、优先级、为什么、该看什么)。当前对话的切片在构造上就被排除;任何不在时间线目录里的切片 ID 都会在指针送达主模型之前被丢弃——幻觉出的指针不会把主模型引向不存在的文件。
+
+**worker 从不读取切片正文。** 它没有 `readSlice` 工具——时间线与 Strand 图谱就是它的全部世界,所以它的答案是导航,不是引用。追踪 Strand 是扫描的一等组成部分:Strand 索引(`strands.json`,切片关闭时建立的关键词到切片路径映射)会被注入它的提示词,匹配的 Strand 为它提供直达相关切片的路径。
 
 > **回忆一次,然后停止。** 如果扫描什么都没找到,那就是确定性的答案——该查询没有过去的上下文。Agent 被指示不要为同一个主题再次调用 `recall`,而是从对话和自身知识作答。
 
-回忆阶段渲染为一个可折叠卡片,带 History 图标。折叠时:显示查询与命中数。展开时:每条命中显示为 `slice_id` + 原因 + 相关性百分比、一行斜体推理文字以及置信度。
+回忆阶段渲染为一个可折叠卡片,带 History 图标。worker 探索时,它的步骤实时流入卡片——"Reading global timeline…"、"Tracing strand: X…"——报告落地时定格为命中数。展开时:每条命中显示为 `slice_id` + 原因 + 相关性百分比、一行斜体推理文字以及置信度。
 
 ### 第 2 步:深读
 
-worker 的指针列表被注入主模型的上下文。主模型决定通过调用 `readSlice` 工具完整打开哪些切片。它还可以追踪线索(`readStrand`)、浏览时间线(`readTimeline`、`listSlices`、`listStrands`),或查看它已有的信念(`readPreviously`)。
+worker 的指针与推荐阅读作为 `recall` 工具结果进入主模型的上下文。主模型用自己的记忆工具决定挖多深:
 
 | 工具 | 用途 |
 |------|---------|
-| `readSlice` | 读取一个切片的轮次,可选 `range` |
-| `readStrand` | 跨携带它的切片追踪一个关键词 |
+| `readSliceSummary` | 最低成本的检查——只读切片 frontmatter(focus、summary、tags、open loops) |
+| `readTimelineWindow` | 按时间定位——一个日期范围内的指针行 |
 | `readPreviously` | 读取用户卡片的信念快照 |
-| `readTimeline` / `listSlices` / `listStrands` | 探索时间线与索引 |
+| `readSlice` | 读取一个切片的轮次——最后手段;可选 `range` 只取它需要的轮次 |
 
-当 worker 找到命中时,主模型会收到指导:"这些摘要通常就足够了——只有在需要摘要未包含的细节时,才读取特定切片。"当扫描未找到任何内容时,主模型被指示直接探索目录——如果它想要关键词索引,则从 `strands.json` 开始。
+原始的浏览工具(`readStrand`、`listSlices`、`listStrands`)属于回忆 worker——主模型从不亲自遍历目录树。
+
+它遵循的规则是:时间线行与摘要足以决定**要不要**挖——但永远不足以**引用**。在引用过去对话的具体内容之前,它会用 `readSlice` 打开切片。而当扫描什么都没找到时,这个结果是确定性的——没有过去上下文可找,于是它基于当前对话作答,而不是再次搜索。
 
 ### 第 3 步:元数据维护
 
-执行扫描的同一个 housekeeping 环节也会为**当前活跃切片**——即当前对话正在写入的切片——提议元数据更新。回合分析器(`src/lib/episodic/flash/turn-analyzer.ts`)是 housekeeping 内的唯一 worker 模型调用,在一次廉价扫描里产出三样东西:
+回忆与每回合的 housekeeping 环节是相互独立的,后者为**当前活跃切片**——即当前对话正在写入的切片——提议元数据更新。回合分析器(`src/lib/episodic/flash/turn-analyzer.ts`)是 housekeeping 内的唯一 worker 模型调用,在一次廉价扫描里产出:
 
-- **message_tags** —— 当前用户消息的关键词标签(编织进线索)
-- **semantic_hint** —— 这条消息关于哪些已有线索,以及为什么
-- **closed_marking** —— 即将关闭切片的 focus、summary、精炼标签与情绪基调
+- **message_tags** —— 当前用户消息的合并优先标签:原样复用已有 Strand 名称,只有在没有话题能覆盖时才创建真正新的持久话题
+- **semantic_hint** —— 这条消息关于哪些已有 Strand,以及为什么
+- **intent** —— 用户这一回合想做什么(debug、write、explain、chat、review、clarify)
+- **emotional_signal** —— 这条消息的情绪权重,让 agent 能贴合用户的语气
+- **memory_update** —— 当用户明确要求记录某事、或陈述了一条持久的纠正时,要折进用户卡片的确切内容
 
-一个**语义门**随之运行:琐碎回合(「谢谢」「继续」)不产生标签、不进线索索引、不触发演化——一次性噪音不会污染时间线。
+仅当本回合有切片关闭时:
+
+- **closed_marking** —— 关闭切片的 focus、summary、精炼标签与情绪基调
+- **evolve_card** —— 其中是否有值得沉淀到用户卡片的内容(分析器失败时默认运行——浪费一次检查很便宜,错过一次演化是永久的记忆丢失)
+
+一个**记忆价值门**随之运行:琐碎回合(「谢谢」「继续」)不产生标签、不进 Strand 索引、不触发演化——一次性噪音不会污染时间线。
 
 ## 三阶段聊天渲染
 
@@ -83,14 +98,7 @@ worker 的指针列表被注入主模型的上下文。主模型决定通过调�
 
 ### 2. 回忆 / 工具阶段
 
-工具调用通过 `ToolRenderer` 以内联可折叠卡片渲染,各带人类可读标签:
-
-| 工具 | 你看到 |
-|------|--------|
-| `recall` | Recalling "..."(回忆中) |
-| `readSlice` | Viewing {date}(查看中) |
-| `readStrand` | Following "..."(追踪中) |
-| `readPreviously` | 正在读前情提要… |
+工具调用通过 `ToolRenderer` 以内联可折叠卡片渲染。每个记忆工具——`recall`、`readSliceSummary`、`readTimelineWindow`、`readSlice`、`readPreviously`——都会得到内容感知的标签,而不是原始工具名:回忆卡片带上查询,切片卡片指明日期(显示"查看了 7月25日 的对话",而不是 "readSlice")。工具运行时,一行实时状态文字流式展示进度。
 
 每张卡片有五种视觉状态:**运行中**(spinner)、**已完成**(圆点)、**错误**(红)、**中断**(黄)、**拒绝**(红)。点击展开查看完整工具输出——CSS `grid-template-rows` 过渡,无需 JS 测高。
 

@@ -9,7 +9,7 @@ order: 1
 Get your own Previously running in about 10 minutes. You'll create a private copy from the template, create a GitHub token, and deploy to Vercel. No server management, no database setup — just a repo, a token, and a deploy.
 
 <Callout variant="warning">
-⚠️ **Important: No authentication yet.** Previously is in early development and does not yet have built-in authentication or access control. Anyone with your deployment URL can use your instance — and access or modify your memory data. Keep your deployment URL private. Do not share it publicly. Limit your Vercel deployment visibility if possible. Authentication is a high-priority feature and will be available soon.
+⚠️ **Important: single-user, no login system.** Previously is in early development and has no user accounts or authentication — it is designed as a single-user, privately-deployed product. Anyone with your deployment URL can use your instance — and access or modify your memory data. Keep your deployment URL private. Do not share it publicly. Limit your Vercel deployment visibility if possible. The mutation endpoints do have a same-origin guard plus an optional access key for scripts (see [Access key for API callers](#access-key-for-api-callers) below), but that is not a substitute for real authentication.
 </Callout>
 
 ## Create your private copy
@@ -43,7 +43,7 @@ Two options, from smoothest updates to quickest setup.
 2. Go to [vercel.com](https://vercel.com) and sign in with your GitHub account.
 3. Click **Add New** → **Project**.
 4. Import your private repo from the repository list. If it's not visible, click **Adjust GitHub App Permissions** and grant Vercel access to the repo.
-5. In the **Environment Variables** section, add `DEEPSEEK_API_KEY`, `GITHUB_TOKEN`, `GITHUB_REPO_OWNER`, and `GITHUB_REPO_NAME` (see below).
+5. In the **Environment Variables** section, add `DEEPSEEK_API_KEY`, `GITHUB_TOKEN`, `GITHUB_REPO_OWNER`, and `GITHUB_REPO_NAME` (see below). Optionally add `ACCESS_SECRET` if you plan to call the API from scripts.
 6. Click **Deploy**.
 
 Vercel detects Next.js, builds, and gives you a URL. That's it.
@@ -78,6 +78,9 @@ GITHUB_REPO_NAME=your-repo-name
 
 # Optional — read-only demo persona mode
 # STORAGE=demo
+
+# Optional — access key for non-browser API callers (see below)
+# ACCESS_SECRET=
 ```
 
 | Variable | Required | What it is | Where to get it |
@@ -87,6 +90,24 @@ GITHUB_REPO_NAME=your-repo-name
 | `GITHUB_REPO_OWNER` | Yes | Your GitHub username or organization that owns the repository holding memory data. | Your GitHub username. |
 | `GITHUB_REPO_NAME` | Yes | The repository name where memory data lives. By default this is your repo, but you can point it at any repo you own. | Your repo's name on GitHub. |
 | `STORAGE` | No | Selects the data source: `local` (filesystem), `github` (GitHub API), or `demo` (read-only pre-seeded persona dataset). Auto-detected when unset. | — |
+| `ACCESS_SECRET` | No | Access key that non-browser callers must send as an `x-access-key` header on mutation endpoints. Only enforced when set. | Any random string you choose. |
+
+See [Configuration](/docs/configuration) for the full variable reference, including the implicit storage backend switch.
+
+## Access key for API callers
+
+Previously has no login system, but its mutation endpoints — `POST /api/chat`, `/api/loops`, and `/api/episodic/flush` — are protected by a lightweight origin guard. Requests from your own browser pass automatically (the `Origin` header matches the deployment's host). Read endpoints and CORS preflights always stay open.
+
+Calls that don't come from your browser — curl, scripts, cron jobs — look external to the guard. If you want to use them, set `ACCESS_SECRET` to any random string and send it as a header:
+
+```bash
+curl -X POST https://your-deployment.vercel.app/api/chat \
+  -H "x-access-key: $ACCESS_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{"messages": [...]}'
+```
+
+When `ACCESS_SECRET` is not set, these callers are also allowed — the private-deployment default stays frictionless. Set the variable only if you expose the URL beyond your own browser and want the key check active.
 
 ## Syncing upstream updates
 
@@ -94,7 +115,7 @@ Previously has a built-in sync mechanism. When a new version is released:
 
 1. Open your Previously instance and go to **Settings**.
 2. In the **Version & Updates** section, if you see "Update available," click **Sync from upstream**.
-3. The latest code is merged into your repository automatically. Vercel redeploys on the next push.
+3. The latest code is merged into your repository automatically. The sync commit lands on your `main` branch, and Vercel redeploys from it automatically.
 
 Your personal data (`memory/`, `tasks/`, `sessions/`) is never overwritten — only code directories are synced. The sync creates a proper merge commit that preserves your git history.
 

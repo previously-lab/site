@@ -10,9 +10,9 @@ Common questions about how Previously works, what it costs, and where the bounda
 
 ## Is there a database?
 
-No. All state is plain Markdown files with YAML frontmatter, stored in a GitHub repository. There is no database, no vector store, no ORM, and no proprietary format. Slices, strands, nodes — everything is a file.
+No. All state is plain Markdown files with YAML frontmatter, stored in a GitHub repository. There is no database, no vector store, no ORM, and no proprietary format. Slices, strands, the user card — everything is a file.
 
-The sole structural index is a single JSON file: `memory/episodic/strands.json` maps each strand keyword to its slice paths. Per-month slice indexes (`_index.json`) live in the month directory (`slices/YYYY/MM/`), one level above the slices themselves, which are stored as `MM/DD/HHMM.md`. That is the full extent of the "plumbing." No Postgres, no SQLite, no Pinecone.
+The indexes are a handful of JSON files. A global catalog at `memory/episodic/timeline/index.json` lists every slice (with a Markdown projection at `memory/episodic/timeline.md`); per-month slice indexes (`_index.json`) live in the month directory; and `memory/episodic/strands.json` maps each strand keyword to its slice paths. Each slice is a directory (`slices/YYYY/MM/DD/HHMM/`) whose `timeline/` holds the shared record (`core.md`) and the agent's own cognitive record (`agent.md`). That is the full extent of the "plumbing." No Postgres, no SQLite, no Pinecone.
 
 <Callout variant="info">
 **Key takeaway: your memory is a directory tree of Markdown files in a git repo. That's it.**
@@ -26,27 +26,38 @@ This portability is a core design goal. You never need to export or migrate data
 
 ## Does it forget in a long conversation?
 
-No — not the way a growing prompt window does. Previously has no chat threads that accumulate indefinitely. Context is assembled from scratch per request using the timeline and stays bounded.
+No — not the way a growing prompt window does. Previously has no chat threads that accumulate indefinitely. Context is assembled from scratch on every turn and stays bounded.
 
-The mechanism lives in `src/lib/context/assembler.ts`. Each request gets a fresh assembly with a default budget of 8,000 tokens. Blocks stop loading once the budget is exceeded (line 76: `budget - 500` reserve). This means the timeline can grow across months of conversation, but what gets loaded into any single request stays relevant and window-sized.
+Each chat turn builds a fresh system prompt (`assembleSystemPrompt` in `src/app/api/chat/turn-workflow.ts`). The stable blocks come first — the identity constitution and the user card — so the provider's prompt cache can reuse that long prefix across turns. The variable tail follows: a per-turn brief (timestamp, intent, continuity), a recent-timeline block, and the strands menu. The visible chat history sent along is capped by a configurable recent-turns limit (20 by default).
+
+Crucially, timeline lines are pointers, not payloads. When a line looks relevant, the agent opens that slice on demand with the `readSliceSummary` / `readSlice` tools instead of carrying months of conversation in the prompt. The archive can grow across months, but what gets loaded into any single request stays window-sized.
 
 There is no point where the agent suddenly forgets the beginning of a long exchange, because there is no single long exchange — context is rebuilt every round.
 
 ## How is a slice closed?
 
-One rule: 30 minutes of silence (inactivity). A slice opens when you start talking, stays active while you stay engaged, and closes automatically after 30 minutes of no activity.
+Three triggers, checked in the housekeeping step of every chat turn (`src/app/api/chat/steps.ts`):
 
-The threshold is hardcoded in `src/lib/episodic/slicer.ts`:
+- **Time silence** — the slice closes after a period of inactivity (15 minutes by default).
+- **Turn cap** — a safety net that force-closes a marathon session (20 turns by default).
+- **Context lost** — if the client comes back with no assistant history while the recovered slice has agent turns (a page refresh, a device switch), the old slice is closed and a fresh one opens.
 
-```ts
-export const TIME_SILENCE_THRESHOLD_MS = 30 * 60 * 1000;
+Both thresholds are user-configurable in Settings — they live in `memory/user/config.json`:
+
+```json
+{
+  "slicing": {
+    "maxTurnsPerSlice": 20,
+    "timeSilenceMinutes": 15
+  }
+}
 ```
 
-The function `checkTimeSilence()` compares elapsed milliseconds against that threshold. There is no capacity limit, no topic-shift rule, and no worker continuity check. Capacity checks and worker continuity checks were removed during M8 — time-only slicing is the entire story.
+When a slice closes, its metadata is frozen, the timeline catalog and strand index are updated, and the next message opens a fresh slice.
 
 ## Is it production-ready?
 
-No. Previously is experimental (v0.7). The README carries an "experimental" status badge and explicitly states it is "not yet ready for personal or production use."
+No. Previously is experimental (v0.8). The README carries an "experimental" status badge and explicitly states it is "not yet ready for personal or production use."
 
 It is a personal deployment, not a SaaS product. The author commits to long-term maintenance, but the project is in active early development. Expect rough edges, breaking changes, and features still on the roadmap.
 
@@ -54,24 +65,27 @@ It is a personal deployment, not a SaaS product. The author commits to long-term
 
 They can. They can also be separate. The deployed app reads and writes the GitHub repo identified by the environment variables `GITHUB_REPO_OWNER` and `GITHUB_REPO_NAME`. Those same env vars can point at a dedicated private memory repo that is distinct from the code repo.
 
-The project's own convention (described in `CLAUDE.md`) co-locates code and data in one repo — with `src/` agent-read-only and data directories (`memory/`, `tasks/`, `sessions/`) agent-read-write. But the configuration gives you the choice. A separate memory repo is valid and documented in the Quick start.
+The project's own convention (described in `CLAUDE.md`) co-locates code and data in one repo — with `src/` agent-read-only and data directories (`memory/`, `tasks/`, `sessions/`) agent-read-write. But the configuration gives you the choice. A separate memory repo is valid and documented in [Getting Started](/docs/getting-started).
 
 ## How much does it cost to run?
 
 Two cost centers:
 
-- **LLM API usage** — Previously runs on your own API keys (DeepSeek and/or Anthropic). The two-tier architecture (a worker model for fast recall scans, the main model for deep reasoning) is cost-motivated: cheap passes handle the common case, expensive reasoning is reserved for when it matters.
-- **Hosting** — Vercel Pro (the deploy button targets Vercel). Vercel's free tier may cover light usage, but sustained use will likely need a paid plan. GitHub repo storage is effectively free.
+- **LLM API usage** — Previously runs on your own API keys. Nine providers are supported (DeepSeek, Anthropic, OpenAI, Moonshot AI, Alibaba, Google, Mistral, xAI, Groq); whichever keys you set determine the available models. The two-tier architecture is cost-motivated: a cheap **worker model** handles housekeeping, recall scans, and card evolution, while the **main model** (your choice) is reserved for the conversation itself.
+- **Hosting** — Vercel (the deploy button targets Vercel). Vercel's free tier may cover light usage, but sustained use will likely need a paid plan. GitHub repo storage is effectively free.
 
 Previously charges no subscription, no per-seat fee, and no usage markup. You supply the infrastructure and the keys; the project is the orchestration layer in between.
 
 ## Is my data private?
 
-Yes, by design. Memory lives in a GitHub repository you own (the Quick start recommends a private repo). Access is controlled by a GitHub fine-grained personal access token scoped to contents read/write on a single repository. There is no platform database that holds your conversations. No third-party server stores your slices or strands.
+Yes, by design. Memory lives in a GitHub repository you own (a private repo is recommended). Access is controlled by a GitHub fine-grained personal access token scoped to contents read/write on a single repository. There is no platform database that holds your conversations. No third-party server stores your slices or strands.
+
+On the HTTP side, mutation endpoints (`POST /api/chat`, `/api/loops`, `/api/episodic/flush`) are same-origin guarded, and non-browser callers need an access key when `ACCESS_SECRET` is set. LLM providers obviously see the prompts you send them — that is the one external data path, and it is inherent to using any hosted model.
 
 You own the data outright. Clone it, back it up, move it to another provider — it is just files in a git repo.
 
 ## Related
 
-- [Memory Model](/docs/memory-model) — how slices, strands, and context assembly work
+- [Memory Model](/docs/memory-model) — how slices, strands, and the user card fit together
+- [Slices](/docs/slices) — the slice lifecycle and storage layout
 - [Architecture Overview](/docs/architecture)

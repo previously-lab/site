@@ -9,7 +9,7 @@ order: 1
 大约 10 分钟即可拥有属于你自己的 Previously 实例。你需要从模板创建一个私有副本、生成 GitHub token,然后部署到 Vercel。无需管理服务器,无需搭建数据库 —— 一个仓库、一个 token、一次部署就能跑起来。
 
 <Callout variant="warning">
-⚠️ **重要:尚无鉴权机制。** Previously 处于早期开发阶段,尚未内置身份验证或访问控制功能。任何持有你部署链接的人都可以使用你的实例,并访问或修改你的记忆数据。请妥善保管你的部署链接,不要公开分享。如有可能,限制 Vercel 部署的可见范围。鉴权功能是高优先级特性,即将推出。
+⚠️ **重要:单用户产品,没有登录系统。** Previously 处于早期开发阶段,没有用户账号或身份验证 —— 它被设计为单用户、私有部署的产品。任何持有你部署链接的人都可以使用你的实例,并访问或修改你的记忆数据。请妥善保管你的部署链接,不要公开分享。如有可能,限制 Vercel 部署的可见范围。写操作端点虽然带有同源守卫,并为脚本调用提供了可选的 access key(见下文 [API 调用方的 access key](#api-调用方的-access-key)),但这并不能替代真正的身份验证。
 </Callout>
 
 ## 创建你的私有副本
@@ -43,7 +43,7 @@ Token 需要 Contents 读写权限,因为 Previously 需要读取记忆文件(�
 2. 前往 [vercel.com](https://vercel.com) 并用你的 GitHub 账号登录。
 3. 点击 **Add New** → **Project**。
 4. 从仓库列表中导入你的私有仓库。如果找不到,点击 **Adjust GitHub App Permissions** 授权 Vercel 访问该仓库。
-5. 在 **Environment Variables** 区域,添加 `DEEPSEEK_API_KEY`、`GITHUB_TOKEN`、`GITHUB_REPO_OWNER` 和 `GITHUB_REPO_NAME`(见下方说明)。
+5. 在 **Environment Variables** 区域,添加 `DEEPSEEK_API_KEY`、`GITHUB_TOKEN`、`GITHUB_REPO_OWNER` 和 `GITHUB_REPO_NAME`(见下方说明)。如果你打算用脚本调用 API,可以另外添加 `ACCESS_SECRET`。
 6. 点击 **Deploy**。
 
 Vercel 会自动检测 Next.js 项目、构建并分配一个 URL。这样就完成了。
@@ -78,6 +78,9 @@ GITHUB_REPO_NAME=your-repo-name
 
 # 可选 — 只读的演示角色模式
 # STORAGE=demo
+
+# 可选 — 供非浏览器调用方使用的 access key(见下文)
+# ACCESS_SECRET=
 ```
 
 | 变量 | 是否必填 | 说明 | 获取方式 |
@@ -87,6 +90,24 @@ GITHUB_REPO_NAME=your-repo-name
 | `GITHUB_REPO_OWNER` | 是 | 拥有记忆数据仓库的 GitHub 用户名或组织名。 | 你的 GitHub 用户名。 |
 | `GITHUB_REPO_NAME` | 是 | 存放记忆数据的仓库名。默认就是你自己的仓库,但也可以指向你拥有的任意仓库。 | 你在 GitHub 上的仓库名。 |
 | `STORAGE` | 否 | 选择数据源:`local`(文件系统)、`github`(GitHub API)或 `demo`(只读的预置角色数据集)。未设置时自动检测。 | — |
+| `ACCESS_SECRET` | 否 | 非浏览器调用方在写操作端点上必须以 `x-access-key` 请求头发送的 access key。仅在设置后生效。 | 任意随机字符串,自行生成。 |
+
+完整变量说明(包括隐式的存储后端切换)见 [配置](/docs/configuration)。
+
+## API 调用方的 access key
+
+Previously 没有登录系统,但它的写操作端点 —— `POST /api/chat`、`/api/loops` 和 `/api/episodic/flush` —— 由一个轻量的同源守卫保护。来自你自己浏览器的请求会自动放行(请求的 `Origin` 与部署的 host 一致);读取端点和 CORS 预检请求始终开放。
+
+不经过浏览器的调用 —— curl、脚本、定时任务 —— 在守卫看来都属于外部来源。如果你需要用到它们,将 `ACCESS_SECRET` 设为任意随机字符串,并在请求头中带上:
+
+```bash
+curl -X POST https://your-deployment.vercel.app/api/chat \
+  -H "x-access-key: $ACCESS_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{"messages": [...]}'
+```
+
+如果未设置 `ACCESS_SECRET`,这些调用同样会被放行 —— 私有部署的默认行为保持零摩擦。只有当你需要把链接暴露给浏览器之外的调用方、并希望启用密钥校验时,才设置这个变量。
 
 ## 同步上游更新
 
@@ -94,7 +115,7 @@ Previously 内置了同步机制。当新版本发布时:
 
 1. 打开你的 Previously 实例,前往 **Settings**(设置)。
 2. 在 **Version & Updates**(版本与更新)区域,如果看到"发现新版本"的提示,点击 **Sync from upstream**(从上游同步)。
-3. 最新代码将自动合并到你的仓库。Vercel 会在下次推送时自动重新部署。
+3. 最新代码将自动合并到你的仓库。同步提交会直接落到你的 `main` 分支上,Vercel 随即自动重新部署。
 
 你的个人数据(`memory/`、`tasks/`、`sessions/`)永远不会被覆盖 —— 只有代码目录会被同步。同步操作会创建一个合适的合并提交,完整保留你的 git 历史。
 

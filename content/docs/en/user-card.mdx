@@ -1,0 +1,105 @@
+---
+title: User Card
+description: The "Previously on you." card — a compact, evolving model of who you are. The v5 format (Identity / Past / Now / Horizon / Self-model) and how it evolves through validated mutations, never rewrites.
+order: 4
+---
+
+# User Card
+
+Slices record what happened. The **user card** records who you are. It is a single Markdown file — `memory/episodic/current-previously.md` — that distills the entire timeline into one compact brief: your identity, a rolling profile, what is happening right now, what you have committed to, and what Previously has learned about working with you.
+
+This is the "A memory that learns." idea made concrete: the card evolves as you talk — corrected when wrong, refined when things change. Not a dossier. Just what matters.
+
+The card is injected into every turn's system prompt, right after the identity constitution. Because it changes only on evolution — never mid-slice — the prompt prefix stays byte-stable and the provider's prompt cache keeps hitting (`src/app/api/chat/turn-workflow.ts`). The stored card keeps raw ISO dates; the injected copy is annotated with relative times ("3 days ago") computed on your local clock, so the model never does date arithmetic itself.
+
+## The v5 Format
+
+The card has five sections, making your time axis explicit — Past, Now, and Horizon:
+
+```markdown
+# Previously On
+
+_Active slice: 2026-08-17-0515 | Format: user card v2 | Updated: 2026-08-17T05:27:48Z_
+
+## Identity
+
+- Name: Alex
+- Address them as: you
+- Alias: 小艾
+
+## Past
+
+Alex is an engineer who prefers answers grounded in real evidence over
+abstraction. They left a draining job in 2024 and now work somewhere they
+chose deliberately. What they want most is to spend their time on things
+they themselves chose — a north star they still hold today.
+
+- Graduated 2021; changed jobs in May 2024 — refs: [2026/07/26/1539]
+- Red line: no databases for single-user tools — refs: [2026/08/02/1105]
+
+## Now
+
+- Training for a 5K — Wednesday morning runs are a two-person thing now — refs: [2026/08/11/1426] | since: 2026-08-11
+
+## Horizon
+
+- Draft the wedding speech for Lao Zhou — by: 2026-08-21 — refs: [2026/08/15/2030]
+
+## Self-model
+
+- When Alex is venting, lead with empathy first, then weave their own narrative back as evidence — refs: [2026/08/11/1426]
+```
+
+**Identity** — a structured, machine-parsed head: Name, Address them as, Pronouns, Alias (up to 8 lines). This is what lets Previously greet you by name in the arrival briefing, and how it knows how to address you.
+
+**Past** — durable memory, in two parts:
+
+- A single **rolling profile paragraph** — third person, rewritten in place as the picture of you sharpens, hard-capped at 2,400 characters (~600 tokens).
+- **Anchor facts** — bullet-point dates, decisions, and red lines, each with evidence refs. The admission test: "almost certainly still true in 3 years?" Cap: 8.
+
+**Now** — a semantic compression pool of what is currently alive: hooks, not narratives. Each item carries `refs` to its evidence slice and a `since` date. Cap: 5. Items older than 7 days are flagged to the evolution agent, which decides per item: promote durable substance to Past, or drop the hook. Nothing is silently deleted by code.
+
+**Horizon** — future-facing open loops: commitments, deadlines, awaited replies. Every item carries an explicit `by:` date. Horizon items **never age out** — they leave the card only by being resolved. Overdue items are kept and flagged: the next turn's brief tells the agent to proactively ask you how they turned out.
+
+**Self-model** — compact operating lessons Previously has learned about working with you ("lead with empathy when they're venting"). These are a **delta from the standing directives only** — a lesson that restates or contradicts a core rule is rejected unless it cites an explicit user override. Cap: 10.
+
+<Callout variant="info">
+**The card answers WHO you are, not what was said.** Every entry carries `refs` — pointers like `2026/08/11/1426` back into the slices, which remain the lossless source of truth. Before citing specifics from a past event, the agent drills down with `readSlice`.
+</Callout>
+
+## Mutation-Based Evolution
+
+The card is never rewritten wholesale. A dedicated worker-model agent — the **Previously Agent** (`src/lib/episodic/flash/previously-agent.ts`) — holds an in-memory copy of the card and edits it through fine-grained, validated mutation tools:
+
+| Tool | What it does |
+|------|--------------|
+| `setIdentity` | Set or update one Identity field in place |
+| `updatePastProfile` | Rewrite the Past profile paragraph |
+| `addPastAnchor` / `removePastAnchor` | Add or remove a durable anchor fact |
+| `addNow` / `removeNow` | Add or remove a Now hook |
+| `promoteNowToPast` | Graduate a Now hook to a Past anchor, keeping its refs |
+| `addHorizon` / `resolveHorizon` | Open or resolve a Horizon loop |
+| `addSelfModel` / `removeSelfModel` | Add or remove an operating lesson |
+
+Validation lives **inside the tools**, not in a post-hoc pass (`src/lib/episodic/card-session.ts`). An over-limit or malformed write is rejected with specific feedback — "2630 chars, limit 2400 — compress and retry" — and the agent itself decides what survives the cap. Refs are required: no evidence, no write. Untouched parts of the card are preserved by construction; a mutation session cannot silently drop a line it never looked at.
+
+The result is written back only when the card's substance actually changed (header stamps refresh on every pass and are ignored). Both the live card and a per-slice snapshot (`memory/episodic/slices/YYYY/MM/DD/HHMM/previously.md`) are written in the turn's single commit — so every slice on the timeline carries the card as it stood when that conversation ended, and the "Previously On" dialog in the UI can show it.
+
+## When the Card Evolves
+
+Evolution runs inline in the turn's housekeeping step, not on every message. Engineering owns the trigger; the model owns the content. Two triggers:
+
+1. **Slice boundary.** When a slice closes, the turn analyzer judges whether anything is worth sedimenting (`evolve_card.worth`). If yes, the Previously Agent runs a deep review of the whole closed slice — reading its turns, its cognition log, and past cards as needed. If the analyzer itself failed, the gate defaults to *running*: a wasted worker call is cheap, a missed evolution is permanent memory loss. A legacy (pre-v5) card forces a run so format migration never waits for a "worthy" boundary.
+2. **Explicit request or correction.** When you say "记住…", "update your card", or state a behavioral correction — "stop doing X", "from now on always…" — the analyzer flags it (`memory_update`) and evolution runs immediately, mid-slice.
+
+Progress streams to the client as it happens, and when the card moved, an evolution indicator shows a one-sentence account of what changed plus the line-level diff. A skipped run is reported too, with the reason — a silent skip would read as "it never runs".
+
+<Callout variant="warning">
+**Experimental:** card evolution is model judgment all the way down — what to record, what to promote, what to drop. The validation rails (caps, refs, rejections) keep it well-formed, not correct. Because everything is plain Markdown in git, you can always read the diff, edit the card by hand, or roll it back.
+</Callout>
+
+## Related
+
+- [Memory Model](/docs/memory-model) — where the card sits in the layered memory stack
+- [The Timeline](/docs/timeline) — slices, the lossless source of truth the card points into
+- [Recall](/docs/recall) — how the agent drills down from card refs into full slices
