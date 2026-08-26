@@ -10,13 +10,13 @@
       "briefingTitle": "arrival briefing",
       "recapLabel": "Recap",
       "briefingEntries": [
-        { "time": "Jun 28", "text": "5K under 30 minutes — Wednesday morning runs are a two-person thing now." },
-        { "time": "Apr 13", "text": "Mom's checkup results are in; you've been calling her every Sunday." }
+        { "time": "Aug 07", "text": "Best-man speech, draft #5 — everything keeps getting deleted. The anchor: that watch party during the final." },
+        { "time": "Jul 16", "text": "Half-marathon, finished. Alex was at the finish line, exactly like they promised." }
       ],
       "focusLabel": "Focus",
-      "focusText": "Camping with Alex this Saturday — no tent yet.",
+      "focusText": "Marcus's wedding Wednesday — speech, suit, breathe.",
       "threadsLabel": "Open threads",
-      "threadsText": "3 — the wedding speech, Mom's follow-up Tuesday, camping gear.",
+      "threadsText": "3 — the speech draft, what comes after the half-marathon, that ski trip.",
       "earlierLabel": "← earlier",
       "nowLabel": "NOW",
       "ctaDemo": "Try the live demo",
@@ -27,68 +27,68 @@
       "caption": "This is the whole product — one timeline, and a conversation that remembers it.",
       "windowTitle": "previously",
       "slices": [
-        { "date": "03/09", "label": "Lao Zhou's wedding" },
-        { "date": "03/21", "label": "Night runs begin" },
-        { "date": "04/13", "label": "Mom's checkup" },
-        { "date": "05/10", "label": "Met Alex" },
-        { "date": "06/07", "label": "Called out in review" },
-        { "date": "06/28", "label": "5K under 30" },
-        { "date": "07/05", "label": "The invitation" }
+        { "date": "Oct '24", "label": "Met Alex at Priya's dinner" },
+        { "date": "Apr '25", "label": "5K under 35" },
+        { "date": "Jul '25", "label": "Knee injury, forced rest" },
+        { "date": "Oct '25", "label": "First camping gear, together" },
+        { "date": "Mar '26", "label": "The little tool grows up" },
+        { "date": "Jul '26", "label": "Half-marathon, finished" },
+        { "date": "Aug '26", "label": "The speech draft" }
       ],
       "nowLabel": "NOW",
-      "userMsg": "What's the plan this weekend again?",
-      "recallStep": "Recalling — scanning 14 slices, deep-reading 3",
-      "agentMsg": "Saturday: camping with Alex — the seaside campsite from that May dinner; you noted it down back then. No tent yet: within your shared budget I've shortlisted three — want to see them now? Also, Tuesday is Mom's follow-up; you said you'd go with her, so keep the morning free. The speech isn't urgent — but August 16 is closer than it sounds; think about the opening on the road this weekend.",
-      "turn2User": "The three tents — send them over.",
+      "userMsg": "The wedding's Wednesday. Help me with the speech?",
+      "recallStep": "Recalling — scanning 97 slices, deep-reading 3",
+      "agentMsg": "Keep it short and honest — one real moment is enough. During the final, at Marcus's watch party, you saw the two of them finish each other's sentences, and you just knew. That's your opening. And if you want one beat of humor: he was the first person to tell you the truth about your MVP — 'a magic trick'. Short, personal, done.",
+      "turn2User": "Okay — give me three ways to open it.",
       "picks": [
-        { "name": "Ridgeline 2 Air", "price": "$179", "reason": "3.2 kg — stays put in coastal wind" },
-        { "name": "Cape 2P", "price": "$219", "reason": "double-wall, 10-min pitch, with a vestibule" },
-        { "name": "Creek 2", "price": "$129", "reason": "lightest at 2.4 kg — leaves room for pads" }
+        { "name": "The night of the final", "price": "heartfelt", "reason": "them finishing each other's sentences — you knew right then" },
+        { "name": "'A magic trick'", "price": "wry", "reason": "his blunt MVP review — the friend who always tells you the truth" },
+        { "name": "Ninety seconds", "price": "understated", "reason": "the brief was short — one moment, one toast, done" }
       ],
-      "picksNote": "All within the two-person budget; the first one arrives before Saturday.",
-      "turn3User": "Okay, the second one. Also, about the speech — I think…"
+      "picksNote": "Every opening traces back to a real slice — pick one and it stays honest.",
+      "turn3User": "The first one. Short — and no sap. Also, about what's next…"
     },
     "Act1": {
       "eyebrow": "01",
       "title": "Time, not threads.",
       "body": "No conversation windows to lose. One timeline of dated slices — and strands that thread related moments across months, converging at NOW.",
       "cta": "How the timeline works",
-      "year": "2025",
+      "year": "2024–26",
       "beats": [
         {
-          "date": "03/09",
-          "title": "Lao Zhou is getting married",
-          "desc": "Eleven years of friendship, and over dinner comes the news: wedding in August. I promised a few words on stage — only on the way home did it sink in: not a single word exists yet."
+          "date": "2024/10/23",
+          "title": "Dinner at Priya's",
+          "desc": "A small dinner, a few friends, and someone new named Alex — who also runs. You stay until the staff start cleaning up."
         },
         {
-          "date": "03/21",
-          "title": "Night runs begin",
-          "desc": "To be in good shape for the wedding day. Day one: winded after 800 meters. I walked two laps around the block — you have to start somewhere."
+          "date": "2025/04/16",
+          "title": "5K under 35",
+          "desc": "From winded on the stairs to 34:47 — it started with the Olympic marathon on TV last summer. Alex high-fives you at the end."
         },
         {
-          "date": "04/13",
-          "title": "Mom's checkup",
-          "desc": "Nothing serious, blood pressure a little high. On the subway home I decided: a call every Sunday, not just messages."
+          "date": "2025/07/30",
+          "title": "Mom's health scare",
+          "desc": "Nothing life-threatening — but the call you kept postponing can't wait anymore. Weekly calls become non-negotiable."
         },
         {
-          "date": "05/10",
-          "title": "Met Alex",
-          "desc": "Lao Zhou's dinner — movies, then travel, until the staff turned the lights off. On the way home I noted down that seaside campsite."
+          "date": "2025/10/29",
+          "title": "First camping gear, together",
+          "desc": "A tent, two sleeping pads, one shared budget. The first trip goes on the calendar."
         },
         {
-          "date": "06/07",
-          "title": "Called out in review",
-          "desc": "Quarterly review: my little project got named. I said 'worth the effort' — then gave myself a weekend."
+          "date": "2026/03/16",
+          "title": "The little tool grows up",
+          "desc": "The weekly-review tool hits a milestone — real users, real feedback. The CSV script from 2024 is unrecognizable now."
         },
         {
-          "date": "06/28",
-          "title": "5K under 30",
-          "desc": "Four months, from 800 meters to 29:41. Wednesday morning runs are a two-person thing now."
+          "date": "2026/07/16",
+          "title": "Half-marathon, finished",
+          "desc": "Sixteen weeks of training, one bad knee behind you. Alex is at the finish line — exactly where they said they'd be."
         },
         {
-          "date": "07/05",
-          "title": "The invitation arrived",
-          "desc": "August 16. Lao Zhou said 'don't make it too sappy'. My speech is still just a title."
+          "date": "2026/08/07",
+          "title": "The best-man speech",
+          "desc": "Marcus gets married Wednesday. Draft #5 keeps getting deleted — until one night of the final becomes the whole speech."
         }
       ],
       "strandFriends": "friends",
@@ -110,20 +110,20 @@
       "lifeLabel": "your life",
       "lifeFile": "— only you know",
       "agentNodes": [
-        { "time": "22:05", "text": "recall agent · caught the 03/09 promise, the 07/05 invitation" },
-        { "time": "22:06", "text": "think agent · medium — eleven years of friendship; enter through the running arc" },
-        { "time": "22:07", "text": "conclusion — three moments are enough" }
+        { "time": "22:05", "text": "recall agent · caught the watch-party night, the 'magic trick' review" },
+        { "time": "22:06", "text": "think agent · medium — a friendship measured in blunt truths; enter through the final" },
+        { "time": "22:07", "text": "conclusion — one moment, honestly told" }
       ],
       "coreEvents": [
-        { "time": "22:05", "text": "you: help me structure the speech — due by next Friday" },
-        { "time": "22:07", "text": "it: skip the sappy. Three moments are enough — the promise at dinner, the 800-meter start, 29:41." }
+        { "time": "22:05", "text": "you: the wedding's Wednesday — help me structure the speech" },
+        { "time": "22:07", "text": "it: skip the broad sweep. One real moment — the final, the two of them finishing each other's sentences." }
       ],
       "lifeNodes": [
         { "time": "09:20", "text": "a compliment in standup — floated all morning" },
-        { "time": "14:00", "text": "checkup report notification popped up — never opened" },
-        { "time": "18:40", "text": "walked past the camping store, wandered in" },
-        { "time": "21:30", "text": "thought of the speech — a little anxious" },
-        { "time": "22:05", "text": "you: help me structure the speech — due by next Friday" }
+        { "time": "14:00", "text": "suit fitting — still fits after sixteen weeks of training" },
+        { "time": "18:40", "text": "deleted the speech draft. again." },
+        { "time": "21:30", "text": "watched ten minutes of the final replay — 'research'" },
+        { "time": "22:05", "text": "you: the wedding's Wednesday — help me structure the speech" }
       ]
     },
     "Act3": {
@@ -133,23 +133,23 @@
       "cta": "Explore the memory model",
       "cardTitle": "current-previously.md",
       "identityLabel": "Identity",
-      "identityValue": "address as: you · GMT+8 · night owl turned morning runner",
+      "identityValue": "address as: you · UTC · night owl turned morning runner",
       "patternLabel": "Pattern",
-      "oldValue": "mentioned wanting to start running (for the wedding)",
-      "newValue": "four months of night runs — started 'for the wedding', now genuinely loved",
-      "newRef": "ref 06/28",
+      "oldValue": "coasting — 'want to build something of my own' (Jan 2024)",
+      "newValue": "half-marathon finisher, shipped a real tool — now asking 'what's next?'",
+      "newRef": "ref 2026/07",
       "behaviorLabel": "Habit",
-      "behaviorValue": "calls Mom every Sunday evening — calmer than texting",
-      "behaviorRef": "ref 04/13",
+      "behaviorValue": "calls Mom every week — non-negotiable since the July '25 scare",
+      "behaviorRef": "ref 2025/07",
       "recentLabel": "Recent",
       "recentItems": [
         {
-          "text": "The wedding speech is still just a title. Lao Zhou said 'don't make it too sappy' — but eleven years of friendship deserves care.",
-          "meta": "refs: [07/05] | since: 07-05"
+          "text": "Best-man speech for Marcus — five drafts deleted. The anchor is the night of the final: the two of them finishing each other's sentences.",
+          "meta": "refs: [2026/08/07] | since: 2026-08-07"
         },
         {
-          "text": "Camping was Alex's idea at that May dinner. No tent, no route yet — but Wednesday morning runs are already a two-person thing.",
-          "meta": "refs: [05/10], [06/28] | since: 06-28"
+          "text": "Half-marathon done; asking what comes next — the ski trip first floated in February is still on the board.",
+          "meta": "refs: [2026/07/16], [2026/08/02] | since: 2026-07-16"
         }
       ],
       "updatedNote": "refined after each closed slice"
@@ -160,20 +160,20 @@
       "body": "Recall runs in the open. A fast worker scans slice summaries and returns pointers; the main model deep-reads what matters. Every step is visible.",
       "cta": "Explore the architecture",
       "terminalTitle": "recall pipeline",
-      "query": "What should I say at Lao Zhou's wedding?",
+      "query": "What should I say at Marcus's wedding?",
       "workerLabel": "worker · scan",
-      "workerDetail": "scanning 6 slice summaries",
-      "pointersLabel": "pointers → 03/09, 03/21, 06/28",
+      "workerDetail": "scanning 97 slice summaries",
+      "pointersLabel": "pointers → 2025/02/24, 2026/06/27, 2026/08/07",
       "mainLabel": "main · deep read",
       "mainDetail": "deep-reading 3 slices, in full",
-      "answerLabel": "You've been friends for eleven years — on 03/09 you promised a few words at dinner, and only started worrying on the way home. You started running to be in good shape for that day: four months, from 800 meters to 29:41. Don't make it too sappy — just tell those eleven years, and the story that began at 800 meters. That arc is the speech.",
+      "answerLabel": "Marcus was the first to tell you the truth about your MVP — 'a magic trick', conclusions with no reasoning. And on the night of the final, at his watch party, you saw the two of them finish each other's sentences and just knew they'd make it. The brief was short — so tell that one moment. Ninety seconds of honesty beats five minutes of sap.",
       "sliceSummaries": [
-        "03/09  Lao Zhou is getting married · joy",
-        "03/21  night runs begin · determined",
-        "04/13  Mom's checkup · concern",
-        "05/10  met Alex · a spark",
-        "06/28  5K under 30 · accomplished",
-        "07/05  the invitation arrived · pressure"
+        "2024/10/23  dinner at Priya's, met Alex · content",
+        "2025/02/24  Marcus on the MVP: 'a magic trick' · blunt",
+        "2025/07/19  knee injury, forced rest · frustrated",
+        "2026/06/27  World Cup watch party · lighthearted",
+        "2026/07/16  half-marathon, finished · proud",
+        "2026/08/07  speech draft #5 · stuck"
       ]
     },
     "Act5": {
@@ -197,7 +197,7 @@
         {
           "icon": "github",
           "title": "Your memory, your repository.",
-          "body": "The slice from the night of July 5 is a Markdown file in your own GitHub repo — along with what the agent was thinking at the time. So is every other moment. No proprietary database, no one else's server.",
+          "body": "The slice from the night of August 7 is a Markdown file in your own GitHub repo — along with what the agent was thinking at the time. So is every other moment. No proprietary database, no one else's server.",
           "cta": "View on GitHub"
         },
         {
@@ -217,7 +217,7 @@
         "root": "your-username/memory",
         "rows": [
           { "text": "└─ episodic/" },
-          { "text": "   ├─ slices/2025/07/05/2147/" },
+          { "text": "   ├─ slices/2026/08/07/1808/" },
           { "text": "   │  ├─ previously.md", "note": "← what you said" },
           { "text": "   │  └─ timeline/" },
           { "text": "   │     ├─ core.md" },
@@ -227,13 +227,13 @@
         ],
         "file": "previously.md",
         "lines": [
-          "strands: [friends]",
-          "open loop: speech still just a title",
-          "wedding: August 16"
+          "focus: wedding speech for Marcus",
+          "open loop: share the draft outcome",
+          "wedding: Wednesday, August 12"
         ]
       },
       "run": {
-        "tabLabel": "previously — writing slice 2025/07",
+        "tabLabel": "previously — writing slice 2026/08",
         "closedLabel": "tab closed · 14:02",
         "runningLabel": "turn keeps running",
         "resumedLabel": "resumed where you left off"
