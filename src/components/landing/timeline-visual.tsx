@@ -495,7 +495,7 @@ export function TimelineVisual({
       {payoff && (
         <motion.div
           style={reduced ? undefined : { opacity: payoffOpacity, y: payoffY }}
-          className="mt-6 flex justify-center"
+          className="mt-8 mb-12 flex justify-center sm:mb-16"
         >
           {payoff}
         </motion.div>
