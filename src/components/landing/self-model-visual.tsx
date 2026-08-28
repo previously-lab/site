@@ -25,7 +25,7 @@ const EMERALD = "oklch(0.7 0.15 160)";
 const RED = "oklch(0.65 0.19 25)";
 
 /**
- * Act 2 visual — "A memory that learns."
+ * Act 3 visual — "A memory that evolves."
  * A compact glass user card whose entries animate over time: an old
  * line strikes through in red and is replaced, a "Habit" entry appears,
  * and "Recent" entries land in the real current-previously.md format

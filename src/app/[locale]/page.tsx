@@ -107,7 +107,6 @@ export default async function HomePage({ params }: Props): Promise<React.ReactEl
         ctaDemo={t("Hero.ctaDemo")}
         ctaGithub={t("Hero.ctaGithub")}
         ctaDocs={t("Hero.ctaDocs")}
-        demoUrl={siteConfig.demoUrl}
         githubUrl={siteConfig.githubUrl}
       />
 
@@ -276,7 +275,6 @@ export default async function HomePage({ params }: Props): Promise<React.ReactEl
         subtitle={t("Finale.subtitle")}
         ctaDemo={t("Finale.ctaDemo")}
         ctaGithub={t("Finale.ctaGithub")}
-        demoUrl={siteConfig.demoUrl}
         githubUrl={siteConfig.githubUrl}
       />
 

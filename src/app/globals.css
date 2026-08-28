@@ -424,3 +424,30 @@ pre.shiki {
     opacity: 0;
   }
 }
+
+/* ── Playground (interactive demo) ────────────────────────── */
+/* Brand-blue running state for the fake chat window — same hue
+   family as the landing's brand scale, scoped so /docs and the
+   landing keep their own palettes. */
+
+.playground-scope {
+  --pg-brand: oklch(0.6 0.23 260);
+  --pg-brand-soft: oklch(0.6 0.23 260 / 8%);
+  --pg-brand-line: oklch(0.6 0.23 260 / 25%);
+}
+
+/* Breathing pulse for the "working" pill — frozen by the global
+   reduced-motion kill switch above. */
+@keyframes pg-breathe {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.pg-breathe {
+  animation: pg-breathe 1.6s ease-in-out infinite;
+}

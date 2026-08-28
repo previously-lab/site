@@ -73,8 +73,8 @@ const MOBILE: Layout = {
 
 /**
  * Act 5 visual — "Specialists, not brute force."
- * A glass "core agent" hub dispatches work to four specialist cards —
- * recall (blue), think (rose), search (amber), curate (emerald).
+ * A glass "main agent" hub dispatches work to four sub-agent cards —
+ * recall (blue), thinkDeep (rose), webSearch (amber), evolution (emerald).
  * A dispatch pulse travels hub → specialist, the card lights up as its
  * pulse arrives, then a fainter return pulse travels back; one loop
  * cycles the four specialists in sequence. Desktop renders the

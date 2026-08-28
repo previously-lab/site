@@ -6,24 +6,28 @@ import { routing } from "./routing";
 async function loadMessages(locale: string) {
   switch (locale) {
     case "zh": {
-      const [common, landing, docs, theme, localeMsg] = await Promise.all([
-        import("../../messages/zh/common.json").then((m) => m.default),
-        import("../../messages/zh/landing.json").then((m) => m.default),
-        import("../../messages/zh/docs.json").then((m) => m.default),
-        import("../../messages/zh/theme.json").then((m) => m.default),
-        import("../../messages/zh/locale.json").then((m) => m.default),
-      ]);
-      return { ...common, ...landing, ...docs, theme, locale: localeMsg };
+      const [common, landing, docs, theme, localeMsg, playground] =
+        await Promise.all([
+          import("../../messages/zh/common.json").then((m) => m.default),
+          import("../../messages/zh/landing.json").then((m) => m.default),
+          import("../../messages/zh/docs.json").then((m) => m.default),
+          import("../../messages/zh/theme.json").then((m) => m.default),
+          import("../../messages/zh/locale.json").then((m) => m.default),
+          import("../../messages/zh/playground.json").then((m) => m.default),
+        ]);
+      return { ...common, ...landing, ...docs, ...playground, theme, locale: localeMsg };
     }
     default: {
-      const [common, landing, docs, theme, localeMsg] = await Promise.all([
-        import("../../messages/en/common.json").then((m) => m.default),
-        import("../../messages/en/landing.json").then((m) => m.default),
-        import("../../messages/en/docs.json").then((m) => m.default),
-        import("../../messages/en/theme.json").then((m) => m.default),
-        import("../../messages/en/locale.json").then((m) => m.default),
-      ]);
-      return { ...common, ...landing, ...docs, theme, locale: localeMsg };
+      const [common, landing, docs, theme, localeMsg, playground] =
+        await Promise.all([
+          import("../../messages/en/common.json").then((m) => m.default),
+          import("../../messages/en/landing.json").then((m) => m.default),
+          import("../../messages/en/docs.json").then((m) => m.default),
+          import("../../messages/en/theme.json").then((m) => m.default),
+          import("../../messages/en/locale.json").then((m) => m.default),
+          import("../../messages/en/playground.json").then((m) => m.default),
+        ]);
+      return { ...common, ...landing, ...docs, ...playground, theme, locale: localeMsg };
     }
   }
 }

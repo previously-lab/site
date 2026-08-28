@@ -1,0 +1,57 @@
+{
+  "Playground": {
+    "Meta": {
+      "title": "Playground — 在真实记忆上体验 Previously",
+      "description": "Previously 的在线只读演示：跑在一份真实的两年半记忆数据集上——情景回忆、卡片进化、切片解剖，无需注册、无需 API key。"
+    },
+    "Intro": {
+      "eyebrow": "Playground",
+      "title": "在一份真实的记忆上试试",
+      "body": "这里的 Previously 跑在一份真实数据集上：一个人从 2024 年 1 月到 2026 年 8 月、共 97 片对话切片的记忆。点下面的预设——demo 会代你发问，agent 从真实记忆里作答，而不是念稿子。",
+      "rules": "演示规则：只有预设选项，没有自由输入。所有演示都是只读的——进化演示会实时算出「会发生什么变化」，但不落盘；刷新即重置。",
+      "recallHeading": "回忆 —— 向记忆提问",
+      "evolutionHeading": "进化 —— 看卡片怎么长",
+      "anatomyHeading": "解剖 —— 一个切片怎么被记住"
+    },
+    "presets": {
+      "recall-worldcup": {
+        "label": "世界杯决赛夜",
+        "question": "2026 年世界杯决赛前后我在干嘛？和谁在一起？"
+      },
+      "recall-mom": {
+        "label": "妈妈健康惊吓",
+        "question": "2025 年我妈妈的健康出了什么事？我是什么时候知道的？"
+      },
+      "recall-marathon": {
+        "label": "半马冲线",
+        "question": "说说我跑完人生第一个半程马拉松那天的事。"
+      },
+      "evolution-card": {
+        "label": "看卡片怎么进化",
+        "question": "对我最新的切片跑一遍卡片进化——会发生什么变化，为什么？"
+      },
+      "slice-anatomy": {
+        "label": "一个切片怎么被记住",
+        "question": "讲讲这个切片是怎么被记住的——每一部分都是从哪来的？"
+      }
+    },
+    "ui": {
+      "windowTitle": "previously — playground",
+      "idleHint": "点下面的预设——demo 会代你发问。",
+      "working": "Previously 正在工作…",
+      "runAgain": "再跑一次",
+      "cachedBadge": "来自缓存",
+      "error": "出了点问题，请重试。",
+      "references": "引用",
+      "searched": "检索轨迹",
+      "confidence": "置信度",
+      "triggers": "触发原因",
+      "direction": "Direction 判定",
+      "cardBefore": "进化前的卡片",
+      "cardAfter": "进化后的卡片",
+      "playbook": "Playbook 备注",
+      "notPersisted": "演示模式：这次进化是实时算出来的，但不会落盘——刷新页面，卡片就恢复原样。",
+      "frontmatter": "Frontmatter"
+    }
+  }
+}

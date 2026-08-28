@@ -3,12 +3,12 @@
     "home": "Home",
     "docs": "Docs",
     "github": "GitHub",
-    "demo": "Live Demo"
+    "demo": "Playground"
   },
   "Footer": {
     "tagline": "Previously on you.",
     "github": "GitHub",
-    "demo": "Live Demo",
+    "demo": "Playground",
     "docs": "Docs",
     "community": "Community",
     "devto": "Is time the missing dimension in AI memory?",

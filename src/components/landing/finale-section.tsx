@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { motion, useInView } from "motion/react";
 import { buttonVariants } from "@/components/ui/button";
+import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
 interface FinaleSectionProps {
@@ -10,7 +11,6 @@ interface FinaleSectionProps {
   subtitle: string;
   ctaDemo: string;
   ctaGithub: string;
-  demoUrl: string;
   githubUrl: string;
 }
 
@@ -27,7 +27,6 @@ export function FinaleSection({
   subtitle,
   ctaDemo,
   ctaGithub,
-  demoUrl,
   githubUrl,
 }: FinaleSectionProps): React.ReactElement {
   const ref = useRef<HTMLElement>(null);
@@ -136,14 +135,12 @@ export function FinaleSection({
         animate={isInView ? { opacity: 1, y: 0 } : {}}
         transition={{ duration: 0.6, delay: 1.8, ease: EASE }}
       >
-        <a
-          href={demoUrl}
-          target="_blank"
-          rel="noopener noreferrer"
+        <Link
+          href="/playground"
           className={cn(buttonVariants({ size: "lg" }), "w-full sm:w-auto")}
         >
           {ctaDemo}
-        </a>
+        </Link>
         <a
           href={githubUrl}
           target="_blank"

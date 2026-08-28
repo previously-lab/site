@@ -1,6 +1,6 @@
 ---
 title: 记忆模型
-description: 记忆如何构建——构建时打包的身份宪法、由 slice 与 strand 组成的情景时间线、持续演化的用户卡、白名单边界,以及逐轮动态组装的上下文。
+description: 记忆如何构建——构建时打包的身份宪法、由 slice 与 strand 组成的情景时间线、持续演化的用户卡、进化数据层(direction、fitness、变异档案、playbooks)、白名单边界,以及逐轮动态组装的上下文。
 order: 3
 ---
 
@@ -12,7 +12,7 @@ Previously 没有数据库,也没有向量存储。记忆是 git 仓库里的纯
 - **共同的记录** —— 每一次对话、每个决定、每个没说出口但被记住的瞬间。这就是 Previously 存储的东西:一条由情景 slice 组成的时间线。
 - **它的思考** —— 代理工作时的认知过程:它回忆了什么、推理了什么、得出了什么结论。这也被记录下来,就存在每个 slice 旁边。
 
-记忆模型就是这三条线的维护方式:构建时打包的不可变身份、运行时无损的情景时间线,以及一张把时间线蒸馏成"你是谁"的紧凑用户卡。
+记忆模型就是这三条线的维护方式:构建时打包的不可变身份、运行时无损的情景时间线、一张把时间线蒸馏成「你是谁」的紧凑用户卡——以及自 v1.0 起,一层记录系统自身该如何改变的进化数据层。
 
 ## L0:身份宪法
 
@@ -25,19 +25,19 @@ Previously 没有数据库,也没有向量存储。记忆是 git 仓库里的纯
 每段对话爆发都会成为一个 **slice** —— 你个人时间线上的一个目录,路径精确编码了它发生的时刻:
 
 ```
-memory/episodic/slices/2025/11/21/0825/
+memory/episodic/slices/2026/08/10/2130/
   timeline/
     core.md      -- 共同的记录:YAML frontmatter + 对话轮次
     agent.md     -- 它的思考:该 slice 的代理认知日志
   previously.md  -- 截至此 slice 的用户卡快照
 ```
 
-注意 `timeline/` 下的两个文件:`core.md` 是共同的记录(说了什么,附带结构化元数据——`focus`、`summary`、`open_loops`、`decisions`、`tags`、`emotional_tone`、`status`、`start`/`end`),而 `agent.md` 是代理自己的那条线——它当时的思考,由机械提取生成。Slice 在你开始说话时开启,在默认约 15 分钟静默后关闭(或因上下文丢失、轮次上限)。没有主题切换规则:切片完全由时间驱动,因此时间线始终是一份无损的自传。完整生命周期见 [Slices](/docs/slices)。
+注意 `timeline/` 下的两个文件:`core.md` 是共同的记录(说了什么,附带结构化元数据——`focus`、`summary`、`open_loops`、`decisions`、`tags`、`emotional_tone`、`status`、`start`/`end`),而 `agent.md` 是代理自己的那条线——它当时的思考,由机械提取生成。Slice 在你开始说话时开启,按纯时间规则关闭(片龄上限、上下文丢失,或轮次上限这个安全阀)。没有主题切换规则:切片完全由时间驱动,因此时间线始终是一份无损的自传。完整生命周期见 [Slices](/docs/slices)。
 
-**Strand** 是时间线之上薄薄的语义索引:一个像 `work`、`family` 这样的关键词,贯穿所有携带它的 slice,以 strand → slice 路径的映射形式存于 `memory/episodic/strands.json`。Slice 是发生了什么;strand 是它关于什么。详见 [Strands](/docs/strands)。
+**Strand** 是时间线之上薄薄的语义索引:一个像 `wedding-speech`、`running` 这样的关键词,贯穿所有携带它的 slice,以 strand → slice 路径的映射形式存于 `memory/episodic/strands.json`。Slice 是发生了什么;strand 是它关于什么。详见 [Strands](/docs/strands)。
 
 <Callout variant="info">
-**关键要点:slice 是唯一事实来源。** 其他一切——strand 索引、时间线目录、用户卡——都是从 slice 文件派生、可重建的投影。
+**关键要点:slice 是唯一事实来源。** 其他一切——strand 索引、时间线目录、用户卡、playbook——都是从 slice 文件派生、可重建的投影。
 </Callout>
 
 ## 时间线索引
@@ -47,13 +47,13 @@ memory/episodic/slices/2025/11/21/0825/
 - `memory/episodic/timeline/index.json` —— 权威的结构化目录:每个 slice 一条记录,携带 `focus`、`summary`、`tags`、`strands`、`open_loops`、`decisions`,以及标记语义尚未填充的 `needs_marking` 标志。
 - `memory/episodic/timeline.md` —— 同一份目录的 Markdown 投影,按月、按日分组,代理(和你)都可读。
 
-两者都由 `weaveTimeline` 确定性地重建——枚举 slice 文件、diff、调和——零模型调用。新 slice 在创建的当轮就会被插入目录;任何被标记为 `needs_marking` 的记录,随后由 worker 模型在回合关键路径之外补全 `focus`/`summary`。
+两者都由 `weaveTimeline` 确定性地重建——枚举 slice 文件、diff、调和——零模型调用。新 slice 在创建的当轮就会被插入目录;任何被标记为 `needs_marking` 的记录,随后由 housekeeping 子代理在回合关键路径之外补全 `focus`/`summary`。
 
-索引是地图,不是答案来源:每行携带足以判断相关性的纹理,但正确性永远来自用 `readSlice` 打开原始 slice。代理被明确指示:时间线上的一行是指针,绝不是可以引用的来源。
+索引是地图,不是答案来源:每行携带足以判断相关性的纹理,但正确性永远来自打开原始 slice。这个向下钻取如今是 recall 同事的工作——它自己在目录、Strand 与切片之间导航,并引述原文。详见 [Recall](/docs/recall)。
 
 ## 用户卡
 
-`memory/episodic/current-previously.md` 是时间线的活体蒸馏——一张回答"你是谁"的紧凑卡片,在 slice 边界之后被精炼。它是"存储你历史的代理"与"抵达时已经认识你的代理"之间的差别:arrival briefing 因它而成可能。
+`memory/episodic/current-previously.md` 是时间线的活体蒸馏——一张回答「你是谁」的紧凑卡片,在 slice 边界之后被精炼。它是「存储你历史的代理」与「抵达时已经认识你的代理」之间的差别:arrival briefing 因它而成可能。
 
 卡片有五个区块:
 
@@ -65,7 +65,31 @@ memory/episodic/slices/2025/11/21/0825/
 | **Horizon** | 面向未来的承诺与截止期限,每条带 `by:` 日期;逾期项会被标记,绝不会被静默丢弃 |
 | **Self-model** | 代理关于如何与你共事的操作经验——只记录相对常驻指令的增量 |
 
-每条记录都带有指回证据 slice 的 `refs` 指针,任何论断都可以下钻到原始记录。卡片从不被整体重写,通用写入工具也碰不到它:一个专门的 worker 模型代理通过经过校验的逐条变更(`addNow`、`updatePastProfile`、`resolveHorizon`……)来编辑它,超限的写入会被拒绝并附带回压指令。硬性上限把整张卡控制在约 8 KB 以内,因此它可以便宜地注入每个提示词。完整格式与演化循环见 [用户卡](/docs/user-card)。
+每条记录都带有指回证据 slice 的 `refs` 指针,任何论断都可以下钻到原始记录。卡片从不被整体重写,通用写入工具也碰不到它:进化 Agent 通过经过校验的逐条变更(`addNow`、`updatePastProfile`、`resolveHorizon`……)来编辑它,超限的写入会被拒绝并附带回压指令。硬性上限把整张卡控制在约 8 KB 以内,因此它可以便宜地注入每个提示词。完整格式见 [用户卡](/docs/user-card)。
+
+## 进化数据层
+
+自 v1.0 起,情景层旁边多了一层更小的数据层——自进化回路自身的状态(`src/lib/evolution/`):
+
+```
+memory/evolution/
+  direction.md      -- 筛选标准:Direction / Anti-goals / Evidence / Log
+  fitness.json      -- 有界的已评分事件 + 机械信号存储
+  mutations.md      -- append-only 的被接受变异档案
+memory/agent-playbooks/
+  recall.md         -- recall 同事的进化行为简报
+  search.md         -- ……webSearch 的
+  thinkdeep.md      -- ……thinkDeep 的
+```
+
+- **direction.md** —— 跨 slice 的「什么是对你更好」。抽象(一个月后仍成立)、跨片(每条结论由多个 slice 加 agent 时间线支撑,Evidence 节挂指针),Log 节 append-only。这是回路的环境;卡片和 playbook 只是它的产物。
+- **fitness.json** —— 选择压力的账本。事件是按 slice、按桶(`card` / `recall` / `search` / `thinkdeep` / `interaction`)的序数增量(−2…+1),附带用户原话证据——无证据的分数在写入时被结构性强制归零。旁边是由埋点而非任何模型记录的机械信号(recall 的 verify/rework/repeat)。存储刻意有界(各约 200 条):它是软信号日志,从来不是事实档案。
+- **mutations.md** —— 变异档案。Append-only:每条带 target、Summary、Expected benefit 与证据指针。归档新变异时会先评估同 target 的上一条——桶若持续扣分,就追加一行 `**Evaluation: ineffective**`。不回滚、不删除、不设预算。
+- **agent-playbooks/** —— 每个子 Agent 一份简短简报(≤2,000 字符),调用时注入它的 user prompt。playbook 缺失是正常状态:注入直接跳过。
+
+<Callout variant="info">
+**可进化的是数据面;契约留在代码里。** `memory/` 下的 direction、playbook、卡片与档案,是进化回路允许重写的东西。子 Agent 的 schema、工具集、预算、触发器数学与接受规则留在 `src/`——刻意置于回路够不到的地方,治理进化的协议本身不可被进化。
+</Callout>
 
 ## 白名单边界
 
@@ -83,7 +107,9 @@ memory/   tasks/   sessions/
 - 任何 `_index.json` 文件
 - 任何 `strands.json` 文件
 
-这保护了情景时间线及其结构索引免受意外或恶意破坏;用户卡只能通过它专用的变更工具演化。
+进化层的保护是另一种形态:不是路径模式,而是**工具归属**。只有进化 Agent 持有对 `memory/evolution/` 与 `memory/agent-playbooks/` 的写入——recall、webSearch、thinkDeep 全部只读、只汇报——接受规则与证据链因此只有一处要守。
+
+这保护了情景时间线及其结构索引免受意外或恶意破坏;用户卡与进化文件只能通过它们各自专用的、受校验的路径变更。
 
 ## 上下文组装:每轮重新构建
 
@@ -95,14 +121,14 @@ memory/   tasks/   sessions/
 4. **时间线与 strand 区块** —— 近期 slice 的指针视图与 strand 菜单。
 5. **通知** —— 演化结果、演示模式。
 
-排序是缓存决策,不只是排版:稳定的区块构成一段长长的字节级一致前缀,供服务商的提示词缓存跨轮复用;可变的尾部则可以自由变化而不使其失效。深层上下文默认不会被塞进提示词——召回分两层在时间线上工作:worker 模型扫描摘要并返回指针,主模型只通过 `readSlice` 深读真正重要的 slice。详见 [Recall](/docs/recall)。
+排序是缓存决策,不只是排版:稳定的区块构成一段长长的字节级一致前缀,供服务商的提示词缓存跨轮复用;可变的尾部则可以自由变化而不使其失效。深层上下文默认不会被塞进提示词——主 Agent 问 recall 同事,由它自己检索时间线、带回挂着锚点引用的回答。详见 [Recall](/docs/recall)。
 
 ## 为什么是纯 Markdown + YAML
 
 每一段记忆都是带 YAML frontmatter 的 Markdown 文件。这个选择是深思熟虑的:
 
 - **可移植** —— `git clone` 到任何地方,在任何设备上阅读,无需服务器。
-- **git 可 diff** —— 对 slice、用户卡或 strand 索引的每次更改都记录在版本历史里。你能看到 Previously 学到了什么、什么时候学到的。
+- **git 可 diff** —— 对 slice、用户卡、方向文档或变异档案的每次更改都记录在版本历史里。你能看到 Previously 学到了什么、什么时候学到的。
 - **人类可编辑** —— 在编辑器里打开任意文件,改摘要、加标签。没有管理后台,没有 SDK。
 - **任何工具都能读** —— Previously 写,Claude Code 读,Codex 扩展。无锁定,无集成成本,无 schema 迁移。
 
@@ -113,5 +139,5 @@ memory/   tasks/   sessions/
 - [时间线](/docs/timeline) —— 这套记忆模型所驱动的交互界面
 - [Slices](/docs/slices) —— 情景层详解
 - [Strands](/docs/strands) —— 语义关键词索引
-- [用户卡](/docs/user-card) —— 关于你的活体蒸馏
-- [Recall](/docs/recall) —— 代理如何在推理时调取时间线
+- [用户卡](/docs/user-card) —— 关于你的活体蒸馏,以及进化它的回路
+- [Recall](/docs/recall) —— 在推理时调取时间线的那位同事

@@ -1,16 +1,16 @@
 ---
 title: Introduction
-description: What Previously is — a persistent cloud agent organized around one continuous relationship on one timeline, with episodic memory as its defining feature.
+description: What Previously is — a local-first persistent agent organized around one continuous relationship on one timeline, with episodic memory as its defining feature.
 order: 0
 ---
 
 # Introduction
 
-Previously is a lightweight cloud agent whose defining feature is episodic memory: it reads, writes, reasons, and acts, and is designed to never forget across time.
+Previously is a lightweight local-first agent whose defining feature is episodic memory: it reads, writes, reasons, and acts, and is designed to never forget across time.
 
 ## What Previously Is
 
-Previously is not another assistant you chat with in disposable threads. It is a persistent cloud agent organized around a single idea: **one continuous relationship on one timeline.** You are the commander; Previously is your staff. You show up, you talk, you leave. When you come back — hours, days, or weeks later — the first thing you see is a timeline of your past, not a list of chat threads. The agent figures out relevance by scanning *when* something happened, then retrieving *what* was said.
+Previously is not another assistant you chat with in disposable threads. It is a persistent agent that lives on your own machine, organized around a single idea: **one continuous relationship on one timeline.** You are the commander; Previously is your staff. You show up, you talk, you leave. When you come back — hours, days, or weeks later — the first thing you see is a timeline of your past, not a list of chat threads. The agent figures out relevance by scanning *when* something happened, then retrieving *what* was said.
 
 There are no conversations. There is no conversation management. There is one timeline.
 
@@ -36,14 +36,14 @@ Three terms carry the architecture.
 
 **Strand** — A keyword (like `health`, `work`, `housing`) that recurs across slices. The index `memory/episodic/strands.json` maps each keyword to every slice path that carries it. Strands are built at slice-close from the slice's tags, and a worker-model pass then consolidates the index — merging near-duplicate keywords and pruning stale entries. A slice = what happened; a strand = what it was about. Strands form the thin, lossless semantic layer over the timeline.
 
-**Recall** — The two-tier retrieval engine. A **worker** model (a cheap tier derived from the main model's provider, thinking off) runs a small, bounded recall agent: it starts from the global timeline catalog, traces matching strands, and returns up to five pointers with relevance scores plus recommended reads. The **main model** (the one you pick in the toolbar, thinking enabled) receives those pointers and reads the actual slices through granular tools — `readSliceSummary` for a relevance check, `readTimelineWindow` to orient by date, `readSlice` with turn ranges or grep for specifics — with full-slice reads kept as the explicit last resort. The worker is expected to be imperfect; the main model does the deeper work when the scan returns nothing.
+**Recall** — The episodic-recall colleague. You ask in natural language, the way you would ask a colleague who was there. The recall sub-agent scans breadth first (the global timeline catalog, time windows, strands), then reads up to five slices in full, and answers in natural language with quoted source passages and a confidence score — "we don't remember discussing this" is a valid answer. The **main agent** keeps a `readSlice` tool only to verify what recall reports. Sibling colleagues handle the rest: webSearch researches a topic online (searching, then reading pages directly), and thinkDeep is an isolated chamber for unbiased second opinions.
 
 | Term | Layer | Role | Speed |
 |------|-------|------|-------|
 | Slice | Episodic (when) | Records what happened | Storage, not retrieval |
 | Strand | Semantic (what) | Keywords across slices | Built at slice-close |
-| Worker recall | Retrieval tier 1 | Scans catalog + strands, returns pointers | One fast worker agent run |
-| Main recall | Retrieval tier 2 | Granular deep read + reasoning | Seconds (per tool call) |
+| Recall | Retrieval | Colleague sub-agent: breadth-first scan, then quoted answers | One bounded sub-agent run |
+| Main agent | Verification | Spot-checks recall with `readSlice`, reads slices directly when needed | Per tool call |
 
 ## Research Grounding
 
@@ -51,7 +51,16 @@ The episodic / semantic split is not arbitrary. It is grounded in Endel Tulving'
 
 ## Status
 
-Previously is **EXPERIMENTAL** — early development, not yet ready for personal or production use. It is a one-person research project, but intended to be maintained long-term. What works today: streaming chat with visible thinking, recall, and tool calls; time-slice storage with automatic time-silence slicing; a first-class timeline catalog (`memory/episodic/timeline/index.json` plus a rendered Markdown projection) rebuilt deterministically from slice frontmatter and injected into the agent's prompt as a brief; a two-tier recall pipeline (worker scan + main-model deep read) with turn-granular read tools; a compact user card — Identity, Past, Now, Horizon, Self-model — that evolves once per closed slice, plus explicit user-confirmed memory updates; server-side local-time annotation; a semantic gate that keeps trivial turns out of memory; GitHub file tools with a path whitelist; multi-provider model support (DeepSeek, Anthropic, OpenAI-compatible); durable background runs via Vercel Workflow; and English-plus-Chinese internationalization.
+Previously is **EXPERIMENTAL** — early development, not yet ready for personal or production use. It is a one-person research project, but intended to be maintained long-term. What works today:
+
+- **Local-first install** — one command (`npm i -g previously-client`), then a bare `previously` wizard initializes everything. Your memory is a local git repository (default `~/Documents/Previously`) that you can push as a private GitHub repo; the kernel ships as a version-pinned `previously-kernel` npm package.
+- **Your own brain, your own bill** — bring your own API key (BYOK), or bridge to an existing local Claude / Codex / Kimi subscription: zero keys, zero API fees.
+- **Sub-agents as colleagues** — recall answers episodic questions with quoted source passages, webSearch researches a topic and reads pages directly, thinkDeep is an isolated chamber for unbiased second opinions.
+- **Darwinian self-evolution** — a direction document (`memory/evolution/direction.md`), evidence-anchored fitness scoring, an append-only mutation archive (`memory/evolution/mutations.md`), and per-sub-agent playbooks (`memory/agent-playbooks/`) let the agent improve across slices without drifting.
+- **The memory core described above** — time-slice storage with automatic time-silence slicing, the timeline catalog rebuilt deterministically from slice frontmatter, the recall pipeline, and a compact user card that evolves once per closed slice.
+- **Memory skills, not MCP** — the read-only MCP server is retired; local agents receive a read-only "Previously" memory skill instead.
+
+Self-hosting on Vercel with a GitHub backend still exists as the advanced path.
 
 What is still missing: per-strand rolling summaries with deeper recall integration, and the timeline visualization UI the catalog schema is designed for. Both are future milestones.
 

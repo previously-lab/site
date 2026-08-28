@@ -1,0 +1,57 @@
+{
+  "Playground": {
+    "Meta": {
+      "title": "Playground — try Previously on a real memory",
+      "description": "A live, read-only demo of Previously running on a real two-and-a-half-year memory dataset: episodic recall, card evolution, and slice anatomy — no signup, no API key."
+    },
+    "Intro": {
+      "eyebrow": "Playground",
+      "title": "Try it on a real memory",
+      "body": "This is Previously running live on a real dataset: one person's two-and-a-half-year memory, 97 conversation slices from January 2024 to August 2026. Pick a preset below — the demo asks the question for you, and the agent answers from actual memory, not a script.",
+      "rules": "Demo rules: presets only, no free-form input. Everything runs read-only — the evolution demo computes what would change, but nothing is written; refresh and it's as if it never happened.",
+      "recallHeading": "Recall — ask the memory",
+      "evolutionHeading": "Evolution — watch the card learn",
+      "anatomyHeading": "Anatomy — how a slice gets remembered"
+    },
+    "presets": {
+      "recall-worldcup": {
+        "label": "World Cup final night",
+        "question": "What was I doing around the 2026 World Cup final? Who was I with?"
+      },
+      "recall-mom": {
+        "label": "Mom's health scare",
+        "question": "What happened with my mom's health in 2025? When did I find out?"
+      },
+      "recall-marathon": {
+        "label": "The half-marathon finish",
+        "question": "Tell me about the day I finished my first half-marathon."
+      },
+      "evolution-card": {
+        "label": "Watch the card evolve",
+        "question": "Run one card-evolution pass over my latest slices — what would change, and why?"
+      },
+      "slice-anatomy": {
+        "label": "How a slice gets remembered",
+        "question": "Explain how this slice gets remembered — where does each part of it come from?"
+      }
+    },
+    "ui": {
+      "windowTitle": "previously — playground",
+      "idleHint": "Pick the preset below — the demo asks the question for you.",
+      "working": "Previously is working…",
+      "runAgain": "Run again",
+      "cachedBadge": "served from cache",
+      "error": "Something went wrong. Please try again.",
+      "references": "References",
+      "searched": "Search trail",
+      "confidence": "Confidence",
+      "triggers": "Why this run fired",
+      "direction": "Direction verdict",
+      "cardBefore": "Card before",
+      "cardAfter": "Card after",
+      "playbook": "Playbook note",
+      "notPersisted": "Demo mode: this evolution pass is computed live but never persisted — refresh and the card is back to what it was.",
+      "frontmatter": "Frontmatter"
+    }
+  }
+}

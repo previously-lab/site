@@ -1,128 +1,103 @@
 ---
 title: 快速开始
-description: 如何使用 Previously——界面、抵达简报(arrival briefing)、记忆如何随对话自动形成、观察回忆工作,以及演示模式。
+description: 用一条 npm 命令安装 Previously 客户端，走一遍初始化向导，然后开始对话——你的记忆存放在本机的一个 git 仓库里。
 order: 0
 ---
 
-# 开始使用
+# 快速开始
 
-Previously 用一条时间轴上的单一、持续的关系取代了聊天线程——你只需出现并交谈,而 Agent 会自行决定每条消息需要哪些过往上下文。
+Previously 现在是本地优先的形态：一个 npm CLI，在你自己的机器上运行 Previously 内核，把记忆存在本地 git 仓库里，还能直接复用你已有的 agent 订阅。你只需要记住一条命令。
 
-## 界面
+## 安装
 
-固定的 **AppHeader** 横跨每个页面的顶部:左侧是 "Previously" 标志,右侧依次是 GitHub、文档、设置、主题切换、语言切换和版本徽章。无论滚动位置如何,始终可见。
-
-下方是一个左右分栏视图:
-
-1. **时间轴滚轮(左侧)** —— 一个垂直可滚动的 Slice 滚轮,每行一个 Slice。在手机上它收成一条窄脊;在桌面端可以展开覆盖内容区。滚轮的最底端是 **NOW** —— 实时对话。
-2. **内容区(右侧)** —— 选中 NOW 时是实时对话;选中过去的某一行时是历史 Slice 视图。选中过去的 Slice 会播放一段时光倒流时钟,从你所处的时刻滚到那个时刻,然后落在当初记录下的 Slice 上。
-3. **固定输入栏** —— 固定在屏幕底部,带模型选择器、思考开关和推理强度控制。发出消息总是会带你回到 NOW。
+```bash
+npm i -g previously-client
+previously
+```
 
 <Callout variant="info">
-**关键要点:没有会话列表,没有线程管理,没有"新建聊天"按钮。时间轴本身就是会话列表。**
+请像上面一样从 npm registry 安装。git-URL 安装（`npm i -g github:...`）会触发 `prepare` 构建钩子，要求本机装有 pnpm 和 TypeScript——不推荐。
 </Callout>
 
-### 抵达简报(arrival briefing)
+## 第一次运行：一条命令，一个向导
 
-当实时对话为空时——第一次访问,或隔了一段时间再回来——内容区会显示一份**抵达简报**,而不是空白聊天:电影片头卡式的 "PREVIOUSLY ON {你的名字}",接着是上次聊到的话题、你的未决事项,以及由真实记忆生成的建议按钮,点击即发送一条真实消息。"view full previously" 链接会打开 Agent 当前的用户卡——它此刻对你的理解。
+裸 `previously` 是前门。它做什么取决于你是否已经初始化：
 
-## 记忆如何在你对话中形成
+**未初始化 → 它就是初始化本身。** 在终端里它会带你走一个引导式向导：
 
-记忆不是你手动管理的东西——它在你的对话中自动形成。
+1. **记忆存放在哪** —— 一个本地 git 仓库，默认放在你的文档目录（`~/Documents/Previously`）。
+2. **执行后端** —— 向导会自动探测本机已有的 agent CLI（Claude Code、Codex、Kimi Code），并优先建议把探测到的订阅配置为 bridge（桥接）大脑：零 API key、零 API 费用。你也可以选择自备 API key（BYOK）。
+3. **是否转录已有历史** —— 可选地把本机其他 agent 的既有对话日志转录成时间片。
+4. **保留还是重建** —— 如果已有内容，选择保留或从零重建。
 
-**Slice** 是一个对话片段。当你开始输入时开启,在你活跃期间保持开启,并在大约静默 15 分钟后关闭(默认可配置)。这是唯一的规则。没有容量限制,没有话题切换检测,没有基于机器学习的错误分割。纯粹的时间驱动切片。
+每个会消耗 token 的步骤都会先给你估账，并且默认不执行。在非交互环境（CI、脚本、其他 agent 调用 CLI）里，同一条命令会自动走非交互模式，用默认值一次跑通并打印它做出的每个决策。脚本也可以显式驱动：`previously init --non-interactive --backend <claude|codex|kimi>`。
 
-每个已关闭的 Slice 是一个目录:
+**已初始化 → 它显示状态面板。** 内核和 scribe 是否在跑、Web UI 地址、如何停止、各来源的转录进度，以及常用命令速查。裸命令从不启动服务、从不打开浏览器——启动是 `previously start`，浏览器是 `previously open`。
 
+## 启动与打开
+
+```bash
+previously start   # 后台启动内核和 scribe
+previously open    # 在浏览器里打开 Web UI
 ```
-memory/episodic/slices/YYYY/MM/DD/HHMM/
-```
 
-路径即时间戳:年、月、日、以及第一条消息的小时-分钟。目录内是三条并排的时间线:
+日常命令面：
 
-- `timeline/core.md` —— **共同的记录**:对话本身,携带 YAML frontmatter(焦点、摘要、决策、未决事项、情绪基调、标签),由 Agent 每一轮维护。你永远不需要手动标注。
-- `timeline/agent.md` —— **它的思考**:Agent 在该 Slice 中的认知记录——它回忆了什么、调用了哪些工具、为什么。
-- `previously.md` —— Agent 用户卡在那一时刻的快照,让你看到它对你的理解如何演变。
+| 命令 | 作用 |
+|---|---|
+| `previously` | 初始化向导；已初始化后显示状态面板 |
+| `previously start` | 后台启动内核（以及 scribe） |
+| `previously open` | 在浏览器里打开 Web UI |
+| `previously status` | 内核/scribe 健康状态、记忆仓库状态、后端探测结果 |
+| `previously stop` | 全部停止 |
+| `previously logs` | 内核与 scribe 日志 |
 
-在 Slice 之上还有一个派生的时间轴目录(`memory/episodic/timeline/`)——每个 Slice 一行指针,按时代和日期分组——Agent 和滚轮都靠它导航。它由 Slice 文件确定性地重建,因此一个 Slice 可达,当且仅当它的文件存在。
+如果在初始化之前运行 `previously start`，它会先替你走一遍 init 流程。
 
-自上而下读过几个月、几年,Slice 目录就是你的自传。可 git diff、人类可读、可移植。
+## 第一次对话
 
-## 询问你的过去:看回忆如何工作
+打开 Web UI，抵达简报会告诉你上次聊到哪。输入一条消息——它开启你的第一个时间片，记忆从这一刻开始累积。没有账号注册、没有数据库配置、没有种子数据。
 
-当你问到涉及过去的事——"我在住房项目上做了什么决定?"或"提醒我上次和 Sarah 聊天是什么时候"——Previously 会跑一次可见的双层回忆,以可展开的卡片渲染在回答上方。
+你的消息由谁回答，取决于你选的大脑：
 
-1. **回忆扫描**(一个廉价的 worker 模型)—— 一个小型子 Agent 在时间轴目录和 Strand 索引(`memory/episodic/strands.json`)中探索几步,返回**指针**,从不返回内容:Slice ID、相关度分数、每个命中的理由,以及带优先级的推荐阅读。同一档模型上的 housekeeping 还会顺带保持活跃 Slice 的元数据(摘要、标签、未决事项)为最新。
+- **Bridge（桥接）** —— 请求由本机的 agent CLI（Claude Code、Codex 或 Kimi Code）通过你已有的订阅执行。全程没有 API key，没有按 token 计费的账单。
+- **BYOK（自备 key）** —— 请求带着你自己的 API key 发往模型提供商，key 录入 `config.json` 或在 Web UI 设置页填写。见[配置](/docs/configuration)。
 
-2. **主模型深读** —— 主模型(你在输入栏选的模型)接收指针,决定实际读什么,优先选择足够的最小单元:`readSliceSummary` 做相关性判断,`readTimelineWindow` 按日期定位,`readSlice`——可选地缩小到特定轮次或关键词搜索——只在确实需要原文时使用。如果扫描没找到任何东西,模型会被告知不要继续搜,而是基于当前对话作答。
+## 你的记忆在哪里
 
-回忆结果以带 History 图标的卡片渲染:
+你的记忆是一个**本地 git 仓库**——默认在 `~/Documents/Previously`（没有 Documents 目录时为 `~/Previously`）。你不需要安装 git：客户端使用纯 JS 的 git 实现（isomorphic-git）。
 
-- **收起**:显示回忆查询与命中数。
-- **展开**:显示扫描的推理文本、回忆命中列表(Slice ID、理由、相关度百分比)、推荐阅读和置信度。
+- 每次写入都按与云端一致的节奏提交——一次对话回合产生 housekeeping 和 agent response 两个 commit，scribe 转录按批次提交，`previously stop` 会兜底清扫未提交的变更。
+- 把客户端指向一个已有的 Previously 仓库（比如从 GitHub clone 回来的），它会直接领养——历史原样保留。指向一个非空且非 git 的目录会被拒绝，绝不覆盖。
+- 日志、scribe 游标和工作流状态都在仓库之外，所以你可以放心把这个仓库 push 成**私有 GitHub 仓库**，作为异地副本。
 
-工具调用以内联卡片渲染,带人类可读标签:
+## 让本机其他 agent 用上这份记忆
 
-| 工具 | 你看到 |
-|------|--------|
-| `recall` | Recalling "..."(回忆中) |
-| `readSlice` | Viewing {date}(查看中) |
-| `readTimelineWindow` | Viewing {period}(查看时间段) |
-| `readStrand` | Following "..."(追踪中) |
-| `readPreviously` | 正在读前情提要… |
-| `readAgentTimeline` | Viewing cognition…(查看认知记录) |
-| `thinkDeep` | Reasoning fragment(推理片段) |
+Previously 的记忆不锁在它自己的 UI 里。两个机制把它连接到你机器上的其他 agent：
 
-每张卡片有五种视觉状态:**运行中**(spinner)、**已完成**(圆点)、**错误**(红)、**中断**(黄)、**拒绝**(红)。点击或按 Enter/Space 展开查看完整工具输出。
+**`previously install`** 为每个探测到的 agent 写入一份只读的「Previously 记忆」skill：
 
-消息本身按 Agent 内部执行顺序分阶段渲染:**思考** → **回忆/工具** → **回答**。你看到 Agent 思考、扫描时间轴、干活、然后回答——全部在同一条消息里。
+| Agent | 安装内容 |
+|---|---|
+| Claude Code | `~/.claude/skills/previously/`（四个文件） |
+| Kimi Code | `~/.kimi/skills/previously/` |
+| Codex | 在 `~/.codex/AGENTS.md` 中追加哨兵注释包裹的 Previously 块（绝不覆盖已有内容） |
 
-## 首次使用体验:演示模式
+安装是幂等的，首次修改前会自动备份，`previously uninstall` 对称移除。（旧的 MCP server 已退役——skill 包是它的替代。）
 
-Previously 没有应用内引导向导。取而代之的是一个只读的**演示模式**,把部署变成一次参观。
+**Scribe（抄录器）** 监听其他 agent 的会话日志——Claude Code、Codex、Kimi Code 和 Gemini CLI——把它们的对话转录成同一条时间线上的时间片，并带来源标签。它随 `previously start` 自动启动；`previously status` 会报告每个来源的进度。你的全部 AI 对话历史，无论由哪个 agent 产生，最终汇聚到同一条时间线。
 
-以 `STORAGE=demo` 运行(或在未设置 `GITHUB_TOKEN` 的服务器上保持 `STORAGE` 未设置),所有 `memory/` 读取都会来自内置的虚构人格数据集——默认是 **Caleb**(`personal_14`),30+ 个 Slice,跨越数年。演示模式下,抵达简报中的名字会变成人格选择器,你可以在预置人格之间切换。头部有一个固定徽章告诉你写的内容不会被保存。写入看起来成功,但会被静默丢弃;刷新页面即重置。
+## 先在浏览器里试试
 
-在线演示在 [previously-demo.ldwid.com](https://previously-demo.ldwid.com)。它跑完整的双层回忆系统,所以你可以转动时间轴滚轮、穿越过去的 Slice、自由聊天、观察回忆工作——无需自己部署。
-
-### 开始你自己的时间轴
-
-从演示切到自己的时间轴:
-
-1. 用自己的 GitHub 仓库和 GitHub fine-grained personal access token(contents 读写权限,单个仓库)部署 Previously。
-2. 设置 `STORAGE=github`(或让自动检测做这件事:不设 `STORAGE`,设 `GITHUB_TOKEN`)。
-3. 就这些。你输入的第一条消息开启你的第一个 Slice。
-
-没有账号创建、没有数据库设置、没有种子数据。时间轴从空开始。记忆从你的第一次对话起累积。
-
-## Strand:时间之上的语义层
-
-随着 Slice 累积,Agent 会构建一个轻量关键词索引,叫 **Strand**。一条 Strand 是一个主题关键词——比如 `work`、`family`、`housing`——在多个 Slice 中反复出现。文件 `memory/episodic/strands.json` 把每条 Strand 映射到所有携带它的 Slice,另有一个整合流程通过合并重复关键词来保持索引干净。
-
-回忆会扫描 Strand 索引,按主题而非仅按时间新旧找 Slice。如果你三年里在 30 个 Slice 里聊过「住房」,扫描会通过 Strand 索引找到它们,然后主模型读取实际内容。
-
-<Callout variant="warning">
-**路线图:** Strand 今天还是一个薄的关键词到 Slice 索引。带滚动摘要、更深回忆集成的"一等公民" Strand 是未来里程碑。眼下索引是无损的——它指向每个相关 Slice,主模型读取它需要的。
-</Callout>
-
-## 日常意味着什么
-
-没有仪式。你不需要打开「新对话」。你不需要打标签或分类任何东西。你不需要管理记忆。
-
-- **出现** —— 打开页面。抵达简报告诉你上次聊到哪:"PREVIOUSLY ON {你的名字}"、最近的话题、未决的事项。
-- **交谈** —— 输入并按回车。如果已超过约 15 分钟,会开启一个新 Slice。Agent 读取时间轴、扫描相关上下文、然后回应。
-- **问过去的事** —— "我对 X 做了什么决定?"或"Y 是什么时候发生的?"worker 扫描时间轴目录和 Strand 索引,主模型读取重要的内容,你看着工具卡片出现并落定。
-- **穿越** —— 左侧的滚轮就是你的完整历史。选中一行,时钟把你滚回那个 Slice。
-
-循环就是这样。无需设置、无需清理、无需线程管理。只是一段有记忆、且有效的持续对话。
+想在安装之前感受一下产品？[站内 playground](/playground) 提供交互式的浏览器内体验，无需任何安装。
 
 ## 项目状态
 
-**Previously 处于早期积极开发中,尚未准备好用于个人或生产环境**(状态:实验阶段)。核心架构已经可用,但许多子系统仍在设计与建设中。本文档描述当前代码;它以个人自托管部署为框架,而非 SaaS 注册。
+**Previously 处于早期积极开发中，尚未准备好用于个人或生产环境**（状态：实验阶段）。本文档描述当前的客户端；命令面与默认行为仍可能演进。
 
-## 相关
+## 相关文档
 
+- [部署](/docs/deployment) —— 本地客户端 vs 自部署云端内核
+- [配置](/docs/configuration) —— `config.json`、环境变量与内核版本策略
 - [时间线](/docs/timeline) —— 主要交互界面详解
-- [记忆模型](/docs/memory-model) —— Slice、Strand、白名单与上下文组装
-- [回忆](/docs/recall) —— 双层检索流水线详解
-- [配置](/docs/configuration) —— `STORAGE`、演示模式与环境变量
+- [记忆模型](/docs/memory-model) —— 时间片、Strand 与上下文组装

@@ -1,6 +1,6 @@
 ---
 title: 用户卡片
-description: 用户卡片——"Previously on you." 的紧凑、可演化模型,记录"你是谁"。v5 格式(Identity / Past / Now / Horizon / Self-model),以及它如何通过受验证的 mutation 演化,而非整体重写。
+description: 用户卡片与驱动它的达尔文式进化回路——direction.md 是筛选标准,fitness 是选择压力,append-only 的变异档案,卡片与子 Agent playbook 只是产物。
 order: 4
 ---
 
@@ -8,9 +8,9 @@ order: 4
 
 Slice 记录发生了什么,**用户卡片**记录你是谁。它是一个单独的 Markdown 文件——`memory/episodic/current-previously.md`——把整条时间线蒸馏成一份紧凑的简报:你的身份、一段滚动更新的画像、此刻正在发生的事、你承诺过的事,以及 Previously 学到的与你协作的方式。
 
-这就是 "A memory that learns."(会学习的记忆)的具体形态:卡片随对话演化——错了就纠正,变了就更新。不是档案,只是真正重要的东西。
+但卡片只是**产物**。真正在学习的是围绕它的进化回路:一份定义「什么是对你更好」的方向文档、一套施加选择压力的 fitness 评分、一份记录每次被接受变异的 append-only 档案,而卡片——连同各子 Agent 的 playbook——是当前的表型。卡片是回路输出变得可见的地方;`memory/evolution/` 才是回路本身所在的地方。
 
-卡片会被注入每一轮对话的系统提示词,紧随身份宪法之后。由于它只在演化时改变——在 slice 存续期间绝不变化——提示词前缀保持字节级稳定,供应商的 prompt cache 得以持续命中(`src/app/api/chat/turn-workflow.ts`)。存储的卡片保留原始 ISO 日期;注入的副本会按你的本地时钟标注相对时间("3 天前"),模型无需自己做日期换算。
+卡片会被注入每一轮对话的系统提示词,紧随身份宪法之后。由于它只在演化时改变——在 slice 存续期间绝不变化——提示词前缀保持字节级稳定,供应商的 prompt cache 得以持续命中(`src/app/api/chat/turn-workflow.ts`)。存储的卡片保留原始 ISO 日期;注入的副本会按你的本地时钟标注相对时间(「3 天前」),模型无需自己做日期换算。
 
 ## v5 格式
 
@@ -19,57 +19,139 @@ Slice 记录发生了什么,**用户卡片**记录你是谁。它是一个单独
 ```markdown
 # Previously On
 
-_Active slice: 2026-08-17-0515 | Format: user card v2 | Updated: 2026-08-17T05:27:48Z_
+_Active slice: 2026-08-10-2130 | Format: user card v5 | Updated: 2026-08-10T21:47:12Z_
 
 ## Identity
 
-- Name: Alex
 - Address them as: you
-- Alias: 小艾
 
 ## Past
 
-Alex is an engineer who prefers answers grounded in real evidence over
-abstraction. They left a draining job in 2024 and now work somewhere they
-chose deliberately. What they want most is to spend their time on things
-they themselves chose — a north star they still hold today.
+You are a knowledge worker in your late twenties who spent early 2024
+coasting, then started building: a CSV-merge side tool that grew into a
+weekly-review product, and a running habit that went from winded on the
+stairs to a finished half-marathon in July 2026. Alex — met at Priya's
+dinner back in October 2024 — is your partner and the closest
+relationship in your life.
 
-- Graduated 2021; changed jobs in May 2024 — refs: [2026/07/26/1539]
-- Red line: no databases for single-user tools — refs: [2026/08/02/1105]
+- Finished a first half-marathon 2026-07-16; Alex was at the finish line — refs: [2026/07/16/0915]
+- Since Mom's health scare (2025-07), weekly calls are non-negotiable — refs: [2025/07/30/2040]
 
 ## Now
 
-- Training for a 5K — Wednesday morning runs are a two-person thing now — refs: [2026/08/11/1426] | since: 2026-08-11
+- Final pass on the best-man speech for Marcus — reading it aloud to Alex tonight — refs: [2026/08/10/2110] | since: 2026-08-09
 
 ## Horizon
 
-- Draft the wedding speech for Lao Zhou — by: 2026-08-21 — refs: [2026/08/15/2030]
+- Deliver the speech at Marcus's wedding — by: 2026-08-12 — refs: [2026/08/09/2000]
 
 ## Self-model
 
-- When Alex is venting, lead with empathy first, then weave their own narrative back as evidence — refs: [2026/08/11/1426]
+- When you share a speech draft, you want honest critique before reassurance — refs: [2026/08/10/2110]
 ```
 
-**Identity** —— 结构化的、可被机器解析的头部:Name、Address them as、Pronouns、Alias(最多 8 行)。这让 Previously 能在到达简报(arrival briefing)中用你的名字问候你,也知道该如何称呼你。
+**Identity** —— 结构化的、可被机器解析的头部:Name、Address them as、Pronouns、Alias(最多 8 行)。这让 Previously 能在到达简报(arrival briefing)中问候你,也知道该如何称呼你。
 
 **Past** —— 持久记忆,分两部分:
 
 - 一段**滚动画像段落**——第三人称,随着对你的认识加深而就地重写,硬上限 2,400 字符(约 600 token)。
-- **Anchor facts(锚点事实)**——逐条列出的日期、决定与红线,每条都带证据 refs。准入标准是:"三年后几乎可以肯定仍然成立吗?"上限:8 条。
+- **Anchor facts(锚点事实)**——逐条列出的日期、决定与红线,每条都带证据 refs。准入标准是:「三年后几乎可以肯定仍然成立吗?」上限:8 条。
 
 **Now** —— 当前状态的语义压缩池:是钩子,不是叙事。每条都带指向证据 slice 的 `refs` 和一个 `since` 日期。上限:5 条。超过 7 天的条目会被标记给演化 agent,由它逐条决定:把持久的内容提升到 Past,或丢弃这个钩子。代码不会静默删除任何内容。
 
 **Horizon** —— 面向未来的悬而未决之事:承诺、截止日期、等待中的回复。每条都带显式的 `by:` 日期。Horizon 条目**永不因过期而移除**——它们只能通过被解决离开卡片。逾期的条目会被保留并标记:下一轮的简报会告诉 agent 主动问你事情的结果如何。
 
-**Self-model** —— Previously 学到的关于如何与你协作的紧凑操作经验("对方倾诉时,先共情")。它们只是对常驻指令(DIRECTIVES)的**增量**——一条复述或违背核心规则的经验会被拒绝,除非它引用了你明确的覆盖指示。上限:10 条。
+**Self-model** —— Previously 学到的关于如何与你协作的紧凑操作经验(「聊致辞草稿时,要先给诚实的批评,再给安慰」)。它们只是对常驻指令(DIRECTIVES)的**增量**——一条复述或违背核心规则的经验会被拒绝,除非它引用了你明确的覆盖指示。上限:10 条。
 
 <Callout variant="info">
-**卡片回答的是"你是谁",而不是"说过什么"。** 每个条目都带 `refs`——形如 `2026/08/11/1426` 的指针,指回 slice;slice 才是无损的事实来源。引用过去事件的具体细节之前,agent 会用 `readSlice` 向下钻取。
+**卡片回答的是「你是谁」,而不是「说过什么」。** 每个条目都带 `refs`——形如 `2026/08/10/2110` 的指针,指回 slice;slice 才是无损的事实来源。引用过去事件的具体细节之前,agent 会问 recall 同事,由它从 slice 原文里引述。
 </Callout>
 
-## 基于 Mutation 的演化
+## 进化回路
 
-卡片从不被整体重写。一个专门的 worker 模型 agent——**Previously Agent**(`src/lib/episodic/flash/previously-agent.ts`)——持有卡片的内存副本,并通过细粒度、受验证的 mutation 工具来编辑它:
+Previously 的自进化是达尔文式的,不是堆积式的。四个角色,一一映射到生物学:
+
+| 达尔文角色 | 在 Previously 中 |
+|----------------|---------------|
+| 环境 / 筛选标准 | `memory/evolution/direction.md`——跨 slice 的「什么是对你更好」 |
+| 选择压力 | fitness 评分——挂证据、分桶、在确定性代码里聚合 |
+| 变异机制 | 进化 Agent——卡片、direction 与 playbook 的**唯一写入者** |
+| 表型 / 产物 | 用户卡片 + `memory/agent-playbooks/{recall,search,thinkdeep}.md` |
+
+### Direction:筛选标准
+
+`memory/evolution/direction.md` 装着回路优化的**方向**。它有四个固定小节:
+
+```markdown
+# Direction
+
+- Favor honest, specific feedback over comfort — you act on blunt critique
+  (Priya's onboarding review, Marcus calling the weekly review "a magic
+  trick") and stall on vague reassurance.
+- Protect recovery: after the 2025 knee injury, pushing through pain is a
+  failure mode, not dedication.
+
+# Anti-goals
+
+- Never become a flatterer or a scorekeeper.
+
+# Evidence
+
+- refs: [2024/04/22/1930] [2025/02/17/2145] [2025/07/19/1030]
+
+# Log
+
+- 2025-08-23 — added "protect recovery" after the injury arc — refs: [2025/07/19/1030] [2025/08/21/0730]
+```
+
+让方向保持诚实的是写法纪律——没有冷却期计时器,只有标准本身:
+
+- **抽象。**「你昨天去爬山了」永远进不了 direction——那是卡片的事。方向必须在一个月后仍然成立。
+- **跨片。** 每条方向结论都由多个 slice 加 agent 时间线对照支撑,Evidence 节里挂着 slice 指针。代码在结构上强制骨架与证据门槛(`src/lib/evolution/direction-agent.ts`):没有 slice 指针,就不予接受。
+- **结构开放。** 不预设维度清单——agent 可以自生长新维度。固定的是写法纪律;`Log` 节是 append-only 的:方向何时、因何证据而变。
+
+### Fitness:选择压力
+
+分数来自一个**回合分析器(turn analyzer)**,它在事后评估每一轮——agent 绝不给自己打分。每个 slice,它按桶产出粗粒度序数增量:`-2` 明确抱怨或纠正,`-1` 不满迹象,`0` 无信号,`+1` 明确认可。各个桶——`card`、`recall`、`search`、`thinkdeep`、`interaction`——在 `memory/evolution/fitness.json` 里各自记账。
+
+每条非零分必须挂用户原话作为证据;没有证据的增量会在 store 里被结构性地强制归零(`src/lib/evolution/store.ts`),而不是靠提示词纪律。聚合在确定性代码里(`src/lib/evolution/triggers.ts`):某个桶在最近 10 个 slice 的滑动窗口内净分 ≤ −3,触发该桶的进化;本 slice 出现一条挂证据的 −2,立即触发。**分数只决定「要不要进化」,绝不决定「改成什么」**——触发只是买来一次由进化 Agent 重读原始证据的仔细检查,改成什么样由它自己裁决。分数是传感器,不是裁判。
+
+### Mutations:变异档案
+
+每次被接受的变异都会落进 `memory/evolution/mutations.md`,append-only,带着预期收益与证据指针:
+
+```markdown
+## 2026-08-03T22:14:05Z — playbook:recall
+
+- **Summary:** Recall now reads the full slice before answering anything
+  about the wedding-speech drafts, instead of answering from summaries.
+- **Expected benefit:** Fewer confident-but-wrong recalls on emotionally
+  loaded topics; the recall bucket stops losing points.
+- **Evidence:**
+  - fitness: 2026-07-28 recall -2 — "that's not what I said, read the actual conversation"
+  - slice 2026-07-28-2043
+```
+
+没有自动回滚、没有冷却期、没有变异预算。取而代之的是效果观察窗(`src/lib/evolution/acceptance.ts`):每当某个 target 归档一条新变异,同一 target 的*上一条*变异会先被评估——如果它落地之后对应的 fitness 桶仍在扣分,档案里会追加一行 `**Evaluation: ineffective**`。记录从不删除、从不改写;一条无效变异留在档案里作为教训。接受条件必须同时满足:用户信号不降级,且至少一个维度有证据支持的改善。
+
+## 两阶段进化
+
+进化在回合的 housekeeping 步骤里内联运行,在 slice 边界上串行分两个阶段:
+
+1. **Phase 1 —— Direction。** 评估方向本身要不要动:当前 slice、agent 时间线与核心时间线三方对照现有方向。低频、高门槛——「无变化」是常见且正确的结果,此时什么都不写(评估本身仍会留痕)。Phase 1 的 agent 只*提案*,不持有任何写工具。
+2. **Phase 2 —— Product。** 在既定方向下,Previously Agent 进化卡片,以及被触发桶的 playbook。
+
+每个 slice 边界仍强制跑一次进化**检查**——保底一个世代。但强制检查不等于强制变异:没有新信号时,「无变化」是合法结论,并且会留下痕迹。
+
+**Playbook** 是回路触达子 Agent 的方式:每个同事一份简短的行为指引——`memory/agent-playbooks/{recall,search,thinkdeep}.md`(「涉及情感话题,先读完整 slice 再下结论」之类)。Playbook 注入子 Agent 的 **user prompt**,绝不进静态 system prompt,供应商的前缀缓存因此得以保住;上限 2,000 字符,缺失时优雅降级——整个注入块直接省略。
+
+<Callout variant="warning">
+**单一写入者。** 进化 Agent 是卡片、方向、playbook 与档案的唯一写入者。Recall、webSearch、thinkDeep 全部只读、只汇报——recall 读到值得记住的东西,就在报告里带回来,由进化阶段统一落笔。只有一个写入者,接受规则与证据链就只有一处要守。
+</Callout>
+
+## 卡片自身如何变化
+
+卡片从不被整体重写。Previously Agent(`src/lib/episodic/flash/previously-agent.ts`)持有卡片的内存副本,并通过细粒度、受验证的 mutation 工具来编辑它:
 
 | 工具 | 作用 |
 |------|------|
@@ -81,25 +163,30 @@ they themselves chose — a north star they still hold today.
 | `addHorizon` / `resolveHorizon` | 开启或解决一个 Horizon 事项 |
 | `addSelfModel` / `removeSelfModel` | 添加或移除一条操作经验 |
 
-验证逻辑在**工具内部**,而不是事后的一道检查(`src/lib/episodic/card-session.ts`)。超限或格式错误的写入会被拒绝,并附带具体的反馈——"2630 chars,limit 2400——压缩后重试"——由 agent 自己决定在上限内保留什么。Refs 是必需的:没有证据,就没有写入。卡片未被触及的部分在构造上就被保留;mutation 会话不可能静默丢弃一条它没看过的内容。
+验证逻辑在**工具内部**,而不是事后的一道检查(`src/lib/episodic/card-session.ts`)。超限或格式错误的写入会被拒绝,并附带具体的反馈——「2630 chars,limit 2400——压缩后重试」——由 agent 自己决定在上限内保留什么。Refs 是必需的:没有证据,就没有写入。卡片未被触及的部分在构造上就被保留;mutation 会话不可能静默丢弃一条它没看过的内容。
 
-只有当卡片的实质内容真正改变时,结果才会被写回(头部时间戳每次都会刷新,比较时会被忽略)。实时卡片与按 slice 的快照(`memory/episodic/slices/YYYY/MM/DD/HHMM/previously.md`)在同一轮的单次提交中一起写入——因此时间线上的每个 slice 都携带着那段对话结束时卡片的样子,UI 中的 "Previously On" 对话框可以展示它。
+只有当卡片的实质内容真正改变时,结果才会被写回(头部时间戳每次都会刷新,比较时会被忽略)。实时卡片与按 slice 的快照(`memory/episodic/slices/YYYY/MM/DD/HHMM/previously.md`)一起写入——因此时间线上的每个 slice 都携带着那段对话结束时卡片的样子,UI 中的 "Previously On" 对话框可以展示它。
 
 ## 卡片何时演化
 
-演化在对话轮次的 housekeeping 步骤中内联运行,而非每条消息都跑。工程层只负责触发;内容完全由模型决定。有两个触发器:
+工程层只负责触发;内容完全由模型决定。触发器有:
 
-1. **Slice 边界。** 当一个 slice 关闭时,turn analyzer 会判断其中是否有值得沉淀的内容(`evolve_card.worth`)。如果有,Previously Agent 会对整个已关闭的 slice 做一次深度回顾——按需读取它的轮次、认知日志和过去的卡片。如果 analyzer 本身失败了,闸门默认**运行**:浪费一次 worker 调用代价很低,错过一次演化则是永久的记忆损失。旧格式(v5 之前)的卡片会强制触发一次运行,让格式迁移不必等待一个"值得"的边界。
-2. **显式请求或纠正。** 当你说"记住……"、"更新你的卡片",或陈述一条行为纠正——"别再做 X"、"以后总是……"——analyzer 会标记它(`memory_update`),演化立即在 slice 存续期间运行。
+1. **slice 边界上的 fitness 触发。** 确定性聚合开火:某个桶的 10 片窗口净分 ≤ −3,或本 slice 一条挂证据的 −2。被触发的桶会得到自己的 Phase 2 进化——包括它的 playbook。
+2. **卡片闸门。** 回合分析器仍可以判断一个已关闭的 slice 是否值得沉淀(`evolve_card.worth`——分析器失败时默认运行:浪费一次检查很便宜,错过一次演化是永久的记忆丢失);旧格式(v5 之前)的卡片会强制触发一次运行,让格式迁移不必等待。
+3. **显式请求或纠正。** 当你说「记住……」、「更新你的卡片」,或陈述一条行为纠正——「别再做 X」、「以后总是……」——分析器会标记它(`memory_update`),一次仅卡片的进化立即在 slice 存续期间运行。
 
-进展会实时流式推送给客户端;当卡片发生变化时,演化指示器会展示一句话的变化说明和逐行 diff。被跳过的运行也会连同原因一起上报——静默的跳过读起来就像"它从没运行过"。
+进展会实时流式推送给客户端;当卡片发生变化时,演化指示器会展示一句话的变化说明和逐行 diff。被跳过的运行也会连同原因一起上报——静默的跳过读起来就像「它从没运行过」。
+
+看一次基于演示数据集的真实进化运行——触发原因、direction 判定和卡片 diff，实时计算、绝不落盘：
+
+<Playground preset="evolution-card" />
 
 <Callout variant="warning">
-**实验阶段:** 卡片的演化自上而下都是模型判断——记录什么、提升什么、丢弃什么。验证护栏(上限、refs、拒绝)保证它格式良好,而非保证它正确。因为一切都是 git 中的纯 Markdown,你随时可以查看 diff、手工编辑卡片,或回滚它。
+**实验阶段:** 进化自上而下都是模型判断——记录什么、提升什么、playbook 改成什么。护栏(上限、refs、结构性证据锚定、确定性触发)保证它格式良好,而非保证它正确。因为一切都是 git 中的纯 Markdown,你随时可以查看 diff、手工编辑卡片或方向文档,或回滚它们。
 </Callout>
 
 ## 相关
 
-- [记忆模型](/docs/memory-model) —— 卡片在分层记忆体系中的位置
+- [记忆模型](/docs/memory-model) —— 卡片与进化数据层在分层记忆体系中的位置
 - [时间线](/docs/timeline) —— slice,卡片所指向的无损事实来源
-- [Recall](/docs/recall) —— agent 如何从卡片 refs 向下钻取到完整 slice
+- [Recall](/docs/recall) —— 从卡片 refs 所指的 slice 里引述原文的那位同事

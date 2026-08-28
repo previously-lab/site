@@ -1,196 +1,123 @@
 ---
 title: 配置
-description: 部署层面只有环境变量,数据目录中有一份按用户的配置文件,以及 GitHub、本地文件、demo 之间的隐式存储后端开关。
+description: 客户端 config.json 契约（brain 与 apiKeys）、环境变量、Web UI 设置页、钉死内核的版本策略，以及自部署云端内核的变量。
 order: 0
 ---
 
 # 配置
 
-部署配置完全通过环境变量完成——没有项目配置文件,没有 settings YAML。随附的 `.env.example` 中有七个变量,此外每接入一个额外的模型提供者只需一个可选的 API key。日常偏好(模型选择、思考开关、切分参数)存放在 memory 数据目录里的一份按用户配置文件中,不属于部署配置。
+本地客户端的配置分三处，各管各的事：
+
+- **客户端主目录里的 `config.json`** —— 大脑（agent 靠什么思考）和手动录入的 API key。
+- **环境变量** —— 客户端主目录位置和 bridge 调节项。
+- **Web UI 设置页** —— 日常偏好：模型选择、思考开关、切分参数。大多数运行时配置在这里，不在文件里。
 
 <Callout variant="info">
-**要点:** 默认配置下 `DEEPSEEK_API_KEY` 是必需的——它驱动默认模型和 web 搜索。`GITHUB_TOKEN` 是你以为"必需"的那个变量——它是否存在控制着整个 GitHub 后端;没有它,应用会改为读写本地文件系统。`GITHUB_REPO_OWNER` 和 `GITHUB_REPO_NAME` 仅在启用 GitHub 后端时必需。
+**要点：** 你几乎不需要手动编辑这些。`previously init` 只写最小默认值，且每次 `init`/`start` 都会审计并自动修复损坏的配置（修复前备份为 `config.json.bak`）。大脑也可以在 Web UI 设置页录入。
 </Callout>
 
-## 环境变量参考
+## config.json
 
-运行时实际读取的所有变量,汇总在一张表中:
+位于客户端主目录（`PREVIOUSLY_HOME`，默认 `~/.previously`）。契约如下：
 
-| 变量 | 是否必需 | 在 `.env.example` 中 | 默认值 | 运行时效果 |
-|---|---|---|---|---|
-| `DEEPSEEK_API_KEY` | 是(默认配置) | 是 | — | 默认提供者 DeepSeek 的 API key。驱动默认的主模型/worker 模型,并且——无论你切换到哪个提供者——web 搜索工具也走它,通过 DeepSeek 的 Anthropic 兼容端点调用 DeepSeek V4 Flash。 |
-| `GITHUB_TOKEN` | 见说明 | 是 | — | 该变量是否存在**就是后端开关**。设置后(且 `STORAGE` 未设置),应用使用 Octokit/GitHub API 后端;未设置时,自动检测会落到本地文件系统或 demo。本地开发时保持未设置或注释掉即可。空字符串 `GITHUB_TOKEN=` 也能正确回退。一个细粒度 PAT,权限为 Contents read/write,范围限定到单个仓库。 |
-| `GITHUB_REPO_OWNER` | 使用 GitHub 后端时必需 | 是 | `local` | 拥有 memory 仓库的 GitHub 用户名或组织。 |
-| `GITHUB_REPO_NAME` | 使用 GitHub 后端时必需 | 是 | `local` | 存储 memory 数据的仓库名称。 |
-| `STORAGE` | 否 | 是 | 自动检测 | 选择数据源:`local`(文件系统)、`github`(GitHub API)或 `demo`(只读的预置角色数据集)。未设置时自动检测:存在 `GITHUB_TOKEN` → `github`;`NODE_ENV=development` → `local`;否则 → `demo`。 |
-| `BENCHMARK_BASE_URL` | 否 | 是(已注释) | — | `demo` 模式使用的远程 benchmark-data 仓库基础 URL(例如 `https://raw.githubusercontent.com/previously-lab/benchmark-data/main`)。在 `demo` 模式下未设置时,读取会回退到磁盘上的本地 `../benchmark-data` 兄弟目录。 |
-| `ACCESS_SECRET` | 否 | 是(已注释) | — | 面向非浏览器调用方的可选访问密钥。设置后,对变更类端点(`/api/chat`、`/api/loops`、`/api/episodic/flush`)的 POST 请求若缺少同源信号,必须携带值为该变量的 `x-access-key` 请求头,否则返回 403。同源浏览器调用始终放行。不设置可让私有部署保持零摩擦。 |
+```json
+{
+  "brain": { "type": "bridge", "agent": "claude" },
+  "apiKeys": { "DEEPSEEK_API_KEY": "sk-..." }
+}
+```
 
-### 其他提供者密钥
+### brain —— 两种形态
 
-模型目录(`src/lib/models/catalog.ts`)按已配置的 API key 激活对应提供者。设置以下任意变量,该提供者的模型即可在 Settings 中选择——无需其他配置:
+大脑决定模型调用实际由谁执行。二选一：
 
-| 变量 | 提供者 |
+| 形态 | 含义 |
 |---|---|
+| `{ "type": "bridge", "agent": "claude" \| "codex" \| "kimi" }` | **订阅桥接。** 模型调用由该本机 agent CLI 通过你已有的订阅 OAuth 执行。零 API key、零 API 费用。在 `init` 中选择 bridge 后端会自动写入这项。 |
+| `{ "type": "api-key", "env": "<ENV_VAR_NAME>", "model"?: string }` | **BYOK。** 内核从指定名称的环境变量里读 API key；可选的 `model` 设定默认模型（内核自 0.9.0 起消费）。 |
+
+如果缺省 `brain`，内核回退到沿用环境变量里找到的提供商 key。
+
+### apiKeys
+
+`apiKeys?: Record<string, string>` 存放手动录入的 key。本地 MVP 阶段**明文存储**——请据此对待这个文件。`start` 时每个键值都会被注入内核的环境，所以典型的 BYOK 配置是在这里放 key、在 `brain` 里指名它：
+
+```json
+{
+  "brain": { "type": "api-key", "env": "DEEPSEEK_API_KEY", "model": "deepseek-v4-pro" },
+  "apiKeys": { "DEEPSEEK_API_KEY": "sk-..." }
+}
+```
+
+也可以不改文件，直接在 Web UI 设置页录入 key。
+
+### 其他字段
+
+| 字段 | 用途 |
+|---|---|
+| `executionBackend` | 调用未显式指定时使用的默认 bridge agent。由 `previously init --backend ...` 设置。 |
+| `kernelDir` | 显式覆盖内核目录。通常不需要——客户端通过版本指针解析已安装的内核。 |
+
+客户端写配置时会保留未知字段。
+
+## 环境变量
+
+客户端自身读取的变量：
+
+| 变量 | 默认值 | 作用 |
+|---|---|---|
+| `PREVIOUSLY_HOME` | `~/.previously` | 客户端主目录：`config.json`、已安装的内核版本、日志、scribe 游标都在这里。你的记忆仓库**不在**这里——它在你 init 时指定的位置（默认 `~/Documents/Previously`）。 |
+| `PREVIOUSLY_BRIDGE_TIMEOUT_MS` | 约 9.5 分钟 | 全局 bridge 调用超时（故意设得略低于内核 delegateTask 自身的超时，保证适配器先如实报错）。 |
+| `PREVIOUSLY_BRIDGE_<AGENT>_TIMEOUT_MS` | — | 按 agent 覆盖（`CLAUDE` / `CODEX` / `KIMI`）。 |
+| `PREVIOUSLY_BRIDGE_<AGENT>_CMD` | 各家 CLI 名 | 覆盖某个 bridge agent 使用的 CLI 命令；可带前导参数，如 `PREVIOUSLY_BRIDGE_KIMI_CMD="kimi --auto"`。 |
+| `PREVIOUSLY_BRIDGE_CLAUDE_MAX_TURNS` | `25` | 被桥接的 Claude 调用的最大轮数；设为 `none` 关闭上限。 |
+
+以下变量**由 `previously start` 注入**，不用于手工设置：`PREVIOUSLY_HOME` 本身、`apiKeys` 的每个键值、bridge 大脑时的 `PREVIOUSLY_BRAIN=bridge` + `PREVIOUSLY_BRAIN_AGENT`、api-key 大脑时的 key 值与 `PREVIOUSLY_DEFAULT_MODEL`。内核另外认 `MEMORY_ROOT` 作为记忆位置的显式覆盖；但改记忆位置的正常途径是 `init --memory-root`。
+
+## 模型与切分：Web UI 设置页
+
+日常偏好——主模型、思考开关、推理强度、切分阈值——在内核 Web UI 的**设置页**维护，随你的记忆数据一起存储，而不是写在客户端配置里。bridge 模式下，每个探测到的 agent CLI 都会注册为一个可选模型，切换引擎只是设置页上的一个选择，不需要重启。
+
+## 内核版本策略
+
+内核以 npm 包 `previously-kernel` 分发，客户端对它做**精确钉死**——客户端 package.json 里的 `previously.kernelVersion`（当前为 `0.9.0`）必须与已安装的内核版本完全相等，patch 也不例外。
+
+- `previously kernel install` 从钉死的依赖安装预构建的 standalone 内核到 `~/.previously/kernel/versions/<version>/`，并原子切换 `current.json` 指针。你的机器上零构建，不需要 git 或 pnpm。
+- **升级 = 升级客户端包**（`npm i -g previously-client@latest`）。没有单独的内核升级或回滚命令；回滚就是装回旧版客户端。
+- `start` 和 `status` 经指针解析内核并校验版本一致。
+
+开发者逃逸通道（非日常使用）：`previously kernel install --from <dir> --version <x.y.z>` 把本地构建的 standalone 目录直接安装；`previously kernel install --repo [git-url]` 从 agent 仓库浅克隆钉死的 tag 并本机构建——这是唯一要求本机装有 git 和 pnpm 的路径。
+
+## 进阶：自部署云端内核
+
+如果你在 Vercel 上运行云端内核（见[部署](/docs/deployment)路径二），配置完全通过 Vercel 项目里的环境变量完成：
+
+| 变量 | 是否必需 | 作用 |
+|---|---|---|
+| `DEEPSEEK_API_KEY` | 是（默认配置） | 驱动默认主模型和 web 搜索工具。 |
+| `GITHUB_TOKEN` | 是 | 细粒度 PAT（Contents 读写，限定单个仓库）。它是否存在控制着整个 GitHub 记忆后端。 |
+| `GITHUB_REPO_OWNER` / `GITHUB_REPO_NAME` | 是 | 存放记忆数据的 GitHub 属主与仓库名。 |
+| `STORAGE` | 否 | 显式覆盖数据源：`github`、`local` 或 `demo`（只读的预置人格）。未设置时自动检测。 |
+| `ACCESS_SECRET` | 否 | 非浏览器调用方在写操作端点上必须以 `x-access-key` 请求头发送的 access key。仅在设置后生效。 |
+
+### BYOK 提供商密钥
+
+云端内核的模型目录按已配置的 API key 逐个激活提供商——设置以下任意变量，该提供商的模型即可在设置页选择，无需其他配置：
+
+| 变量 | 提供商 |
+|---|---|
+| `DEEPSEEK_API_KEY` | DeepSeek（默认） |
 | `ANTHROPIC_API_KEY` | Anthropic |
 | `OPENAI_API_KEY` | OpenAI |
 | `MOONSHOT_API_KEY` | Moonshot AI |
-| `DASHSCOPE_API_KEY` | Alibaba(DashScope) |
-| `GOOGLE_API_KEY`、`GOOGLE_GENERATIVE_AI_API_KEY` 或 `GEMINI_API_KEY` | Google(取第一个已设置的) |
+| `DASHSCOPE_API_KEY` | Alibaba（DashScope） |
+| `GOOGLE_API_KEY`、`GOOGLE_GENERATIVE_AI_API_KEY` 或 `GEMINI_API_KEY` | Google（取第一个已设置的） |
 | `MISTRAL_API_KEY` | Mistral |
 | `XAI_API_KEY` | xAI |
 | `GROQ_API_KEY` | Groq |
 
-> **关于 `GITHUB_TOKEN` 的说明:** 当 `STORAGE` 未设置时,数据源在单一位置自动检测——`src/lib/data-source/resolve.ts`:存在 `GITHUB_TOKEN` → GitHub API;`NODE_ENV=development` → 本地文件系统;否则 → demo。没有专门的 `USE_GITHUB` 环境变量。这是有意为之:最简单的切换方式,无需配置文件,没有额外的接口面。
-
-## 后端切换:GitHub API vs 本地文件系统 vs Demo
-
-存储后端是隐式的,有意这样设计。当 `STORAGE` 未设置时,它会根据 `GITHUB_TOKEN` 和 `NODE_ENV` 自动检测;你也可以显式设置它:
-
-```typescript
-resolveDataSource(); // "local" | "github" | "demo" —— STORAGE 覆盖,否则自动检测
-```
-
-| 后端 | 何时选中 | 读取方式 | 写入方式 |
-|---|---|---|---|
-| **GitHub API** | `STORAGE=github`,或存在 `GITHUB_TOKEN` 时自动检测 | `octokit.rest.repos.getContent`,base64 解码。需要 `GITHUB_REPO_OWNER` 和 `GITHUB_REPO_NAME`。 | 在同一仓库上执行 `createOrUpdateFileContents`。 |
-| **本地文件系统** | `STORAGE=local`,或在开发环境中自动检测 | 从项目根目录执行 `fs.readFileSync`,读取磁盘上的物理文件。 | 向同一根目录执行 `fs.writeFileSync`。 |
-| **Demo(只读)** | `STORAGE=demo`,或否则自动检测 | 从预置的角色数据集读取——本地 `../benchmark-data/{persona}/...` 兄弟目录或 `BENCHMARK_BASE_URL` 远程地址。 | 空操作:返回成功,丢弃数据。 |
-
-各存储后端执行相同的安全边界:
-- **路径白名单**:仅 `memory/`、`tasks/` 和 `sessions/` 可读写;`src/` 对 agent 只读
-- **大小上限**:文件读写的 `MAX_FILE_SIZE_BYTES = 1_000_000`(1 MB)
-
-本地文件系统后端是你在开发时(`pnpm dev`)使用的后端。它读写磁盘上的真实文件——无需 GitHub,无需网络,没有速率限制。GitHub 后端是你部署到 Vercel 时使用的后端。两者实现同一接口,应用其余部分从不关心当前激活的是哪一个。
-
-## Demo 模式行为
-
-`STORAGE=demo` 将整个 memory 层切换到针对预置角色数据集的只读演示模式。以下是具体变化:
-
-### demo 读取来自哪里
-
-在 demo 模式下,每次 `memory/` 读取都由 benchmark-data 角色数据集提供,而不是仓库自身的 `memory/` 目录:
-
-```
-memory/episodic/slices/...  →  {persona}/episodic/slices/...     (来自 benchmark-data)
-memory/nodes/some-node.md   →  {persona}/nodes/some-node.md     (来自 benchmark-data)
-```
-
-默认角色是 `personal_14`(Caleb)。当 `BENCHMARK_BASE_URL` 未设置时,读取来自本地兄弟目录 `../benchmark-data/{persona}/...`;设置后,则来自远程基础 URL(例如 `https://raw.githubusercontent.com/previously-lab/benchmark-data/main/{persona}/...`)。demo 读取永远不会触及仓库真实的 `memory/` 目录。
-
-### 写入:接收但不持久化
-
-Demo 模式使写入成为空操作:
-
-- `writeFileDemo`(`src/lib/demo/demo-fs.ts`)返回 `{ path, created: false }`,在任何地方都不写入——本地和远程 demo 后端均是如此。
-
-agent 会看到写入成功。数据被静默丢弃。
-
-### 远程 demo 数据
-
-当部署没有本地 benchmark-data 检出目录的 demo 实例时,将 `BENCHMARK_BASE_URL` 设置为 benchmark-data 仓库的 raw URL:
-
-```bash
-STORAGE=demo
-BENCHMARK_BASE_URL=https://raw.githubusercontent.com/previously-lab/benchmark-data/main
-```
-
-设置该变量后,demo 读取会从该基础 URL 获取;未设置时,回退到本地 `../benchmark-data` 兄弟目录。
-
-### 角色选择器
-
-在 demo 模式下,hero 区域变成角色选择器(`hero-section.tsx` 通过 `listDemoPersonas` 加载角色列表),你可以在预置角色之间切换。
-
-## 模型目录与模型路由
-
-Previously 在运行时从每个已配置提供者的实时模型列表 API 解析可用模型(`src/lib/models/catalog.ts`)。两个层级,同一个目录:
-
-| 层级 | 用途 | 模型 | 思考 |
-|---|---|---|---|
-| **Worker** | 廉价的内部调用:turn 分析、召回搜索、标签提取、信念演化、后台循环 | 已解析的 worker 模型(主提供者的轻量层级) | 始终关闭 |
-| **主模型** | 深度推理、完整 Slice 读取、响应生成 | 用户选择的主模型 | 用户选择 |
-
-对每个设置了 API key 的提供者,目录会调用其列表端点,把旧版 id 归一化为当前名称,并为已知 id 补充策展的元数据。未知 id 使用合理的提供者默认值;列表请求失败的提供者回退到自己的策展条目,因此离线时仍可用。结果缓存 30 分钟——环境变量的变更在 TTL 过后生效。
-
-策展的回退注册表(`src/lib/models/registry.ts`)内置五个条目:
-
-| 模型 ID | 提供者 | 思考 | 视觉 | 最大 token |
-|---|---|---|---|---|
-| `deepseek-v4-flash` | DeepSeek | 是 | 否 | 393216 |
-| `deepseek-v4-pro` | DeepSeek | 是 | 否 | 393216 |
-| `claude-haiku-4-5` | Anthropic | 是 | 是 | 200000 |
-| `claude-sonnet-5` | Anthropic | 是 | 是 | 200000 |
-| `claude-opus-4-8` | Anthropic | 是 | 是 | 200000 |
-
-旧版 id 会被归一化迁移:存储的 `deepseek-chat` 变为 `deepseek-v4-flash`,`deepseek-reasoner` 变为 `deepseek-v4-pro`。
-
-### 主模型选择
-
-主模型按请求解析,顺序如下:
-
-1. **请求覆盖**——客户端在每次 chat 请求中携带 `body.model`。
-2. **用户配置默认值**——`memory/user/config.json` 中的 `model.provider`(可在 Settings 中编辑),出厂值为 `deepseek-v4-pro`。
-3. **部署默认值**——第一个其提供者密钥已设置的策展模型。
-
-未知或不可用的 id 会回退到部署默认值;解析结果会按 turn 记录日志(`[Turn] model=…`),因此模型切换可以在服务端日志中验证。
-
-### worker 是被解析出来的,而非硬编码
-
-内部调用不会盲目复用主模型——`resolveWorkerModel()`(`src/lib/models/worker.ts`)按以下顺序解析一个更廉价的层级:
-
-1. **手动固定**——用户配置中显式指定的 `worker.provider`(mode 为 `"manual"`)。
-2. **同提供者的轻量模型**——已知提供者有策展值(DeepSeek 对应 `deepseek-v4-flash`,Anthropic 对应 `claude-haiku-4-5`);否则从实时目录中取同提供者下上下文最小的非思考模型。
-3. **主模型本身**——同提供者,始终正确。
-
-worker 的核心调用是 turn analyzer(`src/lib/episodic/flash/turn-analyzer.ts`):一次廉价、结构化、关闭思考的单次调用,产出当前消息的关键词标签、关于它属于哪些既有 Strand 的语义提示、对本 turn 关闭的 Slice 的标记,以及该关闭的 Slice 是否应当演化用户卡的判断。
-
-### 思考开关与推理强度
-
-思考开关是一个请求级布尔值(`body.thinking`,缺省时回退到用户配置的 `model.thinking`,默认 `true`),它**不是**模型切换。另有一个独立的强度控制(`body.effort`,缺省时回退到 `model.reasoningEffort`,默认 `"medium"`),取值为 `low | medium | high`。两者由单一模块(`src/lib/models/effort-injector.ts`)映射到各提供者自己的 options 形态:DeepSeek 和 OpenAI 兼容提供者用 `reasoningEffort`,Anthropic 用 `budgetTokens`。关闭思考时,所有提供者都会得到显式的 thinking-disabled 形态。
-
-> **微妙之处:** 思考开关和强度滑块从不切换模型。`deepseek-v4-pro` 与强度轴是两个独立的选择——开关是当前所选模型上的一个 provider 级选项,而非模型切换。
-
-## 用户配置文件
-
-部署层面只有环境变量,但按用户的偏好存放在 `memory/user/config.json` 中——它保存在 memory 仓库本身(因此随其余数据一起同步),可通过 Settings 界面编辑。每个字段都是可选的;缺失字段回退到出厂默认值(`src/lib/config/defaults.ts`):
-
-| 字段 | 默认值 | 用途 |
-|---|---|---|
-| `model.provider` | `deepseek-v4-pro` | 主模型 id |
-| `model.thinking` | `true` | 思考开关 |
-| `model.reasoningEffort` | `medium` | 思考深度:`low` / `medium` / `high` |
-| `worker.mode` / `worker.provider` | `auto` / — | worker 解析方式:从主模型派生,或固定为某个模型 id |
-| `slicing.maxTurnsPerSlice` | `20` | 达到该轮数后强制关闭当前 Slice |
-| `slicing.timeSilenceMinutes` | `15` | 静默多少分钟后触发时间切分 |
-| `context.recentTurnsLimit` | `20` | 组装 prompt 时包含的最近轮数 |
-
-该文件在请求时通过与其余 memory 相同的数据源通道读取,并缓存 60 秒。
-
-## 国际化
-
-i18n 使用 `next-intl`,正好两个语言环境:
-
-| 语言环境 | 代码 | 默认 |
-|---|---|---|
-| 英语 | `en` | 是 |
-| 中文 | `zh` | 否 |
-
-配置位于 `src/i18n/routing.ts`,翻译文件为 `messages/en.json` 和 `messages/zh.json`。导航必须使用 `@/i18n/navigation` 中的工具函数,而不是 `next/navigation`。
-
-## 未包含的变量
-
-一些你可能期望的环境变量,以及它们不存在的原因:
-
-| 你可能期望的变量 | 实际情况 |
-|---|---|
-| `USE_GITHUB` | 不存在。后端开关是 `STORAGE` 环境变量,并在 `src/lib/data-source/resolve.ts` 中自动检测——隐式、零配置、有意为之。 |
-| `DEMO_MODE` | 不存在。demo 只是 `STORAGE` 的一个取值;没有任何模块读取单独的 demo 开关。 |
-| `LOG_LEVEL` | 未实现。日志功能较简单。 |
-| `DATABASE_URL` | 没有数据库。状态存储在 GitHub 文件中。 |
-| `PORT` | 应用不读取该变量;由 Next.js 处理。 |
-
 ## 相关文档
 
-- [部署](/docs/deployment) —— 包含完整 `.env.local` 模板的部署指南
-- [记忆模型](/docs/memory-model) —— Slice 和 Strand 的工作原理;配置使之可访问的数据
-- [召回](/docs/recall) —— worker 和主模型如何使用已配置的模型
+- [快速开始](/docs/getting-started) —— 安装与首次运行向导
+- [部署](/docs/deployment) —— 本地客户端 vs 自部署云端内核
+- [记忆模型](/docs/memory-model) —— 这些配置所管辖的数据

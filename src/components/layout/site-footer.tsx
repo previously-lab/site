@@ -41,14 +41,12 @@ export async function SiteFooter({
                 </Link>
               </li>
               <li>
-                <a
-                  href={siteConfig.demoUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <Link
+                  href="/playground"
                   className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >
                   {t("demo")}
-                </a>
+                </Link>
               </li>
               <li>
                 <a

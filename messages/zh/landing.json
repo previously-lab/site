@@ -19,7 +19,7 @@
       "threadsText": "3 条——致辞定稿、半马之后做什么、那次滑雪旅行。",
       "earlierLabel": "← 更早",
       "nowLabel": "NOW",
-      "ctaDemo": "体验在线演示",
+      "ctaDemo": "体验 Playground",
       "ctaGithub": "在 GitHub 查看",
       "ctaDocs": "阅读文档"
     },
@@ -128,8 +128,8 @@
     },
     "Act3": {
       "eyebrow": "03",
-      "title": "会学习的记忆。",
-      "body": "一张随对话演化的用户卡片——错了就纠正,变了就更新。不是档案,只是真正重要的东西。",
+      "title": "会进化的记忆。",
+      "body": "这里的进化是达尔文式的,不是装饰。一份 direction 文档定义「怎样对你更好」;每一轮都被 fitness 打分,非零分必须挂着你的原话作证据;mutations 档案只增不改,让整个过程没法作弊。下面这张卡片,只是筛选剩下的产物。",
       "cta": "探索记忆模型",
       "cardTitle": "current-previously.md",
       "identityLabel": "身份",
@@ -152,7 +152,7 @@
           "meta": "refs: [2026/07/16], [2026/08/02] | since: 2026-07-16"
         }
       ],
-      "updatedNote": "每个切片关闭后精炼一次"
+      "updatedNote": "由 direction.md 筛选 · 按证据打分 · 存档于 mutations.md"
     },
     "Act4": {
       "eyebrow": "04",
@@ -179,50 +179,51 @@
     "Act5": {
       "eyebrow": "05",
       "title": "分工,而不是硬撑。",
-      "body": "动态上下文的意思是:复杂的事,不该由一个模型硬撑。主 agent 统筹全局,把任务派给各司其职的专职 agent——回忆的、思考的、搜索的、整理的。每一次派发,你都能看见。",
+      "body": "子 agent 是同事,不是工具。recall 像目击者一样回忆——每个答案都引用切片原文,「没有这段记忆」也是合法答案;webSearch 是研究员,带着来源做调研;thinkDeep 是按需进入的干净思考舱。主 agent 只统筹,只校验。",
       "cta": "探索架构设计",
-      "hubLabel": "核心 agent",
-      "hubDetail": "统筹全局,派发与汇总",
-      "w1Label": "回忆 agent",
-      "w1Detail": "扫读切片,只返回指针",
-      "w2Label": "思考 agent",
-      "w2Detail": "深度推理,三档力度",
-      "w3Label": "搜索 agent",
-      "w3Detail": "联网检索,带来源",
-      "w4Label": "整理 agent",
-      "w4Detail": "标签 · 线索 · 用户卡"
+      "hubLabel": "主 agent",
+      "hubDetail": "统筹派发 · 只留校验通道",
+      "w1Label": "recall 同事",
+      "w1Detail": "引原文作证 · 想不起来就直说",
+      "w2Label": "thinkDeep",
+      "w2Detail": "干净思考舱,按需调用",
+      "w3Label": "webSearch",
+      "w3Detail": "自读 ≤3 页 · 带置信度",
+      "w4Label": "进化 agent",
+      "w4Detail": "fitness 打分 · 改写 direction"
     },
     "Trust": {
       "cards": [
         {
           "icon": "github",
-          "title": "你的记忆,你的仓库。",
-          "body": "8 月 7 日那晚的切片,是你自己 GitHub 仓库里的一个 Markdown 文件——连同它当时在想什么。其他每个瞬间也是。没有私有数据库,没有别人的服务器。",
+          "title": "一条命令,本地优先。",
+          "body": "npm i -g previously-client,然后裸跑 previously——向导会帮你把记忆初始化为一个普通的本地 git 仓库(默认 ~/Documents/Previously),边聊边 commit。想备份就 push 成私有 repo;不 push,它也是你的。",
           "cta": "在 GitHub 查看"
         },
         {
           "icon": "clock",
-          "title": "你不在的时候,它也在工作。",
-          "body": "中途关掉标签页。这一轮是耐久、可恢复的——它会继续跑;你回来时,从你离开的地方接着来。",
+          "title": "大脑,二选一。",
+          "body": "BYOK 自带 API key,或者 bridge 本机已有的 Claude / Codex / Kimi 订阅——零 key、零 API 费用。中途合上电脑,本地运行会从离开的地方继续。",
           "cta": "了解工作流"
         },
         {
           "icon": "scale",
-          "title": "开源。自托管。无锁定。",
-          "body": "MIT 许可,无遥测。跑在你自己的机器上,每一行代码都能读,记忆留在你自己的仓库里。永远属于你。",
+          "title": "开源。无锁定。",
+          "body": "MIT 许可,无遥测。内核以精确版本绑定的 previously-kernel npm 包分发——升级 client 就是升级全部。哪天本地不够用了,Vercel 自部署云端内核仍是进阶选项。",
           "cta": "开始使用"
         }
       ],
       "repo": {
-        "root": "your-username/memory",
+        "root": "~/Documents/Previously",
         "rows": [
           { "text": "└─ episodic/" },
           { "text": "   ├─ slices/2026/08/07/1808/" },
           { "text": "   │  ├─ previously.md", "note": "← 你说了什么" },
           { "text": "   │  └─ timeline/" },
-          { "text": "   │     ├─ core.md" },
-          { "text": "   │     └─ agent.md", "note": "← 它当时在想什么" },
-          { "text": "   ├─ current-previously.md", "note": "← 活着的用户卡" },
+          { "text": "   ├─ evolution/" },
+          { "text": "   │  ├─ direction.md", "note": "← 「更好」的标准" },
+          { "text": "   │  └─ mutations.md", "note": "← 只增不改的档案" },
+          { "text": "   ├─ current-previously.md", "note": "← 筛选留下的产物" },
           { "text": "   └─ strands.json" }
         ],
         "file": "previously.md",
@@ -234,19 +235,19 @@
       },
       "run": {
         "tabLabel": "previously — 正在写入切片 2026/08",
-        "closedLabel": "标签页已关闭 · 14:02",
-        "runningLabel": "运行仍在继续",
+        "closedLabel": "电脑已合盖 · 14:02",
+        "runningLabel": "本地运行仍在继续",
         "resumedLabel": "从你离开的地方继续"
       },
       "oss": {
-        "command": "git clone github.com/previously-lab/agent",
-        "badges": ["MIT", "无遥测", "自托管"]
+        "command": "npm i -g previously-client",
+        "badges": ["MIT", "本地优先", "BYOK 或 bridge"]
       }
     },
     "Finale": {
       "title": "Previously on you.",
-      "subtitle": "开源。自托管。永远属于你。",
-      "ctaDemo": "体验在线演示",
+      "subtitle": "开源。本地优先。永远属于你。",
+      "ctaDemo": "体验 Playground",
       "ctaGithub": "在 GitHub 查看"
     }
   }

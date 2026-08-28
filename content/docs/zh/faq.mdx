@@ -10,7 +10,7 @@ order: 2
 
 ## 有数据库吗?
 
-没有。所有状态都是带有 YAML frontmatter 的纯 Markdown 文件,存储在 GitHub 仓库中。没有数据库、没有向量存储、没有 ORM,也没有专有格式。Slice、Strand、用户卡——一切都是文件。
+没有。所有状态都是带有 YAML frontmatter 的纯 Markdown 文件,存储在你自己机器上的本地 git 仓库中(默认 `~/Documents/Previously`),需要远端的话可以 push 成 GitHub 私有仓库。没有数据库、没有向量存储、没有 ORM,也没有专有格式。Slice、Strand、用户卡——一切都是文件。
 
 索引只是几个 JSON 文件。全局目录位于 `memory/episodic/timeline/index.json`,列出所有 slice(并附带一个 Markdown 投影 `memory/episodic/timeline.md`);按月度的 slice 索引(`_index.json`)位于月份目录中;`memory/episodic/strands.json` 将每个 Strand 关键字映射到其对应的 slice 路径。每个 slice 是一个目录(`slices/YYYY/MM/DD/HHMM/`),其中的 `timeline/` 保存共享记录(`core.md`)和 agent 自己的认知记录(`agent.md`)。这就是全部"管道"了。没有 Postgres、没有 SQLite、没有 Pinecone。
 
@@ -20,7 +20,7 @@ order: 2
 
 ## 其他工具能读取我的记忆吗?
 
-可以。记忆是带有 YAML frontmatter 的纯 Markdown——没有 SDK、没有 API 网关、没有供应商锁定。Previously 写入记忆。Claude Code 读取记忆。Codex 扩充记忆。任何能解析 Markdown 并读取 GitHub 仓库的工具都能读取你的记忆。
+可以。记忆是带有 YAML frontmatter 的纯 Markdown——没有 SDK、没有 API 网关、没有供应商锁定。Previously 写入记忆。Claude Code 读取记忆。Codex 扩充记忆。任何能解析 Markdown 并读取 git 仓库的工具都能读取你的记忆。本地客户端更进一步:`previously install` 会把一份只读的「Previously」记忆 skill 投递进本机的 Claude Code / Codex / Kimi Code,让这些 Agent 开箱就懂得如何导航记忆目录。
 
 这种可移植性是核心设计目标。你永远不需要导出或迁移数据;只需让不同的工具指向同一个仓库即可。
 
@@ -57,7 +57,7 @@ order: 2
 
 ## 它达到生产就绪了吗?
 
-没有。Previously 是实验性的(v0.8)。README 带有"实验性"状态徽章,并明确说明"尚未准备好用于个人或生产用途"。
+没有。Previously 是实验性的(内核 v1.0)。README 带有"实验性"状态徽章,并明确说明"尚未准备好用于个人或生产用途"。
 
 这是个人部署,而非 SaaS 产品。作者承诺长期维护,但项目处于活跃的早期开发阶段。预计会遇到粗糙的边缘、破坏性变更以及仍在路线图上的功能。
 
@@ -69,20 +69,26 @@ order: 2
 
 ## 运行成本是多少?
 
-两个成本中心:
+取决于你选择哪种「大脑」,以及是否自部署:
 
-- **LLM API 使用费**——Previously 使用你自己的 API 密钥运行。支持九家提供商(DeepSeek、Anthropic、OpenAI、Moonshot AI、Alibaba、Google、Mistral、xAI、Groq);你设置了哪些密钥,就决定了可用的模型。两层架构是出于成本考虑:廉价的 **worker 模型**处理 housekeeping、召回扫描和用户卡演化,而**主模型**(由你选择)只保留给对话本身。
-- **托管费用**——Vercel(部署按钮指向 Vercel)。Vercel 的免费套餐可能覆盖轻度使用,但持续使用可能需要付费计划。GitHub 仓库存储基本上是免费的。
+- **本地优先(默认)——没有托管费。** 客户端与内核跑在你自己的机器上,记忆是本地 git 仓库。无需向 Vercel 或任何人付托管费。
+- **bridge 模式——零 API 费用。** 内核通过各家 CLI 驱动你本机已有的 Claude / Codex / Kimi 订阅。完全不需要 API key,Previously 也不碰 key——调用走的是你已经在付费的订阅。
+- **BYOK 模式——自己的 key,自己的账单。** 如果你改为配置 API key,用量由你的供应商按其费率计费。架构本身是为省钱设计的:廉价档处理 housekeeping 与回忆扫描,强模型只留给对话本身。
+- **云端自部署(进阶路径)** —— 如果用 Vercel + GitHub 后端自部署,托管费取决于你的 Vercel 套餐;GitHub 仓库存储基本免费。
 
-Previously 不收取任何订阅费、按席位收费或使用加价。你提供基础设施和密钥;该项目是介于两者之间的编排层。
+Previously 本身不收订阅费、不收席位费、不加价。你出机器和大脑;项目只是中间的编排层。
 
 ## 我的数据隐私吗?
 
-是的,这是设计使然。记忆存储在你拥有的 GitHub 仓库中(推荐使用私有仓库)。访问由 GitHub fine-grained personal access token 控制,该 token 限定为单个仓库的 contents 读写权限。没有保存你对话的平台数据库。没有第三方服务器存储你的 slice 或 Strand。
+是的,这是设计使然。本地优先就是字面意思:记忆存放在你自己机器上的 git 仓库里,对话不出这台机器。没有平台数据库,没有 Previously 服务器,没有任何第三方存储你的 slice 或 strand。想要异地备份,就把仓库 push 成 GitHub **私有**仓库——那是你的选择,不是必需品。
 
-在 HTTP 层面,变更类接口(`POST /api/chat`、`/api/loops`、`/api/episodic/flush`)有同源保护;当设置了 `ACCESS_SECRET` 时,非浏览器调用方还需要携带访问密钥。LLM 提供商显然会看到你发送的提示——这是唯一的外部数据通路,也是使用任何托管模型所固有的。
+唯一的外部数据通路是模型本身。bridge 模式下,prompt 发给你已订阅的本机 agent CLI;BYOK 模式下,你的 LLM 供应商会看到你发给它的 prompt。无论哪种,这都是使用任何托管模型所固有的——除此之外没有任何数据出机。
 
-你完全拥有数据的所有权。克隆它、备份它、迁移到其他供应商——它们只是 git 仓库中的文件。
+你完全拥有数据。克隆它、备份它、迁到别的工具——它只是 git 仓库里的文件。
+
+## 有没有可以试玩的 demo?
+
+有——站内的 [playground](/playground)。它跑的是只读演示数据集 [`previously-lab/you`](https://github.com/previously-lab/you):97 个时间片,覆盖 2024-01 到 2026-08,由 [`previously-lab/loom`](https://github.com/previously-lab/loom) 生成。无需安装,无需 key。
 
 ## 相关文档
 

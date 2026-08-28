@@ -1,16 +1,16 @@
 ---
 title: 简介
-description: Previously 是什么——一个围绕一条时间线上的持续关系组织的持久化云端 Agent,以情景记忆为其定义性特征。
+description: Previously 是什么——一个围绕一条时间线上的持续关系组织的本地优先持久化 Agent,以情景记忆为其定义性特征。
 order: 0
 ---
 
 # 简介
 
-Previously 是一个轻量级云端 Agent,其定义性特征是情景记忆(episodic memory):它能读、能写、能推理、能行动,并且被设计为能够跨越时间永久记忆(标语:"Previously on you.")。
+Previously 是一个本地优先的轻量级 Agent,其定义性特征是情景记忆(episodic memory):它能读、能写、能推理、能行动,并且被设计为能够跨越时间永久记忆(标语:"Previously on you.")。
 
 ## Previously 是什么
 
-Previously 不是另一个让你在一次性会话中聊天的助手。它是一个围绕单一理念组织的持久化云端 Agent:**一条时间线上的持续关系。** 你是指挥官;Previously 是你的幕僚。你出现,你交谈,你离开。当你回来时——数小时、数天或数周之后——你首先看到的是一条纵向的时间线,而非一列聊天线程。Agent 通过扫描事件发生的*时间*来判断相关性,然后检索*当时*说了什么。
+Previously 不是另一个让你在一次性会话中聊天的助手。它是一个驻留在你自己机器上的持久化 Agent,围绕单一理念组织:**一条时间线上的持续关系。** 你是指挥官;Previously 是你的幕僚。你出现,你交谈,你离开。当你回来时——数小时、数天或数周之后——你首先看到的是一条纵向的时间线,而非一列聊天线程。Agent 通过扫描事件发生的*时间*来判断相关性,然后检索*当时*说了什么。
 
 没有对话。没有对话管理。只有一条时间线。
 
@@ -36,14 +36,14 @@ Previously 用时片**取代**了线程。因为交互历史与记忆共享同�
 
 **Strand(线索)** —— 跨多个切片重复出现的关键词(如 `health`、`work`、`housing`)。索引文件 `memory/episodic/strands.json` 将每个关键词映射到所有携带该标签的切片路径。Strands 在切片关闭时基于其标签构建,随后由一个 worker 模型对索引做合并整理——合并近似重复的关键词并清理过期条目。Slice = 发生了什么;strand = 它关于什么。Strands 构成了时间线上轻量、无损的语义层。
 
-**Recall(回忆)** —— 双层检索引擎。**worker 模型**(从主模型供应商派生的廉价档,关闭思考)运行一个小型、有界的 recall 子代理:它从全局时间线目录出发,追踪匹配的 strand,返回最多五个带相关度分数的指针和推荐阅读。**主模型**(你在工具栏选的模型,启用思考模式)接收这些指针,然后通过细粒度工具读取实际的切片——用 `readSliceSummary` 做相关性判断,用 `readTimelineWindow` 按日期定位,用 `readSlice` 的轮次区间或 grep 模式读取具体内容——完整读取整个切片被保留为显式的最后手段。worker 被预期可能存在不完美;当扫描没有返回结果时,主模型会做更深层的工作。
+**Recall(回忆)** —— 情景回忆同事。你用自然语言提问,就像问一位当时在场的同事。Recall 子 Agent 先广度扫描(全局时间线目录、时间窗、strand),再深读至多五篇切片全文,最后用自然语言作答并附原文引用与置信度——「我们不记得聊过这个」也是合法答案。**主 Agent** 只保留 `readSlice` 工具用于核对 recall 的回答。其余事由它的同事们分担:webSearch 是在线研究员(搜索后直接读页面),thinkDeep 是隔离上下文的思考舱,专供无偏见的第二意见。
 
 | 术语 | 层级 | 角色 | 速度 |
 |------|------|------|------|
 | Slice | 情景层(何时) | 记录发生了什么 | 存储,非检索 |
 | Strand | 语义层(什么) | 跨切片的关键词 | 切片关闭时构建 |
-| worker recall | 检索层 1 | 扫描目录与 strand,返回指针 | 一次快速的 worker 代理运行 |
-| 主模型 recall | 检索层 2 | 细粒度深读 + 推理 | 数秒(每次工具调用) |
+| Recall | 检索 | 子 Agent 同事:先广度扫描,再带引用作答 | 一次有界的子 Agent 运行 |
+| 主 Agent | 核对 | 用 `readSlice` 抽查 recall,需要时直接读切片 | 每次工具调用 |
 
 ## 研究基础
 
@@ -51,7 +51,16 @@ Previously 用时片**取代**了线程。因为交互历史与记忆共享同�
 
 ## 状态
 
-Previously 目前是 **EXPERIMENTAL(实验阶段)**——早期开发,尚未准备好用于个人或生产环境。这是一个单人研究项目,但计划长期维护。目前已可用的功能包括:流式聊天与思考/回忆/工具调用可见性、时片存储与自动静默切片、一等公民的时间线目录(`memory/episodic/timeline/index.json` 及渲染出的 Markdown 投影,由切片 frontmatter 确定性地重建,并作为简报注入 Agent 的 prompt)、带细粒度读取工具的双层 recall 流水线(worker 扫描 + 主模型深读)、按片演化一次的紧凑用户卡片(Identity / Past / Now / Horizon / Self-model)以及用户显式确认的记忆更新、服务端本地时间标注、把琐碎回合挡在记忆之外的语义门、带路径白名单的 GitHub 文件工具、多供应商模型支持(DeepSeek、Anthropic、OpenAI 兼容)、通过 Vercel Workflow 的耐久后台运行,以及中英双语国际化。
+Previously 目前是 **EXPERIMENTAL(实验阶段)**——早期开发,尚未准备好用于个人或生产环境。这是一个单人研究项目,但计划长期维护。目前已可用的能力:
+
+- **本地优先安装** —— 一条命令(`npm i -g previously-client`),然后裸 `previously` 向导完成初始化。你的记忆是一个本地 git 仓库(默认 `~/Documents/Previously`),可 push 成私有 GitHub 仓库;内核以精确绑定版本的 `previously-kernel` npm 包分发。
+- **用自己的大脑,花自己的钱** —— 自带 API key(BYOK),或桥接本机已有的 Claude / Codex / Kimi 订阅:零 key、零 API 费用。
+- **子 Agent 同事制** —— recall 带原文引用回答情景问题,webSearch 直接读页面做在线调研,thinkDeep 是隔离上下文的思考舱。
+- **达尔文式自进化** —— 方向文档(`memory/evolution/direction.md`)、证据锚定的 fitness 评分、append-only 变异档案(`memory/evolution/mutations.md`)和各子 Agent 的行为指引(`memory/agent-playbooks/`),让 Agent 跨切片进化而不漂移。
+- **上文所述的记忆内核** —— 自动静默切片的时片存储、由切片 frontmatter 确定性重建的时间线目录、recall 流水线,以及每片演化一次的紧凑用户卡。
+- **记忆 skill 取代 MCP** —— 只读 MCP server 已退役,本机 Agent 改为接收一份只读的「Previously」记忆 skill。
+
+Vercel + GitHub 后端的云端自部署仍然保留,作为进阶路径。
 
 目前仍缺失的:每个 strand 自身的滚动摘要与更深度的 recall 集成,以及目录 schema 为之设计的时间线可视化 UI。两者都是未来的里程碑。
 

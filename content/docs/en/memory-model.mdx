@@ -1,6 +1,6 @@
 ---
 title: Memory Model
-description: How memory is structured — the build-time identity constitution, the episodic timeline of slices and strands, the living user card, the whitelist boundary, and per-turn context assembly.
+description: How memory is structured — the build-time identity constitution, the episodic timeline of slices and strands, the living user card, the evolution data layer (direction, fitness, mutations archive, playbooks), the whitelist boundary, and per-turn context assembly.
 order: 3
 ---
 
@@ -12,7 +12,7 @@ Previously has no database and no vector store. Memory is plain Markdown files i
 - **The shared record** — every conversation, every decision, every unspoken moment that got remembered. This is what Previously stores, as a timeline of episodic slices.
 - **Its thinking** — the agent's own cognition while it worked: what it recalled, what it reasoned, what it concluded. This is recorded too, alongside each slice.
 
-The memory model is how these lines are kept: an immutable identity bundled at build time, a lossless episodic timeline at runtime, and a compact user card that distills the timeline into who you are.
+The memory model is how these lines are kept: an immutable identity bundled at build time, a lossless episodic timeline at runtime, a compact user card that distills the timeline into who you are — and, since v1.0, an evolution data layer that records how the system itself should change.
 
 ## L0: The Identity Constitution
 
@@ -25,19 +25,19 @@ At build time, `scripts/generate-identity.mjs` compiles both files into a genera
 Every conversation burst becomes a **slice** — a directory on your personal timeline whose path encodes exactly when it happened:
 
 ```
-memory/episodic/slices/2025/11/21/0825/
+memory/episodic/slices/2026/08/10/2130/
   timeline/
     core.md      -- the shared record: YAML frontmatter + conversation turns
     agent.md     -- its thinking: the agent's cognition log for this slice
   previously.md  -- a snapshot of the user card as of this slice
 ```
 
-Note the two files under `timeline/`: `core.md` is the shared record (what was said, with structured metadata — `focus`, `summary`, `open_loops`, `decisions`, `tags`, `emotional_tone`, `status`, `start`/`end`), while `agent.md` is the agent's own line — its thinking at the time, mechanically extracted. A slice opens when you start talking and closes after about 15 minutes of silence by default (or context loss, or a turn-count cap). There is no topic-shift rule: slicing is purely time-driven, so the timeline stays a lossless autobiography. See [Slices](/docs/slices) for the full lifecycle.
+Note the two files under `timeline/`: `core.md` is the shared record (what was said, with structured metadata — `focus`, `summary`, `open_loops`, `decisions`, `tags`, `emotional_tone`, `status`, `start`/`end`), while `agent.md` is the agent's own line — its thinking at the time, mechanically extracted. A slice opens when you start talking and closes by pure time rules (a slice-age cap, context loss, or a turn-count safety valve). There is no topic-shift rule: slicing is purely time-driven, so the timeline stays a lossless autobiography. See [Slices](/docs/slices) for the full lifecycle.
 
-**Strands** are the thin semantic index over that timeline: a keyword like `work` or `family` woven through every slice that carries it, stored in `memory/episodic/strands.json` as a strand-to-slice-paths mapping. A slice is what happened; a strand is what it was about. See [Strands](/docs/strands).
+**Strands** are the thin semantic index over that timeline: a keyword like `wedding-speech` or `running` woven through every slice that carries it, stored in `memory/episodic/strands.json` as a strand-to-slice-paths mapping. A slice is what happened; a strand is what it was about. See [Strands](/docs/strands).
 
 <Callout variant="info">
-**Key takeaway: slices are the single source of truth.** Everything else — the strand index, the timeline catalog, the user card — is a derived, rebuildable projection over the slice files.
+**Key takeaway: slices are the single source of truth.** Everything else — the strand index, the timeline catalog, the user card, the playbooks — is a derived, rebuildable projection over the slice files.
 </Callout>
 
 ## The Timeline Index
@@ -47,9 +47,9 @@ Reading a hundred slices to answer one question wastes context, so Previously ma
 - `memory/episodic/timeline/index.json` — the canonical structured catalog: one entry per slice with its `focus`, `summary`, `tags`, `strands`, `open_loops`, `decisions`, and a `needs_marking` flag for slices whose semantics haven't been filled yet.
 - `memory/episodic/timeline.md` — a Markdown projection of the same catalog, grouped by month and day, readable by the agent (and by you).
 
-Both are rebuilt deterministically by `weaveTimeline` — enumerate the slice files, diff, reconcile — with zero model calls. A fresh slice is upserted into the catalog the turn it is created; a worker model later backfills `focus`/`summary` for any entry flagged `needs_marking`, off the turn's critical path.
+Both are rebuilt deterministically by `weaveTimeline` — enumerate the slice files, diff, reconcile — with zero model calls. A fresh slice is upserted into the catalog the turn it is created; a housekeeping sub-agent later backfills `focus`/`summary` for any entry flagged `needs_marking`, off the turn's critical path.
 
-The index is a map, not an answer source: each line carries enough texture to judge relevance, but correctness always comes from opening the raw slice with `readSlice`. The agent is explicitly instructed that a timeline line is a pointer, never a source to cite from.
+The index is a map, not an answer source: each line carries enough texture to judge relevance, but correctness always comes from opening the raw slice. That drill-down is now the recall colleague's job — it navigates the catalog, the strands, and the slices itself, and quotes the originals. See [Recall](/docs/recall).
 
 ## The User Card
 
@@ -65,7 +65,31 @@ The card has five sections:
 | **Horizon** | Future-facing commitments and deadlines, each with a `by:` date; overdue items are flagged, never silently dropped |
 | **Self-model** | The agent's operating lessons about working with you — deltas from its standing directives only |
 
-Every entry carries `refs` pointers back to the slices that evidence it, so any claim can be drilled down to the raw record. The card is never rewritten wholesale and never touched by the generic write tool: a dedicated worker-model agent edits it through validated per-entry mutations (`addNow`, `updatePastProfile`, `resolveHorizon`, …), and over-limit writes are rejected with compression instructions. Hard caps keep the whole card under ~8 KB, so it stays cheap to inject into every prompt. See [The User Card](/docs/user-card) for the full format and evolution loop.
+Every entry carries `refs` pointers back to the slices that evidence it, so any claim can be drilled down to the raw record. The card is never rewritten wholesale and never touched by the generic write tool: the evolution agent edits it through validated per-entry mutations (`addNow`, `updatePastProfile`, `resolveHorizon`, …), and over-limit writes are rejected with compression instructions. Hard caps keep the whole card under ~8 KB, so it stays cheap to inject into every prompt. See [The User Card](/docs/user-card) for the full format.
+
+## The Evolution Data Layer
+
+Since v1.0 there is a second, smaller data layer next to the episodic one — the state of the self-evolution loop itself (`src/lib/evolution/`):
+
+```
+memory/evolution/
+  direction.md      -- the selection criteria: Direction / Anti-goals / Evidence / Log
+  fitness.json      -- bounded store of scored events + mechanical signals
+  mutations.md      -- append-only archive of accepted mutations
+memory/agent-playbooks/
+  recall.md         -- evolved behavioral brief for the recall colleague
+  search.md         -- ... for webSearch
+  thinkdeep.md      -- ... for thinkDeep
+```
+
+- **direction.md** — what "better for you" means across slices. Abstract (still true in a month), cross-slice (multiple slices plus the agent timeline per conclusion, with pointers in Evidence), and its Log section is append-only. This is the loop's environment; the card and playbooks are only its products.
+- **fitness.json** — the selection pressure's ledger. Events are per-slice, per-bucket (`card` / `recall` / `search` / `thinkdeep` / `interaction`) ordinal deltas (−2…+1) with user-verbatim evidence attached — an evidence-less score is force-zeroed structurally on write. Alongside them sit mechanical signals (recall verify/rework/repeat) recorded by instrumentation, not by any model. The store is deliberately bounded (~200 of each): it is a soft-signal log, never an archive of record.
+- **mutations.md** — the mutation archive. Append-only: each entry carries its target, a summary, an expected benefit, and evidence pointers. Archiving a new mutation evaluates the previous one on the same target — a bucket that kept losing points earns an `**Evaluation: ineffective**` line. No rollback, no deletion, no budget.
+- **agent-playbooks/** — one short brief per sub-agent (≤2,000 characters), injected into its user prompt at call time. A missing playbook is a normal state: the injection is simply skipped.
+
+<Callout variant="info">
+**The evolvable surface is data; the contracts are code.** Direction, playbooks, the card, and the archive under `memory/` are what the evolution loop may rewrite. The sub-agent schemas, tool sets, budgets, trigger math, and acceptance rules stay in `src/` — deliberately outside the loop's reach, so the protocol that governs evolution cannot itself be evolved.
+</Callout>
 
 ## The Whitelist Boundary
 
@@ -83,7 +107,9 @@ Within the whitelist, system-managed paths are readable but write-blocked for th
 - Any `_index.json` file
 - Any `strands.json` file
 
-This keeps the episodic timeline and its structural indexes safe from accidental or malicious corruption; the card evolves only through its dedicated mutation tools.
+The evolution layer's protection is of a different kind: not a path pattern but **tool ownership**. Only the evolution agent holds the writes to `memory/evolution/` and `memory/agent-playbooks/` — recall, webSearch, and thinkDeep are read-only reporters — so the acceptance rules and the evidence chain have exactly one place to hold.
+
+This keeps the episodic timeline and its structural indexes safe from accidental or malicious corruption; the card and the evolution files change only through their dedicated, validated paths.
 
 ## Context Assembly: Built Fresh Every Turn
 
@@ -95,14 +121,14 @@ There is no ever-growing prompt window. Each turn, the workflow assembles the sy
 4. **Timeline and strands blocks** — a pointer view of recent slices and the strand menu.
 5. **Notices** — evolution results, demo mode.
 
-The ordering is a cache decision, not just layout: the stable blocks form a long byte-identical prefix the provider's prompt cache reuses across turns, while the variable tail changes freely without invalidating it. Deep context is never stuffed into the prompt by default — recall works the timeline in two tiers: a worker model scans summaries and returns pointers, and the main model deep-reads only the slices that matter via `readSlice`. See [Recall](/docs/recall).
+The ordering is a cache decision, not just layout: the stable blocks form a long byte-identical prefix the provider's prompt cache reuses across turns, while the variable tail changes freely without invalidating it. Deep context is never stuffed into the prompt by default — the main agent asks the recall colleague, which searches the timeline itself and answers with anchored quotes. See [Recall](/docs/recall).
 
 ## Why Plain Markdown + YAML
 
 Every piece of memory is a Markdown file with YAML frontmatter. This choice is deliberate:
 
 - **Portable** — `git clone` anywhere, read on any device, no server needed.
-- **Git-diffable** — every change to a slice, the card, or the strand index is tracked in version history. You can see what Previously learned, and when.
+- **Git-diffable** — every change to a slice, the card, the direction, or the mutation archive is tracked in version history. You can see what Previously learned, and when.
 - **Human-editable** — open any file in your editor, fix a summary, add a tag. No admin UI, no SDK.
 - **Any tool reads it** — Previously writes, Claude Code reads, Codex extends. No lock-in, no integration tax, no schema migration.
 
@@ -113,5 +139,5 @@ Files are the interface.
 - [The Timeline](/docs/timeline) — the interaction surface this memory model powers
 - [Slices](/docs/slices) — the episodic layer in detail
 - [Strands](/docs/strands) — the semantic keyword index
-- [The User Card](/docs/user-card) — the living distillation of you
-- [Recall](/docs/recall) — how the agent works the timeline at inference time
+- [The User Card](/docs/user-card) — the living distillation of you, and the loop that evolves it
+- [Recall](/docs/recall) — the colleague who works the timeline at inference time

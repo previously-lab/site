@@ -1,79 +1,63 @@
 ---
 title: 召回
-description: 双层检索引擎——worker 模型在时间线与 Strand 间导航返回指针,主模型再读取真正重要的切片,整个过程在一次回合内完成。
+description: 情景回忆同事——你用自然语言提问,它自己在记忆里检索(时间线窗口、Strand、摘要,再到配额受限的全文深读),用挂着原文引用的 references、检索轨迹 searched 和置信度回答。
 order: 4
 ---
 
 # 回忆(Recall)
 
-回忆是 Previously 检索相关历史对话的方式——这是一个双层引擎:廉价的 worker 模型返回轻量级指针,然后主模型读取它选中的切片,整个过程在一次回合内完成。每一步都实时渲染在聊天中:回忆在明处运行,而不是藏在 spinner 后面。
+回忆是 Previously 检索相关历史对话的方式。在 v1.0 里,它不再是主 Agent 驱动的检索工具,而是一位**同事**:一位情景回忆专家,主 Agent 用自然语言向它提问,它自己搜记忆,然后带回一份挂着原文引用的回答。每一步都实时渲染在聊天中:回忆在明处运行,而不是藏在 spinner 后面。
 
-## 双层回忆引擎
+## 是同事,不是工具
 
-Previously 中的情景记忆以**切片(slice)**的形式存储——位于 `memory/episodic/slices/2025/11/21/0825/` 这类路径下的目录,每个目录对应一次对话爆发,在你说话时打开,在默认约 15 分钟静默后关闭。经过数周和数月,这些切片会积累成一个深度档案。挑战在于:Agent 如何在不每次读取所有内容的情况下找到重要的信息?
+契约的两端都是对话式的。主 Agent 用一个朴素的问题调用 `recall`——`{question: "我们之前有没有和用户聊过婚礼致辞?"}`——就像你问一位当时在场的同事。Recall 也用自然语言回答。
 
-Previously 将这个问题拆分为两个反射层次:
+两条纪律贯穿整个交互:
 
-| 层次 | 模型 | 成本 | 作用 |
-|-------|-------|------|-------------|
-| **worker 扫描**(条件反射) | 解析出的 worker 模型 | 便宜、快速 | 一个小型多步 agent:读取全局时间线的指针行、圈定日期窗口、追踪匹配的 Strand——返回**指针**(`{ slice_id, relevance, reason }`)与推荐阅读,从不返回切片正文 |
-| **主模型深读**(审慎推理) | 你在工具栏选的主模型 | 较慢,启用思考 | 接收指针,通过 `readSliceSummary` 检查摘要,只在内容本身重要时才用 `readSlice` 打开完整切片 |
-
-worker 的设计允许出错。它以完整性换取速度:它导航的是指针行与 Strand 图谱,而非完整正文。主模型是安全网——它在指针所指的方向深入挖掘。
+1. **同事关系,用户永远是第三方。** 主 Agent 与 recall 互以同事相称,称你为「用户」——任何一方都不会假扮你,也不会把对方当成你。这写进了共享的子 Agent 基础提示词和主 Agent 的工具描述里。
+2. **证据锚定。** 凡是对情景的断言,必须挂原文引用或 slice 指针;引不出原文的断言标为不确定。回忆、评分、方向变更全部遵守——幻觉是被结构性地锁死的,而不是指望模型自觉。
 
 <Callout variant="info">
-**要点**:worker 回答"往哪里找。"主模型回答"这意味着什么。"两者不可互相替代。
+**要点**:主 Agent 不再亲自在记忆里导航。它问一位熟悉档案的同事,然后采信——并可以核验——对方的回答。
 </Callout>
 
-### 第 1 步:worker 扫描
+## 回忆报告
 
-回忆不是自动发生的——当查询涉及过去时,主模型会调用 `recall` 工具(`src/app/api/agent/tool-executors.ts` 中的 `recallExecute`),它的系统提示里带有一份已知 Strand 菜单作为引导。该工具把查询交给一个运行在 worker 模型上的回忆 mini-agent(`src/lib/episodic/flash/recall.ts` 中的 `runRecallSearch`)。
+Recall 的回答落地为一份结构化报告,四个部分:
 
-worker 是一个小型多步 agent,自带三个只读工具:
+| 字段 | 内容 |
+|-------|-----------------|
+| `answer` | 自然语言回答,用你的语言。「我们不记得聊过这个」是合法且重要的答案;硬凑命中是被禁止的。 |
+| `references[]` | `{slice_id, quote, note}`——answer 里每个情景断言都必须在这里挂一条原文引用。 |
+| `searched[]` | 实际找过的路径——时间窗、追过的 Strand、读过的切片——供主 Agent 判断这次回忆有多完整。 |
+| `confidence` | 0–1。 |
 
-- `readGlobalTimeline` —— 入口:全局时间线中最新切片的指针行(id · focus · tags · turns)
-- `readTimelineWindow` —— 同一份目录按日期范围圈定,用于"那段时间发生了什么"这类查询
-- `readStrand` —— 追踪一个关键词 Strand,找到所有携带它的切片
+`searched` 轨迹让否定答案也可信:同样是「我们不记得」,查过相关时间窗和两条 Strand 之后说的,与扫了一眼时间线就放弃的,含义完全不同。
 
-经过几步探索后,它提交一份结构化报告:`hits` 指针数组——切片 ID、相关性分数(0–1)、一行原因——外加置信度、一行简短的推理说明,以及最多五条**推荐阅读**(切片 ID、优先级、为什么、该看什么)。当前对话的切片在构造上就被排除;任何不在时间线目录里的切片 ID 都会在指针送达主模型之前被丢弃——幻觉出的指针不会把主模型引向不存在的文件。
+## Recall 如何检索
 
-**worker 从不读取切片正文。** 它没有 `readSlice` 工具——时间线与 Strand 图谱就是它的全部世界,所以它的答案是导航,不是引用。追踪 Strand 是扫描的一等组成部分:Strand 索引(`strands.json`,切片关闭时建立的关键词到切片路径映射)会被注入它的提示词,匹配的 Strand 为它提供直达相关切片的路径。
+Recall 持有全套只读记忆工具——`readGlobalTimeline`、`readTimelineWindow`、`readStrand`、`listStrands`、`readSliceSummary`,以及 `readSlice`(含 range 协议)——按人回忆的方式工作:先广度,深度只花在线索指向的地方。
 
-> **回忆一次,然后停止。** 如果扫描什么都没找到,那就是确定性的答案——该查询没有过去的上下文。Agent 被指示不要为同一个主题再次调用 `recall`,而是从对话和自身知识作答。
+1. **时间锚点优先。** 问题里带时间锚点(「上周」、「婚礼前一天」)时,先用 `readTimelineWindow` 锁定物理时间窗。
+2. **追踪 Strand。** 从问题里的线索出发,沿匹配的 Strand——关键词到切片的索引——找到所有携带该话题的切片。
+3. **先摘要,后全文。** 切片摘要用来判断值不值得打开;全文深读配额**最多 5 片**,深度只花在重要的地方。
+4. **找不到就直说。** 检索确实一无所获时,诚实的回答是「我们想不起来这个」,并附上 `searched` 清单。Recall 绝不硬凑命中。
 
-回忆阶段渲染为一个可折叠卡片,带 History 图标。worker 探索时,它的步骤实时流入卡片——"Reading global timeline…"、"Tracing strand: X…"——报告落地时定格为命中数。展开时:每条命中显示为 `slice_id` + 原因 + 相关性百分比、一行斜体推理文字以及置信度。
+预算宽到足够认真检索——20 步、240 秒墙钟、温度 0.3(情景理解需要一点温度;诚实由证据锚定的结构保证)。超时不会白跑:recall 边想边写答案,runner 会返回已积累的部分结果。
 
-### 第 2 步:深读
+## 返工信号
 
-worker 的指针与推荐阅读作为 `recall` 工具结果进入主模型的上下文。主模型用自己的记忆工具决定挖多深:
+主 Agent 只保留了一个记忆读取工具:`readSlice`,专门用于**核验 recall 的回答**——「只在需要核对 recall 说了什么时,才打开原始切片」。
 
-| 工具 | 用途 |
-|------|---------|
-| `readSliceSummary` | 最低成本的检查——只读切片 frontmatter(focus、summary、tags、open loops) |
-| `readTimelineWindow` | 按时间定位——一个日期范围内的指针行 |
-| `readPreviously` | 读取用户卡片的信念快照 |
-| `readSlice` | 读取一个切片的轮次——最后手段;可选 `range` 只取它需要的轮次 |
+这条核验通道是埋了点的。当主 Agent 调用 recall 之后又自己重读同一个切片,系统会给这次读取分类——快速核对是 `verify`,把 recall 的活重干一遍是 `rework`,同一个问题再问一遍是 `repeat`——并记进 agent 时间线与 fitness store(`src/lib/episodic/rework-signal.ts`)。一次 rework 是对 recall 的隐式扣分:它意味着回答没被采信。这是 fitness 评分最可靠的隐式信号源;攒够了,就会触发 recall playbook 的一次进化(见[用户卡片](/docs/user-card#进化回路))。
 
-原始的浏览工具(`readStrand`、`listSlices`、`listStrands`)属于回忆 worker——主模型从不亲自遍历目录树。
+<Callout variant="warning">
+**回忆一次,然后采信。** 如果 recall 找过且没找到,那就是确定性的答案——主 Agent 不会为同一个问题再问一遍,基于当前对话作答就是正确做法。把同事已经找过的东西再搜一遍,读起来就是不信任,而系统现在恰恰在给这种行为记分。
+</Callout>
 
-它遵循的规则是:时间线行与摘要足以决定**要不要**挖——但永远不足以**引用**。在引用过去对话的具体内容之前,它会用 `readSlice` 打开切片。而当扫描什么都没找到时,这个结果是确定性的——没有过去上下文可找,于是它基于当前对话作答,而不是再次搜索。
+在演示数据集（[`you`](https://github.com/previously-lab/you)，97 个切片）上跑一次真实的回忆——只有预设问题，带原文引用和检索轨迹实时作答：
 
-### 第 3 步:元数据维护
-
-回忆与每回合的 housekeeping 环节是相互独立的,后者为**当前活跃切片**——即当前对话正在写入的切片——提议元数据更新。回合分析器(`src/lib/episodic/flash/turn-analyzer.ts`)是 housekeeping 内的唯一 worker 模型调用,在一次廉价扫描里产出:
-
-- **message_tags** —— 当前用户消息的合并优先标签:原样复用已有 Strand 名称,只有在没有话题能覆盖时才创建真正新的持久话题
-- **semantic_hint** —— 这条消息关于哪些已有 Strand,以及为什么
-- **intent** —— 用户这一回合想做什么(debug、write、explain、chat、review、clarify)
-- **emotional_signal** —— 这条消息的情绪权重,让 agent 能贴合用户的语气
-- **memory_update** —— 当用户明确要求记录某事、或陈述了一条持久的纠正时,要折进用户卡片的确切内容
-
-仅当本回合有切片关闭时:
-
-- **closed_marking** —— 关闭切片的 focus、summary、精炼标签与情绪基调
-- **evolve_card** —— 其中是否有值得沉淀到用户卡片的内容(分析器失败时默认运行——浪费一次检查很便宜,错过一次演化是永久的记忆丢失)
-
-一个**记忆价值门**随之运行:琐碎回合(「谢谢」「继续」)不产生标签、不进 Strand 索引、不触发演化——一次性噪音不会污染时间线。
+<Playground preset="recall-mom" />
 
 ## 三阶段聊天渲染
 
@@ -93,12 +77,12 @@ worker 的指针与推荐阅读作为 `recall` 工具结果进入主模型的上
 
 当主模型启用了思考功能(默认:开启,推理程度按工具栏选择),推理作为 `reasoning` parts 流出。客户端将其渲染为 `ThinkingSteps`——一个带 Brain 图标的 `PhaseIndicator` 可折叠卡片。
 
-- **折叠摘要**:"思考 · Ns"计时器
+- **折叠摘要**:「思考 · Ns」计时器
 - **展开内容**:推理 markdown
 
 ### 2. 回忆 / 工具阶段
 
-工具调用通过 `ToolRenderer` 以内联可折叠卡片渲染。每个记忆工具——`recall`、`readSliceSummary`、`readTimelineWindow`、`readSlice`、`readPreviously`——都会得到内容感知的标签,而不是原始工具名:回忆卡片带上查询,切片卡片指明日期(显示"查看了 7月25日 的对话",而不是 "readSlice")。工具运行时,一行实时状态文字流式展示进度。
+工具调用通过 `ToolRenderer` 以内联可折叠卡片渲染。每个工具——`recall`、`readSlice`、`readPreviously`、`webSearch`、`thinkDeep`——都会得到内容感知的标签,而不是原始工具名:回忆卡片带上提问,切片卡片指明日期(显示「查看了 7 月 16 日的对话」,而不是 "readSlice")。recall 工作时,它的步骤实时流入卡片——读时间窗、追 Strand、打开切片——报告落地时定格为答案与置信度。
 
 每张卡片有五种视觉状态:**运行中**(spinner)、**已完成**(圆点)、**错误**(红)、**中断**(黄)、**拒绝**(红)。点击展开查看完整工具输出——CSS `grid-template-rows` 过渡,无需 JS 测高。
 
@@ -109,5 +93,6 @@ worker 的指针与推荐阅读作为 `recall` 工具结果进入主模型的上
 ## 相关文档
 
 - [切片(Slices)](/docs/slices) —— 切片如何创建、关闭和索引
-- [主题索引(Strands)](/docs/strands) —— 跨切片的语义关键词索引(实验性)
-- [架构(Architecture)](/docs/architecture) —— 回合 workflow 与消息渲染的完整组件树
+- [主题索引(Strands)](/docs/strands) —— recall 所追踪的语义关键词索引
+- [用户卡片](/docs/user-card) —— 当 fitness 分数开口时,进化 recall playbook 的那条回路
+- [架构(Architecture)](/docs/architecture) —— 同事制与主 Agent 收窄的工具面

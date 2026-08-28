@@ -3,6 +3,7 @@ import type { JSX } from "react";
 import type { MDXComponents } from "mdx/types";
 import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
+import { Playground } from "@/components/playground/playground";
 
 /* ------------------------------------------------------------------ */
 /*  Callout                                                           */
@@ -240,4 +241,5 @@ export const mdxComponents: MDXComponents = {
   hr: () => <hr className="my-10 border-border" />,
 
   Callout,
+  Playground,
 };

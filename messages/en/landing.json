@@ -19,7 +19,7 @@
       "threadsText": "3 — the speech draft, what comes after the half-marathon, that ski trip.",
       "earlierLabel": "← earlier",
       "nowLabel": "NOW",
-      "ctaDemo": "Try the live demo",
+      "ctaDemo": "Try the playground",
       "ctaGithub": "View on GitHub",
       "ctaDocs": "Read the docs"
     },
@@ -128,8 +128,8 @@
     },
     "Act3": {
       "eyebrow": "03",
-      "title": "A memory that learns.",
-      "body": "A compact user card that evolves as you talk — corrected when wrong, refined when things change. Not a dossier. Just what matters.",
+      "title": "A memory that evolves.",
+      "body": "Evolution here is Darwinian, not decorative. A direction doc defines what \"better for you\" means; every turn is fitness-scored against evidence in your own words; an append-only mutations log keeps the process honest. The card below is just what selection leaves behind.",
       "cta": "Explore the memory model",
       "cardTitle": "current-previously.md",
       "identityLabel": "Identity",
@@ -152,7 +152,7 @@
           "meta": "refs: [2026/07/16], [2026/08/02] | since: 2026-07-16"
         }
       ],
-      "updatedNote": "refined after each closed slice"
+      "updatedNote": "selected by direction.md · fitness-scored with evidence · archived in mutations.md"
     },
     "Act4": {
       "eyebrow": "04",
@@ -179,50 +179,51 @@
     "Act5": {
       "eyebrow": "05",
       "title": "Specialists, not brute force.",
-      "body": "Dynamic context means complex work shouldn't be brute-forced by one model. The main agent orchestrates, dispatching tasks to dedicated agents — recall, reasoning, search, curation. Every dispatch is visible.",
+      "body": "Sub-agents here are colleagues, not tools. recall remembers like a witness — every answer cites the original slice, and \"I don't have that memory\" is a valid answer. webSearch researches with sources; thinkDeep is a clean thinking chamber, on demand. The main agent orchestrates and verifies — nothing more.",
       "cta": "Explore the architecture",
-      "hubLabel": "core agent",
-      "hubDetail": "orchestrates — dispatches and synthesizes",
+      "hubLabel": "main agent",
+      "hubDetail": "orchestrates · verifies via readSlice",
       "w1Label": "recall agent",
-      "w1Detail": "skims slices, returns only pointers",
-      "w2Label": "think agent",
-      "w2Detail": "deep reasoning, three effort levels",
-      "w3Label": "search agent",
-      "w3Detail": "web retrieval, with sources",
-      "w4Label": "curate agent",
-      "w4Detail": "tags · strands · user card"
+      "w1Detail": "quotes evidence · admits no memory",
+      "w2Label": "thinkDeep",
+      "w2Detail": "clean thinking chamber, on demand",
+      "w3Label": "webSearch",
+      "w3Detail": "reads ≤3 pages · cited confidence",
+      "w4Label": "evolution agent",
+      "w4Detail": "scores fitness · mutates direction"
     },
     "Trust": {
       "cards": [
         {
           "icon": "github",
-          "title": "Your memory, your repository.",
-          "body": "The slice from the night of August 7 is a Markdown file in your own GitHub repo — along with what the agent was thinking at the time. So is every other moment. No proprietary database, no one else's server.",
+          "title": "One command. Local-first.",
+          "body": "npm i -g previously-client, then run previously — a guided setup builds your memory as a plain local git repo (default ~/Documents/Previously), committed as you talk. Push it to any private remote; it's yours either way.",
           "cta": "View on GitHub"
         },
         {
           "icon": "clock",
-          "title": "It works while you're away.",
-          "body": "Close the tab mid-turn. The run is durable and resumable — it keeps going, and when you're back it picks up exactly where it left off.",
+          "title": "Bring your own brain.",
+          "body": "BYOK with your own API key, or bridge the Claude / Codex / Kimi subscription already on this machine — zero keys, zero API fees. Close the lid mid-turn; the local run resumes where it left off.",
           "cta": "See the workflow"
         },
         {
           "icon": "scale",
-          "title": "Open source. Self-host. No lock-in.",
-          "body": "MIT licensed, no telemetry. Run it on your own machine, read every line, keep your memory in your repo. Forever yours.",
+          "title": "Open source. No lock-in.",
+          "body": "MIT licensed, no telemetry. The kernel ships as the pinned previously-kernel npm package — upgrading the client upgrades everything. Self-host the cloud kernel on Vercel if you ever outgrow local.",
           "cta": "Get started"
         }
       ],
       "repo": {
-        "root": "your-username/memory",
+        "root": "~/Documents/Previously",
         "rows": [
           { "text": "└─ episodic/" },
           { "text": "   ├─ slices/2026/08/07/1808/" },
           { "text": "   │  ├─ previously.md", "note": "← what you said" },
           { "text": "   │  └─ timeline/" },
-          { "text": "   │     ├─ core.md" },
-          { "text": "   │     └─ agent.md", "note": "← what it was thinking" },
-          { "text": "   ├─ current-previously.md", "note": "← the living user card" },
+          { "text": "   ├─ evolution/" },
+          { "text": "   │  ├─ direction.md", "note": "← what \"better\" means" },
+          { "text": "   │  └─ mutations.md", "note": "← append-only archive" },
+          { "text": "   ├─ current-previously.md", "note": "← what selection kept" },
           { "text": "   └─ strands.json" }
         ],
         "file": "previously.md",
@@ -234,19 +235,19 @@
       },
       "run": {
         "tabLabel": "previously — writing slice 2026/08",
-        "closedLabel": "tab closed · 14:02",
-        "runningLabel": "turn keeps running",
+        "closedLabel": "laptop closed · 14:02",
+        "runningLabel": "local turn keeps running",
         "resumedLabel": "resumed where you left off"
       },
       "oss": {
-        "command": "git clone github.com/previously-lab/agent",
-        "badges": ["MIT", "No telemetry", "Self-host"]
+        "command": "npm i -g previously-client",
+        "badges": ["MIT", "Local-first", "BYOK or bridge"]
       }
     },
     "Finale": {
       "title": "Previously on you.",
-      "subtitle": "Open source. Self-hosted. Always yours.",
-      "ctaDemo": "Try the live demo",
+      "subtitle": "Open source. Local-first. Always yours.",
+      "ctaDemo": "Try the playground",
       "ctaGithub": "View on GitHub"
     }
   }

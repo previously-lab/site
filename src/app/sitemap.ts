@@ -43,6 +43,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 1.0,
       ...alternatesFor(),
     })),
+    // ---- Playground ----
+    ...locales.map((locale) => ({
+      url: `${baseUrl}${localizePath(locale, "/playground")}`,
+      lastModified,
+      changeFrequency: "weekly" as const,
+      priority: 0.9,
+      ...alternatesFor("/playground"),
+    })),
   ];
 
   // ---- Doc pages for each locale ----

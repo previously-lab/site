@@ -26,7 +26,6 @@ interface HeroSectionProps {
   ctaDemo: string;
   ctaGithub: string;
   ctaDocs: string;
-  demoUrl: string;
   githubUrl: string;
 }
 
@@ -65,7 +64,6 @@ export function HeroSection({
   ctaDemo,
   ctaGithub,
   ctaDocs,
-  demoUrl,
   githubUrl,
 }: HeroSectionProps): React.ReactElement {
   const lineRef = useRef<HTMLDivElement>(null);
@@ -164,14 +162,12 @@ export function HeroSection({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 1.1, ease: EASE }}
       >
-        <a
-          href={demoUrl}
-          target="_blank"
-          rel="noopener noreferrer"
+        <Link
+          href="/playground"
           className={cn(buttonVariants({ size: "lg" }), "w-full sm:w-auto")}
         >
           {ctaDemo}
-        </a>
+        </Link>
         <a
           href={githubUrl}
           target="_blank"

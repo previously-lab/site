@@ -39,26 +39,39 @@ order: 1
 Slice 不再是单个文件:它是一个**目录**,内含对话本体、agent 认知日志和用户卡快照。Slice 存放在 `memory/episodic/slices/` 下,采用日历层级:
 
 ```
-memory/episodic/
-  current-previously.md    -- 当前生效的用户卡
-  slices/
-    2026/
-      07/
-        28/
-          0658/            -- 一个 Slice 目录
-            timeline/
-              core.md      -- 对话本体:YAML 前置元数据 + 轮次
-              agent.md     -- agent 认知日志(机械提取)
-            previously.md  -- 该 Slice 携带的用户卡快照
-          1024/            -- 同一天的另一个 Slice
-        _index.json        -- 2026 年 7 月的月度索引
-      08/
-      ...
-  strands.json             -- 全局关键词到 Slice 的索引
-  timeline/
-    index.json             -- 所有 Slice 的规范化结构目录
-  timeline.md              -- 目录的 Markdown 投影
+memory/
+  user/
+    profile.md               -- 你是谁,跨切片持久
+  evolution/                 -- 达尔文式自进化(v1.0)
+    direction.md             -- 当前进化方向、anti-goals 与证据日志
+    fitness.json             -- 证据锚定的评分,按能力分桶
+    mutations.md             -- 已接受变异的 append-only 档案
+  agent-playbooks/           -- 各子 Agent 的短行为指引
+    recall.md
+    search.md
+    thinkdeep.md
+  episodic/
+    current-previously.md    -- 当前生效的用户卡
+    slices/
+      2026/
+        07/
+          28/
+            0658/            -- 一个 Slice 目录
+              timeline/
+                core.md      -- 对话本体:YAML 前置元数据 + 轮次
+                agent.md     -- agent 认知日志(机械提取)
+              previously.md  -- 该 Slice 携带的用户卡快照
+            1024/            -- 同一天的另一个 Slice
+          _index.json        -- 2026 年 7 月的月度索引
+        08/
+        ...
+    strands.json             -- 全局关键词到 Slice 的索引
+    timeline/
+      index.json             -- 所有 Slice 的规范化结构目录
+    timeline.md              -- 目录的 Markdown 投影
 ```
+
+`evolution/` 与 `agent-playbooks/` 属于 v1.0 自进化回路——方向、评分与变异档案存放在情景记录之外,playbook 指导各子 Agent 的行为。
 
 一个日历日是一个目录;一个 Slice 是其中以 `HHMM` 命名的目录。三个文件各有分工:
 
@@ -193,7 +206,7 @@ qualification, property deeds, or something else?
 |------|---------|-----------|
 | `local` | 本地文件系统 | 开发环境,完整读写 |
 | `github` | GitHub REST API(Octokit) | 生产环境,完整读写 |
-| `demo` | 远程基准数据 | 只读 persona 数据 |
+| `demo` | 远程演示数据集(`previously-lab/you`) | 只读 persona 数据 |
 
 当 `STORAGE` 未设置时自动检测:存在 `GITHUB_TOKEN` → `github`;`NODE_ENV=development` → `local`;否则 → `demo`。相同的代码路径在所有模式下均可工作——无需手动切换。
 

@@ -1,127 +1,72 @@
 ---
 title: Deployment
-description: How to create a private copy, generate a GitHub token, and deploy Previously to Vercel in about 10 minutes.
+description: Two ways to run Previously — the recommended local-first client (one command), or self-hosting the cloud kernel on Vercel with a GitHub backend.
 order: 1
 ---
 
 # Deployment
 
-Get your own Previously running in about 10 minutes. You'll create a private copy from the template, create a GitHub token, and deploy to Vercel. No server management, no database setup — just a repo, a token, and a deploy.
+There are two ways to run Previously. Pick by where you want your memory to live and how you want to pay for the model:
+
+| | Path 1: Local client (recommended) | Path 2: Self-hosted cloud kernel (advanced) |
+|---|---|---|
+| **Who it's for** | Most people. Your memory stays on your own machine; reuse an existing Claude/Codex/Kimi subscription and pay zero API fees. | You want a browser tab reachable from anywhere (including your phone), and you're comfortable managing a Vercel deployment and a GitHub token. |
+| **Where memory lives** | A local git repo on your machine (optionally pushed to a private GitHub repo). | A GitHub repository, read and written through the GitHub API. |
+| **Model cost** | Bridge mode: your existing subscription, zero API spend. BYOK also supported. | BYOK: your own provider API key. |
+| **Setup** | One npm command. | GitHub template repo + token + Vercel deploy (~10 minutes). |
+
+## Path 1: Local client (recommended)
+
+```bash
+npm i -g previously-client
+previously        # first run: guided init wizard
+previously start  # start the kernel in the background
+previously open   # open the Web UI
+```
+
+That's the whole deployment. The kernel ships as a prebuilt npm package pinned to the client — no build tools, no git, no database required on your machine. To upgrade later, upgrade the client package itself; the matching kernel version comes with it.
+
+The full walkthrough is in [Getting Started](/docs/getting-started); the knobs are in [Configuration](/docs/configuration).
+
+## Path 2: Self-hosted cloud kernel (advanced)
+
+The cloud kernel — the same Next.js agent, deployed to Vercel with a GitHub repository as its memory backend — remains fully supported as the advanced option.
 
 <Callout variant="warning">
-⚠️ **Important: single-user, no login system.** Previously is in early development and has no user accounts or authentication — it is designed as a single-user, privately-deployed product. Anyone with your deployment URL can use your instance — and access or modify your memory data. Keep your deployment URL private. Do not share it publicly. Limit your Vercel deployment visibility if possible. The mutation endpoints do have a same-origin guard plus an optional access key for scripts (see [Access key for API callers](#access-key-for-api-callers) below), but that is not a substitute for real authentication.
+⚠️ **Important: single-user, no login system.** The cloud kernel has no user accounts or authentication — it is designed as a single-user, privately-deployed product. Anyone with your deployment URL can use your instance — and access or modify your memory data. Keep your deployment URL private, and limit your Vercel deployment's visibility if possible.
 </Callout>
 
-## Create your private copy
+### 1. Create your private copy
 
-Previously is a [GitHub Template Repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template). Click **Use this template** on the [Previously repo page](https://github.com/previously-lab/agent) and choose **Create a new repository**. **Make your new repository private** — this repository holds your agent's memory data (episodic slices, memory nodes, tasks, and session state). A private repo keeps everything accessible only to you and your agent.
+Previously is a GitHub template repository. Click **Use this template** on the [Previously repo page](https://github.com/previously-lab/agent) and choose **Create a new repository**. **Make the new repository private** — it holds your agent's memory data (episodic slices, tasks, session state).
 
-> Your repository contains the application code. Memory data your agent creates is stored in whichever GitHub repository the environment variables point to — by default your own repo, but you can point it at a different repo entirely. Code and memory are decoupled by design.
+### 2. Create a GitHub token
 
-## Create a GitHub token
+The cloud kernel reads and writes memory through the GitHub API. Create a **fine-grained personal access token** (GitHub Settings → Developer settings → Personal access tokens → Fine-grained tokens) scoped to **Only select repositories** → your private repo, with **Contents: Read and write**. Copy the token immediately — you won't see it again.
 
-Previously uses the GitHub API to read and write memory data. You need a fine-grained personal access token scoped to your repository.
+### 3. Deploy to Vercel
 
-1. Go to **GitHub Settings** (your profile picture → **Settings**).
-2. In the left sidebar, click **Developer settings**.
-3. Click **Personal access tokens** → **Fine-grained tokens**.
-4. Click **Generate new token**.
-5. Give it a name (like "Previously") and choose an expiration.
-6. Under **Repository access**, select **Only select repositories** and pick your private repo.
-7. Under **Permissions**, find **Contents** and set it to **Read and write**.
-8. Click **Generate token** and **copy the token immediately** — you won't be able to see it again.
-
-The token needs Contents read/write because Previously reads memory files (episodic slices, memory nodes, task lists) and writes new ones as the agent works. Scoping it to a single repo limits the blast radius if the token is ever exposed.
-
-## Deploy to Vercel
-
-Two options, from smoothest updates to quickest setup.
-
-### Option A: Import to Vercel (recommended)
-
-1. Create your private copy from the template (you already did this above).
-2. Go to [vercel.com](https://vercel.com) and sign in with your GitHub account.
-3. Click **Add New** → **Project**.
-4. Import your private repo from the repository list. If it's not visible, click **Adjust GitHub App Permissions** and grant Vercel access to the repo.
-5. In the **Environment Variables** section, add `DEEPSEEK_API_KEY`, `GITHUB_TOKEN`, `GITHUB_REPO_OWNER`, and `GITHUB_REPO_NAME` (see below). Optionally add `ACCESS_SECRET` if you plan to call the API from scripts.
-6. Click **Deploy**.
-
-Vercel detects Next.js, builds, and gives you a URL. That's it.
-
-### Option B: Local dev (for testing)
-
-To run Previously on your own machine:
+1. Go to [vercel.com](https://vercel.com), sign in with GitHub, and click **Add New → Project**.
+2. Import your private repo (grant the Vercel GitHub App access if it isn't visible).
+3. Add the environment variables:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git
-cd YOUR_REPO
-pnpm install
-pnpm dev
-```
-
-Create a `.env.local` file (see below) before starting. The app runs on `http://localhost:3000`.
-
-## Environment variables
-
-For local dev, create `.env.local` in the project root. For Vercel deployment, add these in your project settings under **Settings → Environment Variables**.
-
-```bash
-# Required — DeepSeek API key (powers the main model; the worker tier resolves from the same provider)
-DEEPSEEK_API_KEY=sk-...
-
-# Required — the GitHub token you created above
-GITHUB_TOKEN=github_pat_...
-
-# Required — your GitHub username and the repo name
+DEEPSEEK_API_KEY=sk-...            # powers the default models
+GITHUB_TOKEN=github_pat_...        # the token from step 2
 GITHUB_REPO_OWNER=your-username
 GITHUB_REPO_NAME=your-repo-name
-
-# Optional — read-only demo persona mode
-# STORAGE=demo
-
-# Optional — access key for non-browser API callers (see below)
-# ACCESS_SECRET=
+# ACCESS_SECRET=                   # optional: access key for non-browser API callers
 ```
 
-| Variable | Required | What it is | Where to get it |
-|---|---|---|---|
-| `DEEPSEEK_API_KEY` | Yes | Authenticates requests to DeepSeek for the main model (and, by default, the worker tier derived from the same provider). | [platform.deepseek.com](https://platform.deepseek.com) — create an account and generate an API key. |
-| `GITHUB_TOKEN` | Yes | The fine-grained personal access token. Every GitHub read and write flows through it. | [Created above](#create-a-github-token) in the token setup steps. |
-| `GITHUB_REPO_OWNER` | Yes | Your GitHub username or organization that owns the repository holding memory data. | Your GitHub username. |
-| `GITHUB_REPO_NAME` | Yes | The repository name where memory data lives. By default this is your repo, but you can point it at any repo you own. | Your repo's name on GitHub. |
-| `STORAGE` | No | Selects the data source: `local` (filesystem), `github` (GitHub API), or `demo` (read-only pre-seeded persona dataset). Auto-detected when unset. | — |
-| `ACCESS_SECRET` | No | Access key that non-browser callers must send as an `x-access-key` header on mutation endpoints. Only enforced when set. | Any random string you choose. |
+4. Click **Deploy**. Vercel detects Next.js, builds, and gives you a URL.
 
-See [Configuration](/docs/configuration) for the full variable reference, including the implicit storage backend switch.
+`DEEPSEEK_API_KEY` powers the default setup, but any supported provider key works — setting a provider's key makes its models selectable in Settings. See the [BYOK provider keys](/docs/configuration) reference for the full list.
 
-## Access key for API callers
+### Syncing upstream updates
 
-Previously has no login system, but its mutation endpoints — `POST /api/chat`, `/api/loops`, and `/api/episodic/flush` — are protected by a lightweight origin guard. Requests from your own browser pass automatically (the `Origin` header matches the deployment's host). Read endpoints and CORS preflights always stay open.
+When a new version is released, open your instance's **Settings → Version & Updates** and click **Sync from upstream**. The latest code is merged into your repository as a proper merge commit and Vercel redeploys automatically. Only code directories are synced — your personal data (`memory/`, `tasks/`, `sessions/`) is never overwritten.
 
-Calls that don't come from your browser — curl, scripts, cron jobs — look external to the guard. If you want to use them, set `ACCESS_SECRET` to any random string and send it as a header:
-
-```bash
-curl -X POST https://your-deployment.vercel.app/api/chat \
-  -H "x-access-key: $ACCESS_SECRET" \
-  -H "Content-Type: application/json" \
-  -d '{"messages": [...]}'
-```
-
-When `ACCESS_SECRET` is not set, these callers are also allowed — the private-deployment default stays frictionless. Set the variable only if you expose the URL beyond your own browser and want the key check active.
-
-## Syncing upstream updates
-
-Previously has a built-in sync mechanism. When a new version is released:
-
-1. Open your Previously instance and go to **Settings**.
-2. In the **Version & Updates** section, if you see "Update available," click **Sync from upstream**.
-3. The latest code is merged into your repository automatically. The sync commit lands on your `main` branch, and Vercel redeploys from it automatically.
-
-Your personal data (`memory/`, `tasks/`, `sessions/`) is never overwritten — only code directories are synced. The sync creates a proper merge commit that preserves your git history.
-
-### Manual sync (fallback)
-
-If the built-in sync button is unavailable, you can merge upstream changes manually from the command line. First, add the upstream remote (one-time setup):
+If the button is unavailable, merge manually:
 
 ```bash
 git remote add upstream https://github.com/previously-lab/agent.git
@@ -130,13 +75,12 @@ git merge upstream/main --allow-unrelated-histories
 git push origin main
 ```
 
-Vercel redeploys automatically after the push.
+### Access key for API callers
 
-### What sync touches
-
-Code directories (`src/`, `content/`, `public/`, `messages/`, `scripts/`, etc.) and root config files are synced from upstream. Episodic memory data (`memory/episodic/`) is gitignored, so pulling in new code never overwrites your accumulated memory. Your personal data in `memory/`, `tasks/`, and `sessions/` is always preserved.
+The cloud kernel's mutation endpoints (`POST /api/chat`, `/api/loops`, `/api/episodic/flush`) sit behind a same-origin guard: browser calls from your own deployment pass automatically. Non-browser callers (curl, scripts, cron) need `ACCESS_SECRET` set and sent as an `x-access-key` header — otherwise they're allowed too, keeping a private deployment frictionless. Set it only if you expose the URL beyond your own browser.
 
 ## Related
 
+- [Getting Started](/docs/getting-started) — the local client walkthrough
+- [Configuration](/docs/configuration) — `config.json`, environment variables, and the kernel version policy
 - [Architecture](/docs/architecture) — three-layer separation and data model
-- [Getting Started](/docs/getting-started) — tour the interface and send your first message

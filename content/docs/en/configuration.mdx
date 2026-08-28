@@ -1,37 +1,112 @@
 ---
 title: Configuration
-description: Environment variables for deployment, a per-user config file in the data directory, and the implicit storage backend switch between GitHub, local files, and demo.
+description: The client config.json contract (brain and apiKeys), environment variables, Web UI settings, the pinned-kernel version policy, and the self-hosted cloud kernel's variables.
 order: 0
 ---
 
 # Configuration
 
-Deployment configuration is entirely environment variables — no project config files, no settings YAML. Seven variables appear in the shipped `.env.example`, plus one optional API key per additional model provider. Day-to-day preferences (model choice, thinking, slicing) live in a per-user config file stored inside the memory data directory, not in the deployment.
+The local client keeps configuration in three places, each with a clear job:
+
+- **`config.json`** in the client home — the brain (how the agent thinks) and manually entered API keys.
+- **Environment variables** — client home location and bridge tuning knobs.
+- **The Web UI settings page** — day-to-day preferences: model choice, thinking, slicing. Most runtime configuration lives here, not in files.
 
 <Callout variant="info">
-**Key takeaway:** `DEEPSEEK_API_KEY` is required for the default setup — it powers the default models and web search. `GITHUB_TOKEN` is the variable you think of as required — its presence gates the entire GitHub backend; without it the app reads and writes the local filesystem instead. `GITHUB_REPO_OWNER` and `GITHUB_REPO_NAME` are required only when the GitHub backend is active.
+**Key takeaway:** you rarely edit any of this by hand. `previously init` writes minimal defaults, and every `init`/`start` audits and repairs a damaged config automatically (backing up to `config.json.bak` first). The brain can also be entered on the Web UI settings page.
 </Callout>
 
-## Environment variable reference
+## config.json
 
-Every variable the runtime actually reads, in one table:
+Lives in the client home (`PREVIOUSLY_HOME`, default `~/.previously`). The contract:
 
-| Variable | Required | In `.env.example` | Default | Runtime effect |
-|---|---|---|---|---|
-| `DEEPSEEK_API_KEY` | Yes (default setup) | Yes | — | API key for DeepSeek, the default provider. Powers the default main/worker models and — regardless of which provider you switch to — the web-search tool, which runs on DeepSeek V4 Flash through DeepSeek's Anthropic-compatible endpoint. |
-| `GITHUB_TOKEN` | See note | Yes | — | Presence of this variable **is the backend switch**. When set (and `STORAGE` unset), the app uses the Octokit/GitHub API backend; when absent, auto-detection falls through to local filesystem or demo. Leave unset or commented out for local development. An empty string `GITHUB_TOKEN=` correctly falls back. A fine-grained PAT with Contents read/write scoped to a single repository. |
-| `GITHUB_REPO_OWNER` | When using GitHub backend | Yes | `local` | GitHub username or organization that owns the memory repository. |
-| `GITHUB_REPO_NAME` | When using GitHub backend | Yes | `local` | The repository name for memory data. |
-| `STORAGE` | No | Yes | Auto-detected | Selects the data source: `local` (filesystem), `github` (GitHub API), or `demo` (read-only pre-seeded persona). When unset, auto-detects: `GITHUB_TOKEN` present → `github`; `NODE_ENV=development` → `local`; otherwise → `demo`. |
-| `BENCHMARK_BASE_URL` | No | Yes (commented) | — | Base URL for the remote benchmark-data repo used in `demo` mode (e.g. `https://raw.githubusercontent.com/previously-lab/benchmark-data/main`). When unset in `demo` mode, reads fall back to a local `../benchmark-data` sibling directory on disk. |
-| `ACCESS_SECRET` | No | Yes (commented) | — | Opt-in access key for non-browser callers. When set, POST requests to the mutation endpoints (`/api/chat`, `/api/loops`, `/api/episodic/flush`) that lack a same-origin signal must send an `x-access-key` header with this value, or they get a 403. Same-origin browser calls always pass. Leave unset to keep a private deployment frictionless. |
+```json
+{
+  "brain": { "type": "bridge", "agent": "claude" },
+  "apiKeys": { "DEEPSEEK_API_KEY": "sk-..." }
+}
+```
 
-### Additional provider keys
+### brain — two shapes
 
-The model catalog (`src/lib/models/catalog.ts`) activates one provider per configured API key. Setting any of these makes that provider's models selectable in Settings — no other configuration is needed:
+The brain decides what actually executes model calls. Exactly one of:
+
+| Shape | Meaning |
+|---|---|
+| `{ "type": "bridge", "agent": "claude" \| "codex" \| "kimi" }` | **Subscription bridge.** Model calls are executed by that local agent CLI through your existing subscription OAuth. No API key, no API fees. Choosing the bridge backend in `init` writes this for you. |
+| `{ "type": "api-key", "env": "<ENV_VAR_NAME>", "model"?: string }` | **BYOK.** The kernel reads the API key from the named environment variable; the optional `model` sets the default model (consumed by the kernel since 0.9.0). |
+
+If `brain` is absent, the kernel falls back to whatever provider keys it finds in the environment.
+
+### apiKeys
+
+`apiKeys?: Record<string, string>` holds manually entered keys. In the local MVP they are stored **in plaintext** — treat the file accordingly. At `start`, every entry is injected into the kernel's environment, so a typical BYOK setup pairs a key here with a `brain` that names it:
+
+```json
+{
+  "brain": { "type": "api-key", "env": "DEEPSEEK_API_KEY", "model": "deepseek-v4-pro" },
+  "apiKeys": { "DEEPSEEK_API_KEY": "sk-..." }
+}
+```
+
+You can also enter the key on the Web UI settings page instead of editing the file.
+
+### Other fields
+
+| Field | Purpose |
+|---|---|
+| `executionBackend` | Default bridge agent used when a call doesn't specify one. Set by `previously init --backend ...`. |
+| `kernelDir` | Explicit override for the kernel directory. Normally unnecessary — the client resolves the installed kernel through its version pointer. |
+
+Unknown fields are preserved by the client's config writes.
+
+## Environment variables
+
+What the client itself reads:
+
+| Variable | Default | Effect |
+|---|---|---|
+| `PREVIOUSLY_HOME` | `~/.previously` | The client home: `config.json`, installed kernel versions, logs, and scribe cursors all live here. Your memory repo does **not** — it's wherever you pointed init (default `~/Documents/Previously`). |
+| `PREVIOUSLY_BRIDGE_TIMEOUT_MS` | ~9.5 min | Global bridge call timeout (set just under the kernel's own delegateTask timeout so the adapter reports honestly first). |
+| `PREVIOUSLY_BRIDGE_<AGENT>_TIMEOUT_MS` | — | Per-agent override (`CLAUDE` / `CODEX` / `KIMI`). |
+| `PREVIOUSLY_BRIDGE_<AGENT>_CMD` | the agent's CLI name | Override the CLI command used for a bridge agent; may carry leading arguments, e.g. `PREVIOUSLY_BRIDGE_KIMI_CMD="kimi --auto"`. |
+| `PREVIOUSLY_BRIDGE_CLAUDE_MAX_TURNS` | `25` | Max turns for bridged Claude calls; set to `none` to disable the cap. |
+
+The following are **injected by `previously start`**, not meant to be set by hand: `PREVIOUSLY_HOME` itself, every `apiKeys` entry, `PREVIOUSLY_BRAIN=bridge` + `PREVIOUSLY_BRAIN_AGENT` for a bridge brain, and the key value + `PREVIOUSLY_DEFAULT_MODEL` for an api-key brain. The kernel additionally honors `MEMORY_ROOT` as an explicit memory-location override; normally you change the memory location through `init --memory-root` instead.
+
+## Models and slicing: the Web UI settings page
+
+Day-to-day preferences — the main model, thinking on/off, reasoning effort, and slicing thresholds — live in the kernel's Web UI **Settings** page, stored alongside your memory data rather than in the client config. In bridge mode each detected agent CLI registers as a selectable model, so switching engines is a settings-page choice, not a restart.
+
+## Kernel version policy
+
+The kernel is distributed as the npm package `previously-kernel`, and the client **pins it exactly** — `previously.kernelVersion` in the client's package.json (currently `0.9.0`) must match the installed kernel version precisely, patch included.
+
+- `previously kernel install` installs the prebuilt standalone kernel from the pinned dependency into `~/.previously/kernel/versions/<version>/` and flips an atomic `current.json` pointer. Zero build on your machine, no git or pnpm required.
+- **Upgrading = upgrading the client package** (`npm i -g previously-client@latest`). There is no separate kernel upgrade or rollback command; rolling back means reinstalling an older client.
+- `start` and `status` resolve the kernel through the pointer and verify the version matches.
+
+Developer escape hatches (not for normal use): `previously kernel install --from <dir> --version <x.y.z>` installs a locally built standalone directory; `previously kernel install --repo [git-url]` shallow-clones the agent repo at the pinned tag and builds locally — the only path that requires git and pnpm on your machine.
+
+## Advanced: the self-hosted cloud kernel
+
+If you run the cloud kernel on Vercel (see [Deployment](/docs/deployment), path 2), configuration is entirely environment variables set in the Vercel project:
+
+| Variable | Required | Effect |
+|---|---|---|
+| `DEEPSEEK_API_KEY` | Yes (default setup) | Powers the default main model and the web-search tool. |
+| `GITHUB_TOKEN` | Yes | Fine-grained PAT (Contents read/write, single repo). Its presence gates the entire GitHub memory backend. |
+| `GITHUB_REPO_OWNER` / `GITHUB_REPO_NAME` | Yes | The GitHub owner and repository holding memory data. |
+| `STORAGE` | No | Explicit data-source override: `github`, `local`, or `demo` (read-only seeded persona). Auto-detected when unset. |
+| `ACCESS_SECRET` | No | Access key non-browser callers must send as an `x-access-key` header on mutation endpoints. Only enforced when set. |
+
+### BYOK provider keys
+
+The cloud kernel's model catalog activates one provider per configured API key — setting any of these makes that provider's models selectable in Settings, no other configuration needed:
 
 | Variable | Provider |
 |---|---|
+| `DEEPSEEK_API_KEY` | DeepSeek (default) |
 | `ANTHROPIC_API_KEY` | Anthropic |
 | `OPENAI_API_KEY` | OpenAI |
 | `MOONSHOT_API_KEY` | Moonshot AI |
@@ -41,156 +116,8 @@ The model catalog (`src/lib/models/catalog.ts`) activates one provider per confi
 | `XAI_API_KEY` | xAI |
 | `GROQ_API_KEY` | Groq |
 
-> **Note on `GITHUB_TOKEN`:** When `STORAGE` is unset, the data source is auto-detected in one place — `src/lib/data-source/resolve.ts`: `GITHUB_TOKEN` present → GitHub API; `NODE_ENV=development` → local filesystem; otherwise → demo. There is no dedicated `USE_GITHUB` environment variable. This is intentional: the simplest possible toggle, no config file, no extra surface area.
-
-## Backend switch: GitHub API vs local filesystem vs demo
-
-The storage backend is implicit by design. When `STORAGE` is unset it is auto-detected from `GITHUB_TOKEN` and `NODE_ENV`; you can also set it explicitly:
-
-```typescript
-resolveDataSource(); // "local" | "github" | "demo" — STORAGE override, else auto-detect
-```
-
-| Backend | When selected | How reads work | How writes work |
-|---|---|---|---|
-| **GitHub API** | `STORAGE=github`, or auto-detected when `GITHUB_TOKEN` is set | `octokit.rest.repos.getContent`, base64-decoded. Requires `GITHUB_REPO_OWNER` and `GITHUB_REPO_NAME`. | `createOrUpdateFileContents` on the same repo. |
-| **Local filesystem** | `STORAGE=local`, or auto-detected in development | `fs.readFileSync` from the project root. Reads physical files from disk. | `fs.writeFileSync` to the same root. |
-| **Demo (read-only)** | `STORAGE=demo`, or auto-detected otherwise | Reads from a pre-seeded persona dataset — a local `../benchmark-data/{persona}/...` sibling or the `BENCHMARK_BASE_URL` remote. | No-op: returns success, discards data. |
-
-The storage backends enforce the same security boundary:
-- **Path whitelist**: only `memory/`, `tasks/`, and `sessions/` are read-write; `src/` is agent read-only
-- **Size cap**: `MAX_FILE_SIZE_BYTES = 1_000_000` (1 MB) on file reads and writes
-
-The local-filesystem backend is what you use during development (`pnpm dev`). It reads and writes real files on disk — no GitHub, no network, no rate limits. The GitHub backend is what you deploy to Vercel. Both implement the same interface, so the rest of the app never branches on which one is active.
-
-## Demo mode behavior
-
-`STORAGE=demo` puts the entire memory layer into a read-only demonstration mode against a pre-seeded persona dataset. Here is exactly what changes:
-
-### Where demo reads come from
-
-In demo mode, every `memory/` read is served from a benchmark-data persona dataset, not from the repo's own `memory/` directory:
-
-```
-memory/episodic/slices/...  →  {persona}/episodic/slices/...     (from benchmark-data)
-memory/nodes/some-node.md   →  {persona}/nodes/some-node.md     (from benchmark-data)
-```
-
-The default persona is `personal_14` (Caleb). Reads are served from a local sibling directory `../benchmark-data/{persona}/...` when `BENCHMARK_BASE_URL` is unset, or from the remote base URL (e.g. `https://raw.githubusercontent.com/previously-lab/benchmark-data/main/{persona}/...`) when set. Demo reads never touch the repo's real `memory/` directory.
-
-### Writes: accepted, never persisted
-
-Demo mode makes writes a no-op:
-
-- `writeFileDemo` (`src/lib/demo/demo-fs.ts`) returns `{ path, created: false }` without writing anywhere — on both the local and remote demo backends.
-
-The agent sees a successful write. The data is silently discarded.
-
-### Remote demo data
-
-When deploying a demo instance without a local benchmark-data checkout, set `BENCHMARK_BASE_URL` to the raw URL of the benchmark-data repo:
-
-```bash
-STORAGE=demo
-BENCHMARK_BASE_URL=https://raw.githubusercontent.com/previously-lab/benchmark-data/main
-```
-
-With the variable set, demo reads fetch from that base URL; unset, they fall back to the local `../benchmark-data` sibling directory.
-
-### Persona picker
-
-In demo mode the hero becomes a persona picker (`hero-section.tsx` loads the persona list via `listDemoPersonas`), so you can switch between pre-seeded personas.
-
-## Model catalog and model routing
-
-Previously resolves its available models at runtime from each configured provider's live model-list API (`src/lib/models/catalog.ts`). Two tiers, one catalog:
-
-| Tier | Purpose | Model | Thinking |
-|---|---|---|---|
-| **Worker** | Cheap internal calls: turn analysis, recall search, tag extraction, belief evolution, background loops | Resolved worker model (a lightweight of the main provider) | Always off |
-| **Main** | Deep reasoning, full-slice reads, response generation | User-selected main model | User's choice |
-
-For every provider whose API key is set, the catalog calls the provider's list endpoint, normalizes legacy ids to current names, and enriches known ids with curated metadata. Unknown ids get sensible provider defaults; a provider whose list call fails falls back to its curated entries so it stays usable offline. The result is cached for 30 minutes — env changes take effect after the TTL.
-
-The curated fallback registry (`src/lib/models/registry.ts`) ships five entries:
-
-| Model ID | Provider | Thinking | Vision | Max tokens |
-|---|---|---|---|---|
-| `deepseek-v4-flash` | DeepSeek | Yes | No | 393216 |
-| `deepseek-v4-pro` | DeepSeek | Yes | No | 393216 |
-| `claude-haiku-4-5` | Anthropic | Yes | Yes | 200000 |
-| `claude-sonnet-5` | Anthropic | Yes | Yes | 200000 |
-| `claude-opus-4-8` | Anthropic | Yes | Yes | 200000 |
-
-Legacy ids are normalized forward: a stored `deepseek-chat` becomes `deepseek-v4-flash`, and `deepseek-reasoner` becomes `deepseek-v4-pro`.
-
-### Main model selection
-
-The main model is resolved per request, in this order:
-
-1. **Request override** — the client sends `body.model` with each chat request.
-2. **User config default** — `model.provider` in `memory/user/config.json` (editable in Settings). Ships as `deepseek-v4-pro`.
-3. **Deployment default** — the first curated model whose provider key is set.
-
-Unknown or unavailable ids fall back to the deployment default; the resolved model is logged per turn (`[Turn] model=…`) so a switch is verifiable in the server log.
-
-### The worker is resolved, not hardcoded
-
-Internal calls never reuse the main model blindly — `resolveWorkerModel()` (`src/lib/models/worker.ts`) resolves a cheaper tier in this order:
-
-1. **Manual pin** — an explicit `worker.provider` in the user config (mode `"manual"`).
-2. **Same-provider lightweight** — curated for known providers (`deepseek-v4-flash` for DeepSeek, `claude-haiku-4-5` for Anthropic); otherwise the smallest non-thinking model of the same provider from the live catalog.
-3. **The main model itself** — same provider, always correct.
-
-The worker's central call is the turn analyzer (`src/lib/episodic/flash/turn-analyzer.ts`): one cheap, structured, thinking-off pass that produces the message's keyword tags, a semantic hint about which existing Strands it belongs to, marking for any slice that closed this turn, and a decision on whether the closing slice should evolve the user card.
-
-### Thinking toggle and reasoning effort
-
-The thinking toggle is a request-level boolean (`body.thinking`, falling back to `model.thinking` in the user config, default `true`) that is **not** a model switch. A separate effort control (`body.effort`, falling back to `model.reasoningEffort`, default `"medium"`) takes `low | medium | high`. Both are mapped onto each provider's own options shape by a single module (`src/lib/models/effort-injector.ts`): `reasoningEffort` for DeepSeek and OpenAI-compatible providers, `budgetTokens` for Anthropic. Thinking off always means an explicit thinking-disabled shape, on every provider.
-
-> **Nuance:** the thinking toggle and effort slider never swap models. `deepseek-v4-pro` and the effort axis are independent choices — the toggle is a provider-level option on whichever model is selected, not a model swap.
-
-## The user config file
-
-Deployment is env-only, but per-user preferences live in `memory/user/config.json`, stored in the memory repo itself (so it syncs with the rest of your data) and editable via the Settings UI. Every field is optional; missing fields fall back to shipped defaults (`src/lib/config/defaults.ts`):
-
-| Field | Default | Purpose |
-|---|---|---|
-| `model.provider` | `deepseek-v4-pro` | Main model id |
-| `model.thinking` | `true` | Thinking on/off |
-| `model.reasoningEffort` | `medium` | Thinking depth: `low` / `medium` / `high` |
-| `worker.mode` / `worker.provider` | `auto` / — | Worker resolution: derive from main model, or pin a model id |
-| `slicing.maxTurnsPerSlice` | `20` | Force-close the active Slice after this many turns |
-| `slicing.timeSilenceMinutes` | `15` | Minutes of inactivity before a time-silence split |
-| `context.recentTurnsLimit` | `20` | Recent turns included in the assembled prompt |
-
-The file is read at request time through the same data-source channel as the rest of memory, and cached for 60 seconds.
-
-## Internationalization
-
-i18n uses `next-intl` with exactly two locales:
-
-| Locale | Code | Default |
-|---|---|---|
-| English | `en` | Yes |
-| Chinese | `zh` | No |
-
-Configuration lives in `src/i18n/routing.ts`, translations in `messages/en.json` and `messages/zh.json`. Navigation must use utilities from `@/i18n/navigation` instead of `next/navigation`.
-
-## The omitted vars
-
-A few environment variables you might expect, and why they do not exist:
-
-| You might expect | Reality |
-|---|---|
-| `USE_GITHUB` | Does not exist. The backend switch is the `STORAGE` env var with auto-detection in `src/lib/data-source/resolve.ts` — implicit, zero-config, intentional. |
-| `DEMO_MODE` | Does not exist. Demo is just another `STORAGE` value; no module reads a separate demo flag. |
-| `LOG_LEVEL` | Not implemented. Logging is thin. |
-| `DATABASE_URL` | There is no database. State lives in GitHub files. |
-| `PORT` | Not read by the app; Next.js handles it. |
-
 ## Related
 
-- [Deployment](/docs/deployment) — deployment walkthrough with the full `.env.local` template
-- [Memory Model](/docs/memory-model) — how slices and strands work; the data that configuration makes accessible
-- [Recall](/docs/recall) — how the worker and main models use the configured models
+- [Getting Started](/docs/getting-started) — install and the first-run wizard
+- [Deployment](/docs/deployment) — the local client vs. self-hosting the cloud kernel
+- [Memory Model](/docs/memory-model) — the data these settings govern

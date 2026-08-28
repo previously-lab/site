@@ -1,7 +1,7 @@
 # Previously Playground 体验设计备忘
 
 > 记录时间：2026-08-26  
-> 状态：已达成共识，待后续补充故事圣经与数据
+> 状态：已实现（2026-08-28，待联调 DeepSeek）
 
 ## 背景与问题
 
@@ -63,3 +63,77 @@ Previously 项目当前 demo 体验存在三个主要障碍：
 - `C:\Users\Dream\Documents\GitHub\previously-site`：文档站 + Playground
 - `C:\Users\Dream\Documents\GitHub\Aftrbrez`：Previously 本体，demo 服务
 - `C:\Users\Dream\Documents\GitHub\loom`：数据集生成器
+
+---
+
+## 实现记录（2026-08-28）
+
+### 架构总览
+
+- 数据：`scripts/sync-playground-data.mjs`（`pnpm playground:sync`）从本地 `../you/user`（优先）或 GitHub raw 拉取，打包成 vendored 快照 `src/lib/playground/data/snapshot.json`（~57KB，11 片切片全文 + timeline 全文 + strands + 用户卡片 + 可选 direction/mutations）。**构建不依赖网络**。
+- API：`POST /api/playground`（`src/app/api/playground/route.ts`）。
+- UI：`src/components/playground/`（仿真聊天窗口），页面 `src/app/[locale]/playground/page.tsx`，MDX 可用 `<Playground preset="recall-worldcup" />`。
+- preset 白名单：`src/lib/playground/presets.ts`，前后端共用。
+
+### API 契约
+
+**请求**
+
+```json
+{ "presetId": "recall-worldcup", "locale": "en" | "zh" }
+```
+
+- `presetId` 必须是白名单之一（zod refine `isPresetId`），否则 400。
+- `locale` 决定 answer 等自由文本字段的语言。
+
+**成功响应 200**
+
+```json
+{ "presetId": "…", "kind": "recall" | "evolution" | "anatomy", "result": {…}, "cached": true | false }
+```
+
+- `kind = recall` → `{ answer, references: [{ slice_id, quote, note? }], searched: string[], confidence: 0..1 }`
+- `kind = evolution` → `{ triggerReasons: string[], directionVerdict, cardBefore, cardAfter, playbookNote }`（`cardBefore` 由服务端直接取 vendored 卡片原文，不经模型，保证 diff 诚实）
+- `kind = anatomy` → `{ narrative, sliceId, frontmatter }`（`frontmatter` 由服务端用 gray-matter 从切片 core.md 解析，不经模型）
+
+**错误响应**：统一 `{ "error": string, "code": "bad_request" | "rate_limited" | "unavailable" | "upstream" }`，`error` 文案按 locale 双语。
+
+| 状态码 | code | 场景 |
+|---|---|---|
+| 400 | bad_request | body 校验失败 / preset 不在白名单 |
+| 429 | rate_limited | IP 超限（带 `Retry-After` 头） |
+| 503 | unavailable | `DEEPSEEK_API_KEY` 缺失 |
+| 502 | upstream | DeepSeek 非 2xx / 输出过不了 zod 校验 |
+
+### DeepSeek 调用
+
+`https://api.deepseek.com/chat/completions`，`model: "deepseek-chat"`，`response_format: json_object`，`max_tokens: 1500`，`temperature: 0.3`，60s 超时。key 只从 `process.env.DEEPSEEK_API_KEY` 读。
+
+### Preset 清单与数据对应
+
+| presetId | kind | 切片（vendored） | 说明 |
+|---|---|---|---|
+| recall-worldcup | recall | 2026/06/19/2027、2026/06/27/1813、2026/07/24/1021 | 世界杯看球 + 赛后复盘 |
+| recall-mom | recall | 2025/07/30/1755、2025/08/23/1431 | 妈妈健康惊吓 + 恢复 |
+| recall-marathon | recall | 2026/07/11/1108、2026/07/16/1913、2026/07/20/1102 | 赛前紧张 → 完赛 → 复盘 |
+| evolution-card | evolution | 2026/08/11/2054、2026/08/17/1721 | 最新切片跑一遍卡片进化 pass（输入另含 current-previously.md + direction.md） |
+| slice-anatomy | anatomy | 2026/07/16/1913 | 讲解 frontmatter 各字段来源 |
+
+recall prompt 复刻内核 recall 同事纪律：先给全量 timeline 索引 + 相关 strand 条目（locate），再给切片全文（deep-read），要求证据锚定引用（verbatim quote + slice_id）、`searched` 轨迹、「没有这段记忆」是合法答案。
+
+### 缓存与限流
+
+- **缓存**：模块级 `Map`，key = `presetId:locale`。preset 制意味着所有用户发的是同一批请求，命中率就是成本设计目标。进程重启即清空。
+- **限流**：模块级 `SlidingWindowRateLimiter`，每 IP 20 次/小时滑动窗口（`src/lib/playground/rate-limit.ts`）。
+
+### 已知限制
+
+- **Serverless 下缓存与限流都是 per-instance**：多实例部署时限流可被横向绕过、缓存命中率被实例数稀释。demo 场景接受；流量爆发时升级为共享存储（如 Upstash）或预录模式。
+- **direction.md / mutations.md 尚未进数据集**（`you/user/evolution/` 在并行开发中）：sync 脚本容忍缺失（快照中为 `null`），evolution prompt 会让模型声明 direction 未成文。数据就绪后重跑 `pnpm playground:sync` 即可。
+- 结果文本按 plain text 渲染（whitespace-pre-line），不做完整 markdown 渲染——站内无 react-markdown 依赖，刻意不加。
+- 缓存键不含数据版本：重新 sync 数据后需重启/重新部署进程使缓存失效。
+
+### 待联调
+
+- 设 `DEEPSEEK_API_KEY` 后对 5 个 preset × 2 locale 各跑一次，确认模型输出过 zod 校验（尤其是 evolution 的 `cardAfter` 完整卡片与 anatomy 的 `sliceId`）。
+- 文档挂载（`content/docs/`）由维护者后续进行。

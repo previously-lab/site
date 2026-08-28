@@ -1,128 +1,103 @@
 ---
 title: Getting Started
-description: How to use Previously — the interface, the arrival briefing, how memory forms as you talk, watching recall work, and demo mode.
+description: Install the Previously client with one npm command, walk the first-run wizard, and start talking — your memory lives in a local git repo on your own machine.
 order: 0
 ---
 
 # Getting Started
 
-Previously replaces chat threads with a single, continuous relationship organized on a timeline — you just show up and talk, and the agent decides what past context is relevant per message.
+Previously is local-first: an npm CLI that runs the Previously kernel on your own machine, keeps your memory in a local git repo, and can reuse the agent subscriptions you already have. One command is all you need to remember.
 
-## The Interface
+## Install
 
-A fixed **AppHeader** spans the top of every page: the "Previously" logo on the left, with GitHub, Docs, Settings, theme toggle, language toggle, and the version badge on the right. Always visible regardless of scroll position.
-
-Below it, the page is a split view:
-
-1. **The timeline wheel (left)** — a vertical, scrollable wheel of your slices, one row per slice. On phones it collapses to a narrow spine; on desktop it can expand over the content. The bottom of the wheel is **NOW** — the live conversation.
-2. **The content (right)** — the live conversation when NOW is selected, or a historical slice view when you pick a past row. Picking a past slice plays a time-travel clock that rolls from where you are to that moment, then lands on the slice as it was recorded.
-3. **A fixed input bar** — pinned to the bottom of the screen, with the model picker, thinking toggle, and reasoning-effort control. Sending a message always returns you to NOW.
+```bash
+npm i -g previously-client
+previously
+```
 
 <Callout variant="info">
-**Key takeaway: there is no conversation list, no thread management, no "new chat" button. The timeline IS the conversation list.**
+Install from the npm registry as shown above. Git-URL installs (`npm i -g github:...`) trigger a `prepare` build hook that requires pnpm and TypeScript on your machine — not recommended.
 </Callout>
 
-### The Arrival Briefing
+## The first run: one command, one wizard
 
-When the live conversation is empty — first visit, or coming back after a while — the content area shows an **arrival briefing** instead of a blank chat: a film-title-card "PREVIOUSLY ON {your name}", followed by where we left off (the last topic), your open threads, and suggestion chips seeded from real memory that send a real message when clicked. A "view full previously" link opens the agent's current user card — what it believes about you right now.
+The bare `previously` command is the front door. What it does depends on whether you're initialized:
 
-## How Memory Forms as You Talk
+**Not initialized yet → it *is* the initialization.** In a terminal it walks you through a guided wizard:
 
-Memory is not something you manage — it forms automatically while you talk.
+1. **Where your memory lives** — a local git repo, defaulting to your documents folder (`~/Documents/Previously`).
+2. **Execution backend** — the wizard auto-detects agent CLIs already on your machine (Claude Code, Codex, Kimi Code) and offers to configure a detected subscription as the *bridge* brain: zero API keys, zero API fees. You can also bring your own API key (BYOK) instead.
+3. **Transcribe existing history** — optionally turn your local agents' existing conversation logs into time slices.
+4. **Keep or rebuild** — if there is existing content, choose to keep it or rebuild from scratch.
 
-A **slice** is one conversation burst. It opens when you start typing, stays active while you're engaged, and closes after about 15 minutes of silence by default (configurable). That's the only rule. No capacity limits, no topic-shift detection, no ML-driven false splits. Pure time-driven slicing.
+Every step that would spend tokens shows you the estimated cost first and defaults to *not* running. In a non-interactive environment (CI, scripts, another agent calling the CLI) the same command runs non-interactively with safe defaults and prints every decision it made. Scripts can also drive it explicitly: `previously init --non-interactive --backend <claude|codex|kimi>`.
 
-Every closed slice is a directory at:
+**Already initialized → it shows a status panel.** Whether the kernel and scribe are running, the Web UI address, how to stop, per-source transcription progress, and a cheat sheet of next commands. The bare command never starts services and never opens a browser — starting is `previously start`, the browser is `previously open`.
 
+## Start and open
+
+```bash
+previously start   # start the kernel and the scribe in the background
+previously open    # open the Web UI in your browser
 ```
-memory/episodic/slices/YYYY/MM/DD/HHMM/
-```
 
-The path is the timestamp: year, month, day, and the hour-minute of the first message. Inside it, three timelines side by side:
+The day-to-day command surface:
 
-- `timeline/core.md` — **the shared record**: the conversation itself, with YAML frontmatter (focus, summary, decisions, open loops, emotional tone, tags) maintained by the agent per turn. You never annotate anything by hand.
-- `timeline/agent.md` — **its thinking**: the agent's cognitive record for that slice — what it recalled, which tools it called, and why.
-- `previously.md` — a snapshot of the agent's user card at that moment, so you can see how its understanding of you evolved.
+| Command | What it does |
+|---|---|
+| `previously` | Init wizard, or status panel once initialized |
+| `previously start` | Start the kernel (and the scribe) in the background |
+| `previously open` | Open the Web UI in your browser |
+| `previously status` | Kernel/scribe health, memory repo state, backend detection |
+| `previously stop` | Stop everything |
+| `previously logs` | Kernel and scribe logs |
 
-On top of the slices sits a derived timeline catalog (`memory/episodic/timeline/`) — one pointer line per slice, grouped by era and day — that the agent and the wheel both navigate by. It is rebuilt deterministically from the slice files, so a slice is reachable if and only if its files exist.
+If you run `previously start` before initializing, it walks the init flow for you first.
 
-Read top to bottom across months and years, the slice directory is your autobiography. Git-diffable, human-readable, portable.
+## Your first conversation
 
-## Asking About Your Past: Watching Recall Work
+Open the Web UI and the arrival briefing tells you where you left off. Type a message — that opens your first slice, and memory starts accumulating from there. There is no account creation, no database setup, no seed data.
 
-When you ask something that touches the past — "What did I decide about the housing project?" or "Remind me when I last talked to Sarah" — Previously runs a visible two-tier recall that renders as expandable cards above the answer.
+How your messages get answered depends on the brain you picked:
 
-1. **Recall scan** (a cheap worker model) — a small sub-agent explores the timeline catalog and the strand index (`memory/episodic/strands.json`) for a few steps and returns **pointers**, never content: slice IDs, relevance scores, a reason for each hit, and recommended reads with priorities. A housekeeping pass on the same tier keeps the active slice's metadata (summary, tags, open loops) fresh as a side effect.
+- **Bridge** — requests are executed by a local agent CLI (Claude Code, Codex, or Kimi Code) through your existing subscription. No API key anywhere, no per-token bill.
+- **BYOK** — requests go to a model provider with your own API key, recorded in `config.json` or on the Web UI settings page. See [Configuration](/docs/configuration).
 
-2. **Main-model deep read** — the main model (the one you picked in the input bar) receives the pointers and decides what to actually read, preferring the cheapest sufficient unit: `readSliceSummary` for a relevance check, `readTimelineWindow` to orient by date, and `readSlice` — optionally narrowed to specific turns or a keyword search — only when the exact words matter. If the scan found nothing, the model is told not to keep searching and answers from the conversation instead.
+## Where your memory lives
 
-The recall results render as a card with a History icon:
+Your memory is a **local git repo** — by default `~/Documents/Previously` (`~/Previously` when there is no Documents folder). You don't need git installed: the client uses a pure-JS git implementation (isomorphic-git).
 
-- **Collapsed**: shows the recall query and hit count.
-- **Expanded**: shows the scan's reasoning text, a list of recall hits (slice ID, reason, relevance percentage), recommended reads, and confidence.
+- Every write is committed on the same rhythm as the cloud version — one chat turn produces its housekeeping and agent-response commits, scribe transcriptions commit per batch, and `previously stop` sweeps up anything uncommitted.
+- Point the client at an existing Previously repo (say, one you cloned back from GitHub) and it adopts it — history fully preserved. A non-empty directory that isn't a git repo is refused, never overwritten.
+- Logs, scribe cursors, and workflow state live outside the repo, so the repo is safe to push as a **private GitHub repository** if you want an off-machine copy.
 
-Tool calls render as inline cards with human-friendly labels:
+## Give your other local agents the memory
 
-| Tool | You See |
-|------|---------|
-| `recall` | Recalling "..." |
-| `readSlice` | Viewing {date} |
-| `readTimelineWindow` | Viewing {period} |
-| `readStrand` | Following "..." |
-| `readPreviously` | Reading 前情提要… |
-| `readAgentTimeline` | Viewing cognition… |
-| `thinkDeep` | Reasoning fragment |
+Previously's memory isn't locked inside its own UI. Two mechanisms connect it to the other agents on your machine:
 
-Each card has five visual states: **running** (spinner), **completed** (dot), **error** (red), **interrupted** (yellow), **denied** (red). Click or press Enter/Space to expand and see the full tool output.
+**`previously install`** writes a read-only "Previously memory" skill into each detected agent's setup:
 
-The message itself renders in phases, matching the agent's internal execution order: **Reasoning** → **Recall/tools** → **Response**. You see the agent think, scan the timeline, work, and then answer — all in one message.
+| Agent | What gets installed |
+|---|---|
+| Claude Code | `~/.claude/skills/previously/` (four files) |
+| Kimi Code | `~/.kimi/skills/previously/` |
+| Codex | A sentinel-wrapped Previously block appended to `~/.codex/AGENTS.md` (existing content is never overwritten) |
 
-## First-Run Experience: Demo Mode
+The install is idempotent, backs up before the first modification, and `previously uninstall` removes symmetrically. (The old MCP server was retired — the skill package replaces it.)
 
-Previously does not have an in-app onboarding wizard. Instead, it ships a read-only **demo mode** that transforms the deployment into a tour.
+**The scribe** watches your other agents' session logs — Claude Code, Codex, Kimi Code, and Gemini CLI — and transcribes their conversations into time slices on the same timeline, tagged with their source. It starts automatically with `previously start`; `previously status` reports per-source progress. Your whole AI conversation history, whichever agent produced it, converges onto one timeline.
 
-Run with `STORAGE=demo` (or leave `STORAGE` unset on a server without a `GITHUB_TOKEN`) and every `memory/` read is served from a seeded fictional persona dataset — by default **Caleb** (`personal_14`), 30+ slices spanning multiple years. In demo mode the name in the arrival briefing becomes a persona picker, so you can switch between the seeded personas. A fixed badge in the header tells you nothing written is saved. Writes appear to succeed but are silently discarded; refresh the page and the slate resets.
+## Try it in the browser first
 
-The live demo is at [previously-demo.ldwid.com](https://previously-demo.ldwid.com). It runs the full two-tier recall system, so you can spin the timeline wheel, travel through past slices, chat freely, and watch recall work — all without setting up your own deployment.
-
-### Starting Your Own Timeline
-
-To move from demo to your own timeline:
-
-1. Deploy Previously with your own GitHub repository and a GitHub fine-grained personal access token (contents read/write scope, single repo).
-2. Set `STORAGE=github` (or let auto-detection do it: unset `STORAGE`, set `GITHUB_TOKEN`).
-3. That's it. The first message you type opens your first slice.
-
-There is no account creation, no database setup, and no seed data. The timeline starts empty. Memory accumulates from your first conversation forward.
-
-## Strands: The Semantic Layer Over Time
-
-As slices accumulate, the agent builds a lightweight keyword index called **strands**. A strand is a topic keyword — like `work`, `family`, `housing` — that recurs across multiple slices. The file `memory/episodic/strands.json` maps each strand to every slice that carries it, and a consolidation pass keeps the index clean by merging duplicate keywords.
-
-Recall scans the strand index to find slices by topic, not just by recency. If you've talked about "housing" across 30 slices across three years, the scan finds them through the strand index, then the main model reads the actual content.
-
-<Callout variant="warning">
-**Roadmap:** Strands today are a thin keyword-to-slice index. A richer first-class strand with rolling summaries and deeper recall integration is a future milestone. For now, the index is lossless — it points to every relevant slice, and the main model reads what it needs.
-</Callout>
-
-## What This Means Day to Day
-
-There are no rituals. You don't open a "new conversation." You don't tag or classify anything. You don't manage memory.
-
-- **Show up** — open the page. The arrival briefing tells you where you left off: "PREVIOUSLY ON {your name}," the last topic, the open threads.
-- **Talk** — type and press Enter. If it's been more than about 15 minutes, a new slice opens. The agent reads the timeline, scans for relevant context, and responds.
-- **Ask about the past** — "What did I decide about X?" or "When did Y happen?" The worker scans the timeline catalog and the strand index, the main model reads what matters, and you see the tool cards appear and resolve.
-- **Travel** — the wheel on the left is your full history. Pick a row and the clock rolls you back to that slice.
-
-That's the loop. No setup, no cleanup, no thread management. Just one continuous conversation with memory that works.
+Want a feel for the product before installing anything? The [playground](/playground) runs an interactive, in-browser experience — no setup required.
 
 ## Project Status
 
-**Previously is in active early development and not yet ready for personal or production use** (status: experimental). The core architecture is functional, but many subsystems are still being designed and built. This guide documents the current codebase; it is framed as a personal self-hosted deployment, not a SaaS signup.
+**Previously is in active early development and not yet ready for personal or production use** (status: experimental). This guide documents the current client; expect the command surface and defaults to evolve.
 
 ## Related
 
+- [Deployment](/docs/deployment) — the local client vs. self-hosting the cloud kernel
+- [Configuration](/docs/configuration) — `config.json`, environment variables, and the kernel version policy
 - [The Timeline](/docs/timeline) — the main interaction surface in detail
-- [Memory Model](/docs/memory-model) — slices, strands, the whitelist, and context assembly
-- [Recall](/docs/recall) — the two-tier retrieval pipeline in detail
-- [Configuration](/docs/configuration) — `STORAGE`, demo mode, and the environment variables
+- [Memory Model](/docs/memory-model) — slices, strands, and context assembly

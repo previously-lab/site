@@ -45,7 +45,7 @@ Strands 填补了语义轴。它们是按时间记录的切片在按主题维度
 }
 ```
 
-路径是相对的:没有 `slices/` 前缀,也没有 `.md` 扩展名。`sliceIdToRelPath` 将像 `2026-06-30-1430` 这样的切片 id 转换为 `2026/06/30/1430`,这样你就可以直接访问 `memory/episodic/slices/2026/06/30/1430.md`。
+路径是相对的:没有 `slices/` 前缀,也没有 `.md` 扩展名。`sliceIdToRelPath` 将像 `2026-06-30-1430` 这样的切片 id 转换为 `2026/06/30/1430`,这样你就可以直接定位到切片目录 `memory/episodic/slices/2026/06/30/1430/`。
 
 ## 派生而来,而非手动编写
 
@@ -84,7 +84,7 @@ Strands 没有单独的编写步骤。它们**完全派生自**每个切片 YAML
 这个索引不是只写的——它通过三条路径在每一轮喂养给 agent:
 
 - **记忆主题菜单。** 在每轮的维护期间,系统提示的可变尾部会加入一个 `## Memory topics` 块:最多 20 个 strand,按最近活跃切片排序,每个都标注了最后一次出现的时间。当用户提到这些主题之一时,主 agent 被指示运行 `recall`。
-- **回忆管道。** `recall` 工具把查询交给一个 Flash 子 agent,它只通过指针搜索记忆。这个子 agent 预先拿到 strand 列表,被指示检查哪些 strand 与查询匹配,并拥有自己的 `readStrand` 工具来把匹配的 strand 追踪到携带它的每一个切片路径。Strands 是回忆的主题轴;`readTimelineWindow` 是时间轴。
+- **回忆管道。** `recall` 工具把问题交给 recall 子 agent——一位以自然语言作答并附原文引用的同事。这个子 agent 预先拿到 strand 列表,被指示检查哪些 strand 与查询匹配,并拥有自己的 `readStrand` 工具来把匹配的 strand 追踪到携带它的每一个切片路径。Strands 是回忆的主题轴;`readTimelineWindow` 是时间轴。
 - **时间线投影。** 每次 `weaveTimeline` 都会读取一次 `strands.json`,并解析出每个时间线条目的 `strands` 字段——切片标签中已被编织为 strand 的子集。结构化的时间线索引因此记录了哪些 strand 穿过哪些切片,随时可供消费者使用,比如把 strand 渲染为平行时间线的 UI。
 
 主 agent 本身不会直接遍历原始索引——`readStrand` 和 `listStrands` 属于回忆引擎。主 agent 看到的是菜单加上 `recall` 返回的结果。

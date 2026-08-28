@@ -104,7 +104,7 @@ Previously 摒弃了这一假设。取而代之的是一条单一时间线——
 
 | 工具 | 返回 | 层级 |
 |------|------|------|
-| `recall(query)` | worker 模型扫描:命中 + 推荐阅读 | 1 — 主要的过去访问 |
+| `recall(query)` | recall 同事带原文引用的回答 | 1 — 主要的过去访问 |
 | `readTimelineWindow(from?, to?)` | 日期窗口内的指针行(默认 20,上限 50) | 1 — 按时间定位 |
 | `readSliceSummary(sliceId)` | 仅 frontmatter:focus、summary、tags、tone、loops、decisions | 1 — 相关性检查 |
 | `readStrand(strand)` | 一个 Strand 的 Slice 路径 | 1 — 追踪话题 |
@@ -126,7 +126,7 @@ recall agent 用同一张地图:分页读取全局时间线(最新在前),更早
 
 ## Slice 存放在哪
 
-每个 Slice 是 `memory/episodic/slices/YYYY/MM/DD/HHMM/`(UTC)下的一个目录,内含 `previously.md` 与 `timeline/core.md` + `timeline/agent.md`。你开口时 Slice 打开,默认约 15 分钟沉默后关闭(可配置)——纯粹由时间驱动,没有容量上限,没有话题切换规则。详见 [Slices](/docs/slices)。
+每个 Slice 是 `memory/episodic/slices/YYYY/MM/DD/HHMM/`(UTC)下的一个目录,内含 `previously.md` 与 `timeline/core.md` + `timeline/agent.md`。你开口时 Slice 打开,默认约 15 分钟沉默后关闭(可配置)——由时间驱动,轮次上限作为兜底。详见 [Slices](/docs/slices)。
 
 ## 数据流(UI)
 

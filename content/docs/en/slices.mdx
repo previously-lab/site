@@ -39,26 +39,39 @@ On page refresh, `tryLoadTodaySlice()` scans today's directory — and yesterday
 A slice is no longer a single file: it is a **directory** holding the conversation, the agent's cognition log, and a user-card snapshot. Slices live under `memory/episodic/slices/` in a calendar hierarchy:
 
 ```
-memory/episodic/
-  current-previously.md    -- the live user card
-  slices/
-    2026/
-      07/
-        28/
-          0658/            -- one slice directory
-            timeline/
-              core.md      -- the conversation: YAML frontmatter + turns
-              agent.md     -- agent cognition log (mechanical extraction)
-            previously.md  -- user-card snapshot carried by this slice
-          1024/            -- another slice, same day
-        _index.json        -- monthly index for July 2026
-      08/
-      ...
-  strands.json             -- global keyword-to-slice index
-  timeline/
-    index.json             -- canonical structured catalog of all slices
-  timeline.md              -- Markdown projection of the catalog
+memory/
+  user/
+    profile.md               -- who you are, durable across slices
+  evolution/                 -- Darwinian self-evolution (v1.0)
+    direction.md             -- current direction, anti-goals, evidence log
+    fitness.json             -- evidence-anchored scoring, bucketed per capability
+    mutations.md             -- append-only archive of accepted mutations
+  agent-playbooks/           -- short behavioral guidance per sub-agent
+    recall.md
+    search.md
+    thinkdeep.md
+  episodic/
+    current-previously.md    -- the live user card
+    slices/
+      2026/
+        07/
+          28/
+            0658/            -- one slice directory
+              timeline/
+                core.md      -- the conversation: YAML frontmatter + turns
+                agent.md     -- agent cognition log (mechanical extraction)
+              previously.md  -- user-card snapshot carried by this slice
+            1024/            -- another slice, same day
+          _index.json        -- monthly index for July 2026
+        08/
+        ...
+    strands.json             -- global keyword-to-slice index
+    timeline/
+      index.json             -- canonical structured catalog of all slices
+    timeline.md              -- Markdown projection of the catalog
 ```
+
+The `evolution/` and `agent-playbooks/` directories belong to the v1.0 self-evolution loop — direction, scoring, and the mutation archive live outside the episodic record, and the playbooks steer each sub-agent's behavior.
 
 A calendar day is a directory; a slice is a directory inside it named `HHMM`. The three files have distinct roles:
 
@@ -193,7 +206,7 @@ All slice I/O goes through three wrappers (`fsReadFile`/`fsWriteFile`/`fsListFil
 |------|---------|-----------|
 | `local` | Local filesystem | Development, full read/write |
 | `github` | GitHub REST API (Octokit) | Production, full read/write |
-| `demo` | Remote benchmark data | Read-only persona data |
+| `demo` | Remote demo dataset (`previously-lab/you`) | Read-only persona data |
 
 When `STORAGE` is unset, the source auto-detects: `GITHUB_TOKEN` present → `github`, `NODE_ENV=development` → `local`, otherwise `demo`. The same code path works in every mode — no manual switching.
 

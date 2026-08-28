@@ -45,7 +45,7 @@ Each key in that file is a **strand** (one tag). Each value is the list of relat
 }
 ```
 
-The paths are relative: no `slices/` prefix, no `.md` extension. `sliceIdToRelPath` converts a slice id like `2026-06-30-1430` to `2026/06/30/1430` so you can walk directly to `memory/episodic/slices/2026/06/30/1430.md`.
+The paths are relative: no `slices/` prefix, no `.md` extension. `sliceIdToRelPath` converts a slice id like `2026-06-30-1430` to `2026/06/30/1430` so you can walk directly to the slice directory at `memory/episodic/slices/2026/06/30/1430/`.
 
 ## Derived, Not Authored
 
@@ -84,7 +84,7 @@ The whole pass is defensive: on any failure it returns the index unchanged, so s
 The index is not write-only — it feeds the agent on every turn, through three paths:
 
 - **The memory-topics menu.** During turn housekeeping, the system prompt's variable tail gets a `## Memory topics` block: up to 20 strands, sorted by most recently active slice, each annotated with when it was last seen. When the user mentions one of these topics, the main agent is instructed to run `recall`.
-- **The recall pipeline.** The `recall` tool hands the query to a Flash sub-agent that searches memory from pointers only. That sub-agent receives the strand list up front, is told to check which strands match the query, and has its own `readStrand` tool to trace a matching strand to every slice path that carries it. Strands are the topic axis of recall; `readTimelineWindow` is the time axis.
+- **The recall pipeline.** The `recall` tool hands the question to the recall sub-agent — a colleague that answers in natural language with quoted sources. That sub-agent receives the strand list up front, is told to check which strands match the query, and has its own `readStrand` tool to trace a matching strand to every slice path that carries it. Strands are the topic axis of recall; `readTimelineWindow` is the time axis.
 - **The timeline projection.** Every `weaveTimeline` pass reads `strands.json` once and resolves each timeline entry's `strands` field — the subset of the slice's tags that are woven strands. The structured timeline index therefore records which strands pass through which slices, ready for consumers like a UI that renders a strand as a parallel timeline.
 
 The main agent itself does not walk the raw index — `readStrand` and `listStrands` stay with the recall engine. What the main agent sees is the menu plus whatever `recall` returns.

@@ -104,7 +104,7 @@ Reads then follow a cost ladder — the smallest sufficient unit first:
 
 | Tool | Returns | Tier |
 |------|---------|------|
-| `recall(query)` | Worker-model scan: hits + recommended reads | 1 — primary past access |
+| `recall(query)` | Recall colleague's answer with quoted sources | 1 — primary past access |
 | `readTimelineWindow(from?, to?)` | Pointer lines over a date window (default 20, max 50) | 1 — orient by time |
 | `readSliceSummary(sliceId)` | Frontmatter only: focus, summary, tags, tone, loops, decisions | 1 — relevance check |
 | `readStrand(strand)` | A strand's slice paths | 1 — trace a topic |
@@ -126,7 +126,7 @@ The global timeline described on this page is the catalog *over* all slices' sha
 
 ## Where Slices Live
 
-Each slice is a directory under `memory/episodic/slices/YYYY/MM/DD/HHMM/` (UTC), containing `previously.md` and `timeline/core.md` + `timeline/agent.md`. A slice opens when you start talking and closes after about 15 minutes of silence by default (configurable) — purely time-driven, no capacity limit, no topic-shift rule. Details: [Slices](/docs/slices).
+Each slice is a directory under `memory/episodic/slices/YYYY/MM/DD/HHMM/` (UTC), containing `previously.md` and `timeline/core.md` + `timeline/agent.md`. A slice opens when you start talking and closes after about 15 minutes of silence by default (configurable) — time-driven, with a turn cap as a safety net. Details: [Slices](/docs/slices).
 
 ## Data Flow (UI)
 
