@@ -271,16 +271,16 @@
     "Act5": {
       "eyebrow": "05",
       "title": "Specialists, not brute force.",
-      "body": "Sub-agents here are colleagues, not tools. recall remembers like a witness — every answer cites the original slice, and \"I don't have that memory\" is a valid answer. webSearch researches with sources; thinkDeep is a clean thinking chamber, on demand. The main agent orchestrates and verifies — nothing more.",
+      "body": "Sub-agents here are specialists, not one overextended generalist. The recall agent remembers like a witness — every answer cites the original slice, and \"I don't have that memory\" is a valid answer. The research agent investigates with sources; the thinking agent is a clean thinking chamber, on demand. The main agent orchestrates and verifies — nothing more.",
       "cta": "Explore the architecture",
       "hubLabel": "main agent",
       "hubDetail": "orchestrates · verifies via readSlice",
       "w1Label": "recall agent",
       "w1Detail": "quotes evidence · admits no memory",
-      "w2Label": "thinkDeep",
+      "w2Label": "thinking agent",
       "w2Detail": "clean thinking chamber, on demand",
-      "w3Label": "webSearch",
-      "w3Detail": "reads ≤3 pages · cited confidence",
+      "w3Label": "research agent",
+      "w3Detail": "cited sources · with confidence",
       "w4Label": "evolution agent",
       "w4Detail": "scores fitness · mutates direction"
     },
@@ -326,15 +326,15 @@
           },
           {
             "text": "   │  ├─ direction.md",
-            "note": "← what \"better\" means"
+            "note": "← what better is"
           },
           {
             "text": "   │  └─ mutations.md",
-            "note": "← append-only archive"
+            "note": "← append-only"
           },
           {
             "text": "   ├─ current-previously.md",
-            "note": "← what selection kept"
+            "note": "← selected"
           },
           {
             "text": "   └─ strands.json"

@@ -271,16 +271,16 @@
     "Act5": {
       "eyebrow": "05",
       "title": "分工,而不是硬撑。",
-      "body": "子 agent 是同事,不是工具。recall 像目击者一样回忆——每个答案都引用切片原文,「没有这段记忆」也是合法答案;webSearch 是研究员,带着来源做调研;thinkDeep 是按需进入的干净思考舱。主 agent 只统筹,只校验。",
+      "body": "子 agent 各有所长,而不是一个硬撑的通才。回忆 agent 像目击者一样回忆——每个答案都引用切片原文,「没有这段记忆」也是合法答案;调研 agent 带着来源做调研;思考 agent 是按需进入的干净思考舱。主 agent 只统筹,只校验。",
       "cta": "探索架构设计",
       "hubLabel": "主 agent",
       "hubDetail": "统筹派发 · 只留校验通道",
-      "w1Label": "recall 同事",
+      "w1Label": "回忆 agent",
       "w1Detail": "引原文作证 · 想不起来就直说",
-      "w2Label": "thinkDeep",
+      "w2Label": "思考 agent",
       "w2Detail": "干净思考舱,按需调用",
-      "w3Label": "webSearch",
-      "w3Detail": "自读 ≤3 页 · 带置信度",
+      "w3Label": "调研 agent",
+      "w3Detail": "联网查证 · 附来源与置信度",
       "w4Label": "进化 agent",
       "w4Detail": "fitness 打分 · 改写 direction"
     },
@@ -334,7 +334,7 @@
           },
           {
             "text": "   ├─ current-previously.md",
-            "note": "← 筛选留下的产物"
+            "note": "← 筛选产物"
           },
           {
             "text": "   └─ strands.json"

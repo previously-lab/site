@@ -22,8 +22,12 @@ export function RepoVisual({ root, rows, file, lines }: RepoVisualProps): React.
 
   return (
     <div ref={ref} className="font-mono text-[0.65rem] leading-relaxed">
-      {/* File tree — the real storage layout in YOUR repo */}
-      <div className="text-muted-foreground/60">
+      {/* File tree — the real storage layout in YOUR repo. Long lines scroll
+          horizontally instead of spilling past the card. */}
+      <div
+        className="overflow-x-auto text-muted-foreground/60"
+        style={{ scrollbarWidth: "none" }}
+      >
         <p className="text-foreground/70">{root}</p>
         {rows.map((row) => (
           <p key={row.text} className="whitespace-pre">
