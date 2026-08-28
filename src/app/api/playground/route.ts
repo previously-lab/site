@@ -3,20 +3,27 @@
  *
  * Constraints (per notes/playground-design.md):
  * - Preset whitelist only: no free-form prompts ever reach the model.
- * - Response cache: identical (presetId, locale, dataset version) requests are
- *   served from a module-level Map — the cache hit rate IS the cost-control
- *   design. The dataset is read live from the `you` repo; when it changes,
- *   the version in the key changes and answers are regenerated.
+ * - NO response cache: every click is a real request. Cost control is the
+ *   preset whitelist + IP rate limit + the provider's prompt cache.
  * - IP rate limit: 20 requests/hour sliding window (in-memory; per-instance
  *   under serverless — a known, accepted limitation for a demo endpoint).
  * - Demo mode: evolution runs compute what WOULD change; nothing is persisted.
+ *
+ * Streaming: recall presets run the ported episodic-recall colleague (a real
+ * streamText tool loop, src/lib/playground/agent/) and stream SSE events:
+ *   {"type":"progress","line":…}  — each exploration tool start
+ *   {"type":"delta","text":…}     — answer text deltas
+ *   {"type":"report","result":…}  — the final, schema-validated RecallResult
+ *   {"type":"error","message":…}  — failures (localized)
+ * evolution / anatomy presets keep the one-shot JSON response.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import matter from "gray-matter";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 
-import { getPreset, isPresetId } from "@/lib/playground/presets";
+import { getPreset, isPresetId, type PlaygroundPreset } from "@/lib/playground/presets";
 import { playgroundRateLimiter } from "@/lib/playground/rate-limit";
 import { buildPrompt } from "@/lib/playground/prompts";
 import { getSnapshot, type PlaygroundSnapshot } from "@/lib/playground/snapshot";
@@ -26,8 +33,8 @@ import {
   recallResultSchema,
   type PlaygroundError,
   type PlaygroundResult,
-  type PlaygroundSuccess,
 } from "@/lib/playground/contracts";
+import { runPlaygroundRecall } from "@/lib/playground/agent/recall";
 
 const bodySchema = z.object({
   presetId: z.string().refine(isPresetId, "unknown presetId"),
@@ -52,32 +59,34 @@ const ERROR_TEXT = {
   },
 } as const;
 
+function errorText(
+  code: PlaygroundError["code"],
+  locale: string,
+): string {
+  return ERROR_TEXT[locale === "zh" ? "zh" : "en"][
+    code === "bad_request"
+      ? "badRequest"
+      : code === "rate_limited"
+        ? "rateLimited"
+        : code === "unavailable"
+          ? "unavailable"
+          : "upstream"
+  ];
+}
+
 function errorResponse(
   status: number,
   code: PlaygroundError["code"],
   locale: string,
 ): NextResponse<PlaygroundError> {
-  const text =
-    ERROR_TEXT[locale === "zh" ? "zh" : "en"][
-      code === "bad_request"
-        ? "badRequest"
-        : code === "rate_limited"
-          ? "rateLimited"
-          : code === "unavailable"
-            ? "unavailable"
-            : "upstream"
-    ];
-  return NextResponse.json({ error: text, code }, { status });
+  return NextResponse.json(
+    { error: errorText(code, locale), code },
+    { status },
+  );
 }
 
 /* ------------------------------------------------------------------ */
-/*  Module-level cache — (presetId, locale) → result. The presets make */
-/*  every user issue the identical request, so hit rate is the goal.   */
-/* ------------------------------------------------------------------ */
-const responseCache = new Map<string, PlaygroundResult>();
-
-/* ------------------------------------------------------------------ */
-/*  DeepSeek                                                           */
+/*  DeepSeek — one-shot path (evolution / anatomy presets)             */
 /* ------------------------------------------------------------------ */
 
 async function callDeepSeek(system: string, user: string): Promise<unknown> {
@@ -146,10 +155,82 @@ function buildResult(
 }
 
 /* ------------------------------------------------------------------ */
+/*  Recall — the real streaming tool loop, over SSE                    */
+/* ------------------------------------------------------------------ */
 
-export async function POST(
-  req: NextRequest,
-): Promise<NextResponse<PlaygroundSuccess | PlaygroundError>> {
+function recallStreamResponse(
+  preset: PlaygroundPreset,
+  snapshot: PlaygroundSnapshot,
+  locale: "en" | "zh",
+): Response {
+  const provider = createOpenAICompatible({
+    name: "deepseek",
+    baseURL: "https://api.deepseek.com",
+    apiKey: process.env.DEEPSEEK_API_KEY!,
+  });
+
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const send = (event: Record<string, unknown>) => {
+        try {
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify(event)}\n\n`),
+          );
+        } catch {
+          // Client disconnected mid-run — nothing left to do.
+        }
+      };
+
+      try {
+        const res = await runPlaygroundRecall({
+          question: preset.questionEn,
+          snapshot,
+          locale,
+          model: provider.chatModel("deepseek-chat"),
+          onProgressLine: (line) => send({ type: "progress", line }),
+          onTextDelta: (delta) => send({ type: "delta", text: delta }),
+        });
+
+        if (!res.ok) {
+          console.error("[playground] recall failed", res.error);
+          send({ type: "error", message: errorText("upstream", locale) });
+          return;
+        }
+        // Envelope-level validation — the report already passed the agent's
+        // own schema; this keeps the SSE contract exactly the RecallResult
+        // the client renders.
+        const parsed = recallResultSchema.safeParse(res.result);
+        if (!parsed.success) {
+          console.error("[playground] recall report failed contract validation");
+          send({ type: "error", message: errorText("upstream", locale) });
+          return;
+        }
+        send({ type: "report", result: parsed.data });
+      } catch (err) {
+        console.error("[playground] recall stream failure", err);
+        send({ type: "error", message: errorText("upstream", locale) });
+      } finally {
+        try {
+          controller.close();
+        } catch {
+          /* already closed */
+        }
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "content-type": "text/event-stream; charset=utf-8",
+      "cache-control": "no-cache, no-transform",
+    },
+  });
+}
+
+/* ------------------------------------------------------------------ */
+
+export async function POST(req: NextRequest): Promise<Response> {
   // Parse + validate the body first so errors can be localized.
   let body: z.infer<typeof bodySchema>;
   try {
@@ -173,25 +254,19 @@ export async function POST(
     return res;
   }
 
-  const snapshot = await getSnapshot();
-  // The cache key carries the dataset version: when the live `you` repo
-  // changes, cached answers are invalidated automatically.
-  const cacheKey = `${body.presetId}:${body.locale}:${snapshot.version}`;
-  const cached = responseCache.get(cacheKey);
-  if (cached) {
-    return NextResponse.json({
-      presetId: body.presetId,
-      kind: getPreset(body.presetId)!.kind,
-      result: cached,
-      cached: true,
-    });
-  }
-
   if (!process.env.DEEPSEEK_API_KEY) {
     return errorResponse(503, "unavailable", body.locale);
   }
 
+  const snapshot = await getSnapshot();
   const preset = getPreset(body.presetId)!;
+
+  // Recall presets run the ported recall colleague — a real streaming tool
+  // loop — and answer with SSE events instead of a one-shot JSON body.
+  if (preset.kind === "recall") {
+    return recallStreamResponse(preset, snapshot, body.locale);
+  }
+
   const { system, user } = buildPrompt(preset, snapshot, body.locale);
 
   let result: PlaygroundResult | null;
@@ -209,7 +284,6 @@ export async function POST(
     return errorResponse(502, "upstream", body.locale);
   }
 
-  responseCache.set(cacheKey, result);
   return NextResponse.json({
     presetId: body.presetId,
     kind: preset.kind,

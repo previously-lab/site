@@ -84,6 +84,7 @@
         "evolution": "Evolving the card…",
         "anatomy": "Dissecting the slice…"
       },
+      "recallDone": "Recall complete",
       "retry": "Retry",
       "error": "Something went wrong. Please try again.",
       "references": "References",

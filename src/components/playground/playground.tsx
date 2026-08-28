@@ -13,6 +13,7 @@ import type {
 import { RecallResultView, ReferenceCard } from "./recall-result";
 import { EvolutionResultView } from "./evolution-result";
 import { AnatomyResultView } from "./anatomy-result";
+import { PhaseIndicator } from "./phase-indicator";
 
 export type PlaygroundCapability = PlaygroundKind;
 
@@ -36,76 +37,181 @@ interface HistoryTurn {
   references?: { sliceId: string; quote: string }[];
 }
 
-type TurnState =
-  | { status: "loading" }
+type LiveStatus =
+  | { status: "running" }
   | { status: "done"; data: PlaygroundSuccess }
   | { status: "error"; message: string };
 
-interface Turn {
+/** The single live turn — every preset click REPLACES it (no stacking). */
+interface LiveTurn {
   presetId: string;
-  state: TurnState;
+  /** Recall exploration trail (one line per tool the colleague started). */
+  lines: string[];
+  /** Answer text streamed so far (recall only — the write-as-you-go channel). */
+  answer: string;
+  state: LiveStatus;
 }
+
+/** One SSE event from POST /api/playground (recall presets). */
+type SseEvent =
+  | { type: "progress"; line: string }
+  | { type: "delta"; text: string }
+  | { type: "report"; result: RecallResult }
+  | { type: "error"; message: string };
 
 /**
  * A conversation fragment demonstrating one capability. The window opens
  * mid-conversation: the pre-recorded history (grounded in the `you` dataset)
  * is already on screen, and instead of a free-form input the visitor gets a
- * few prompts they can ask next — tapping one appends a real, live answer to
- * the same thread. Embedded from MDX as `<Playground capability="recall" />`.
+ * few prompts they can ask next — tapping one runs a real, live request
+ * (recall presets stream the recall colleague's tool loop over SSE) and
+ * REPLACES the previous live turn. Embedded from MDX as
+ * `<Playground capability="recall" />`.
  */
 export function Playground({ capability }: { capability: PlaygroundCapability }) {
   const t = useTranslations("Playground");
   const locale = useLocale();
   const history = t.raw(`capabilities.${capability}.history`) as HistoryTurn[];
   const presetIds = CAPABILITY_PRESETS[capability];
-  const [turns, setTurns] = useState<Turn[]>([]);
+  const [live, setLive] = useState<LiveTurn | null>(null);
   const [busy, setBusy] = useState(false);
   const threadRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   // Keep the latest exchange in view as the thread grows.
   useEffect(() => {
     const el = threadRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [turns]);
+  }, [live]);
 
-  // Turns are serialized (busy guard), so an appended turn stays last and an
-  // in-place retry (`index`) can't race another request.
-  async function run(presetId: string, index?: number) {
-    if (busy) return;
-    setBusy(true);
-    setTurns((prev) =>
-      index === undefined
-        ? [...prev, { presetId, state: { status: "loading" } }]
-        : prev.map((turn, i) =>
-            i === index ? { presetId, state: { status: "loading" } } : turn,
-          ),
-    );
+  // Abort an in-flight stream when the component unmounts.
+  useEffect(() => () => abortRef.current?.abort(), []);
 
-    let next: TurnState;
-    try {
-      const res = await fetch("/api/playground", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ presetId, locale }),
+  /** Patch the live turn in place (single slot — no index bookkeeping). */
+  function patchLive(patch: Partial<LiveTurn>) {
+    setLive((prev) => (prev ? { ...prev, ...patch } : prev));
+  }
+
+  async function runRecall(presetId: string, signal: AbortSignal) {
+    const res = await fetch("/api/playground", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ presetId, locale }),
+      signal,
+    });
+
+    // JSON error envelope (rate limited / unavailable / bad request).
+    if (!res.ok || !res.body) {
+      const data = await res.json().catch(() => null);
+      patchLive({
+        state: {
+          status: "error",
+          message:
+            typeof data?.error === "string" ? data.error : t("ui.error"),
+        },
       });
-      const data = await res.json();
-      next = res.ok
+      return;
+    }
+
+    // Real SSE stream: progress lines → answer deltas → the final report.
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "";
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      let sep: number;
+      while ((sep = buf.indexOf("\n\n")) >= 0) {
+        const chunk = buf.slice(0, sep);
+        buf = buf.slice(sep + 2);
+        for (const row of chunk.split("\n")) {
+          if (!row.startsWith("data: ")) continue;
+          let event: SseEvent;
+          try {
+            event = JSON.parse(row.slice(6)) as SseEvent;
+          } catch {
+            continue;
+          }
+          if (event.type === "progress") {
+            setLive((prev) =>
+              prev ? { ...prev, lines: [...prev.lines, event.line] } : prev,
+            );
+          } else if (event.type === "delta") {
+            setLive((prev) =>
+              prev ? { ...prev, answer: prev.answer + event.text } : prev,
+            );
+          } else if (event.type === "report") {
+            patchLive({
+              state: {
+                status: "done",
+                data: {
+                  presetId,
+                  kind: "recall",
+                  result: event.result,
+                  cached: false,
+                },
+              },
+            });
+          } else if (event.type === "error") {
+            patchLive({
+              state: { status: "error", message: event.message },
+            });
+          }
+        }
+      }
+    }
+    // Stream ended without a report or error — treat as a failed run.
+    setLive((prev) =>
+      prev && prev.state.status === "running"
+        ? { ...prev, state: { status: "error", message: t("ui.error") } }
+        : prev,
+    );
+  }
+
+  async function runJson(presetId: string, signal: AbortSignal) {
+    const res = await fetch("/api/playground", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ presetId, locale }),
+      signal,
+    });
+    const data = await res.json();
+    patchLive({
+      state: res.ok
         ? { status: "done", data: data as PlaygroundSuccess }
         : {
             status: "error",
             message:
               typeof data?.error === "string" ? data.error : t("ui.error"),
-          };
-    } catch {
-      next = { status: "error", message: t("ui.error") };
-    }
+          },
+    });
+  }
 
-    setTurns((prev) =>
-      prev.map((turn, i) =>
-        i === (index ?? prev.length - 1) ? { presetId, state: next } : turn,
-      ),
-    );
-    setBusy(false);
+  // Turns are serialized (busy guard); a click REPLACES the live turn.
+  async function run(presetId: string) {
+    if (busy) return;
+    setBusy(true);
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const kind = getPreset(presetId)!.kind;
+    setLive({ presetId, lines: [], answer: "", state: { status: "running" } });
+
+    try {
+      if (kind === "recall") {
+        await runRecall(presetId, controller.signal);
+      } else {
+        await runJson(presetId, controller.signal);
+      }
+    } catch (err) {
+      if (controller.signal.aborted) return; // replaced by a newer click
+      patchLive({ state: { status: "error", message: t("ui.error") } });
+    } finally {
+      if (abortRef.current === controller) {
+        setBusy(false);
+      }
+    }
   }
 
   return (
@@ -116,7 +222,7 @@ export function Playground({ capability }: { capability: PlaygroundCapability })
         <span className="text-sm font-semibold tracking-tight">Previously</span>
       </div>
 
-      {/* Conversation thread — pre-recorded history first, live turns after */}
+      {/* Conversation thread — pre-recorded history first, live turn after */}
       <div
         ref={threadRef}
         className="max-h-[36rem] space-y-5 overflow-y-auto px-4 py-5"
@@ -143,34 +249,59 @@ export function Playground({ capability }: { capability: PlaygroundCapability })
           </div>
         ))}
 
-        {turns.map((turn, i) => (
-          <div key={`live-${i}`} className="space-y-3">
-            <UserBubble text={t(`presets.${turn.presetId}.question`)} />
-            <div className="min-w-0 max-w-full flex-1">
-              {turn.state.status === "loading" && (
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-[var(--pg-brand-soft)] px-2.5 py-1 text-[11px] font-medium text-[var(--pg-brand)]">
-                  <span className="pg-breathe size-1.5 rounded-full bg-[var(--pg-brand)]" />
-                  {t(`ui.working.${getPreset(turn.presetId)!.kind}`)}
-                </div>
+        {live && (
+          <div className="space-y-3">
+            <UserBubble text={t(`presets.${live.presetId}.question`)} />
+            <div className="min-w-0 max-w-full flex-1 space-y-3">
+              {/* Recall: the colleague's exploration card, live */}
+              {getPreset(live.presetId)!.kind === "recall" && (
+                <PhaseIndicator
+                  icon={<History className="h-3.5 w-3.5" />}
+                  label={
+                    live.state.status === "running"
+                      ? t("ui.working.recall")
+                      : t("ui.recallDone")
+                  }
+                  running={live.state.status === "running"}
+                  currentLine={live.lines[live.lines.length - 1]}
+                  lines={live.lines}
+                />
               )}
-              {turn.state.status === "error" && (
+
+              {/* Non-recall working pill (one-shot JSON presets) */}
+              {live.state.status === "running" &&
+                getPreset(live.presetId)!.kind !== "recall" && (
+                  <div className="inline-flex items-center gap-1.5 rounded-full bg-[var(--pg-brand-soft)] px-2.5 py-1 text-[11px] font-medium text-[var(--pg-brand)]">
+                    <span className="pg-breathe size-1.5 rounded-full bg-[var(--pg-brand)]" />
+                    {t(`ui.working.${getPreset(live.presetId)!.kind}`)}
+                  </div>
+                )}
+
+              {/* Recall answer text streaming live (write-as-you-go) */}
+              {live.state.status === "running" && live.answer && (
+                <p className="whitespace-pre-line text-sm leading-relaxed text-foreground/85">
+                  {live.answer}
+                </p>
+              )}
+
+              {live.state.status === "error" && (
                 <div className="flex items-center gap-3 rounded-md border border-destructive/20 bg-destructive/10 px-3.5 py-2 text-sm text-destructive">
-                  <span>{turn.state.message}</span>
+                  <span>{live.state.message}</span>
                   <button
                     type="button"
-                    onClick={() => run(turn.presetId, i)}
+                    onClick={() => run(live.presetId)}
                     className="shrink-0 text-xs font-semibold underline underline-offset-2"
                   >
                     {t("ui.retry")}
                   </button>
                 </div>
               )}
-              {turn.state.status === "done" && (
-                <ResultBody data={turn.state.data} />
+              {live.state.status === "done" && (
+                <ResultBody data={live.state.data} />
               )}
             </div>
           </div>
-        ))}
+        )}
       </div>
 
       {/* No free-form input — just a few things you might ask next */}
