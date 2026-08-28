@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   motion,
   useReducedMotion,
@@ -26,6 +26,12 @@ interface TimelineVisualProps {
   strandAlex: string;
   strandCamping: string;
   legendText: string;
+  /**
+   * The payoff that replaces the NOW dot at the very end of the scroll:
+   * once every strand has converged, NOW fades out and this node fades in
+   * at the same spot — one question answered across all strands.
+   */
+  payoff?: ReactNode;
 }
 
 /* ── Strand colors ──────────────────────────────────────── */
@@ -74,7 +80,7 @@ interface Layout {
 }
 
 const DESKTOP: Layout = {
-  viewBox: "0 0 1200 2300",
+  viewBox: "0 0 1200 2260",
   width: 1200,
   spineX: 600,
   spineY0: 100,
@@ -92,7 +98,7 @@ const DESKTOP: Layout = {
 };
 
 const MOBILE: Layout = {
-  viewBox: "0 0 720 2200",
+  viewBox: "0 0 720 2160",
   width: 720,
   spineX: 96,
   spineY0: 90,
@@ -339,6 +345,7 @@ export function TimelineVisual({
   strandAlex,
   strandCamping,
   legendText,
+  payoff,
 }: TimelineVisualProps): React.ReactElement {
   const ref = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
@@ -359,8 +366,16 @@ export function TimelineVisual({
 
   const spinePL = useTransform(p, [0.02, 0.28], [0, 1]);
   const band = useTransform(p, [0.15, 0.92], [L.bandFrom, L.bandTo]);
-  const nowOpacity = useTransform(p, [0.88, 0.96], [0, 1]);
-  const nowScale = useTransform(p, [0.88, 0.96], [0.4, 1]);
+  /* NOW appears once the strands have converged — and when a payoff is
+     attached, it fades back out at the very end as the payoff takes over. */
+  const nowOpacity = useTransform(
+    p,
+    payoff ? [0.86, 0.92, 0.93, 0.98] : [0.86, 0.92],
+    payoff ? [0, 1, 1, 0] : [0, 1],
+  );
+  const nowScale = useTransform(p, [0.86, 0.92], [0.4, 1]);
+  const payoffOpacity = useTransform(p, [0.93, 0.98], [0, 1]);
+  const payoffY = useTransform(p, [0.93, 0.98], [20, 0]);
 
   return (
     <div ref={ref} className="w-full" role="img" aria-label={legendText}>
@@ -474,6 +489,17 @@ export function TimelineVisual({
           </motion.g>
         </svg>
       </div>
+
+      {/* The payoff of NOW — scroll-driven crossfade: the NOW dot fades
+          out and this node fades in right where attention already is. */}
+      {payoff && (
+        <motion.div
+          style={reduced ? undefined : { opacity: payoffOpacity, y: payoffY }}
+          className="mt-6 flex justify-center"
+        >
+          {payoff}
+        </motion.div>
+      )}
 
       {/* Strand legend — crisp HTML, not SVG text */}
       <div className="mt-4 flex flex-wrap items-center justify-between gap-y-2 font-mono text-xs sm:text-sm">

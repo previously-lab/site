@@ -35,7 +35,7 @@ export function NowQuestion({
   liveCta,
 }: NowQuestionProps): React.ReactElement {
   return (
-    <div className="mx-auto mt-10 w-full max-w-xl">
+    <div className="w-full max-w-xl">
       <div className="landing-fill-glass landing-stroke-hairline overflow-hidden rounded-xl border">
         <div className="space-y-3 px-4 py-4 sm:px-5">
           {/* The cross-strand question */}

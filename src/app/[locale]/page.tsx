@@ -135,37 +135,37 @@ export default async function HomePage({ params }: Props): Promise<React.ReactEl
         docsLabel={t("Act1.cta")}
         layout="center"
         visual={
-          <>
-            <TimelineVisual
-              year={s("Act1.year")}
-              beats={list<TimelineBeat>("Act1.beats")}
-              strandFriends={s("Act1.strandFriends")}
-              strandRunning={s("Act1.strandRunning")}
-              strandFamily={s("Act1.strandFamily")}
-              strandAlex={s("Act1.strandAlex")}
-              strandCamping={s("Act1.strandCamping")}
-              legendText={s("Act1.legendText")}
-            />
-            {/* The payoff of NOW: one question across every strand. */}
-            <NowQuestion
-              question={s("Act1.nowQuestion.question")}
-              answer={s("Act1.nowQuestion.answer")}
-              refs={list<{ date: string; note: string; strand: string }>(
-                "Act1.nowQuestion.refs",
-              ).map((r): NowQuestionRef => ({
-                date: r.date,
-                note: r.note,
-                color:
-                  {
-                    running: "oklch(0.7 0.12 85)",
-                    alex: "oklch(0.72 0.14 350)",
-                    friends: "oklch(0.6 0.23 260)",
-                  }[r.strand] ?? "oklch(0.556 0 0)",
-              }))}
-              meta={s("Act1.nowQuestion.meta")}
-              liveCta={s("Act1.nowQuestion.liveCta")}
-            />
-          </>
+          <TimelineVisual
+            year={s("Act1.year")}
+            beats={list<TimelineBeat>("Act1.beats")}
+            strandFriends={s("Act1.strandFriends")}
+            strandRunning={s("Act1.strandRunning")}
+            strandFamily={s("Act1.strandFamily")}
+            strandAlex={s("Act1.strandAlex")}
+            strandCamping={s("Act1.strandCamping")}
+            legendText={s("Act1.legendText")}
+            /* The payoff of NOW: one question across every strand. */
+            payoff={
+              <NowQuestion
+                question={s("Act1.nowQuestion.question")}
+                answer={s("Act1.nowQuestion.answer")}
+                refs={list<{ date: string; note: string; strand: string }>(
+                  "Act1.nowQuestion.refs",
+                ).map((r): NowQuestionRef => ({
+                  date: r.date,
+                  note: r.note,
+                  color:
+                    {
+                      running: "oklch(0.7 0.12 85)",
+                      alex: "oklch(0.72 0.14 350)",
+                      friends: "oklch(0.6 0.23 260)",
+                    }[r.strand] ?? "oklch(0.556 0 0)",
+                }))}
+                meta={s("Act1.nowQuestion.meta")}
+                liveCta={s("Act1.nowQuestion.liveCta")}
+              />
+            }
+          />
         }
       />
 
