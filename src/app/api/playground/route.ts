@@ -11,10 +11,13 @@
  *
  * Streaming: recall presets run the ported episodic-recall colleague (a real
  * streamText tool loop, src/lib/playground/agent/) and stream SSE events:
- *   {"type":"progress","line":…}  — each exploration tool start
- *   {"type":"delta","text":…}     — answer text deltas
- *   {"type":"report","result":…}  — the final, schema-validated RecallResult
- *   {"type":"error","message":…}  — failures (localized)
+ *   {"type":"progress","line":…}              — each exploration tool start
+ *   {"type":"line","line":…,"stage":…}        — the live subtitle: current
+ *                                               thinking/writing line
+ *   {"type":"delta","text":…}                 — answer deltas (streamed out of
+ *                                               the report tool's input)
+ *   {"type":"report","result":…}              — the final, schema-validated RecallResult
+ *   {"type":"error","message":…}              — failures (localized)
  * evolution / anatomy presets keep the one-shot JSON response.
  */
 
@@ -189,7 +192,8 @@ function recallStreamResponse(
           locale,
           model: provider.chatModel("deepseek-chat"),
           onProgressLine: (line) => send({ type: "progress", line }),
-          onTextDelta: (delta) => send({ type: "delta", text: delta }),
+          onLine: (line, stage) => send({ type: "line", line, stage }),
+          onAnswerDelta: (delta) => send({ type: "delta", text: delta }),
         });
 
         if (!res.ok) {

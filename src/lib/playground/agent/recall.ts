@@ -25,6 +25,13 @@
  *   the ongoing-slice paragraph and adds the demo locale's language instead.
  * - RECALL_TIMEOUT_MS is 120s here (kernel: 240s) — the playground is a
  *   visitor-facing demo.
+ *
+ * Thinking: ON with effort "low" (the kernel default), via the DeepSeek
+ * providerOptions shape ported from src/lib/models/effort-injector.ts. The
+ * kernel's documented DeepSeek quirk applies — thinking mode rejects a
+ * FORCED tool_choice with a 400 (which the prepareStep last-step report
+ * guarantee would trigger) — so a failed thinking run retries once with
+ * thinking OFF, mirroring the kernel runner's downgrade.
  */
 
 import { tool } from "ai";
@@ -419,8 +426,13 @@ export interface PlaygroundRecallInput {
   model: LanguageModel;
   /** Receives each exploration progress line as the matching tool starts. */
   onProgressLine?: (line: string) => void;
-  /** Receives every answer text delta, unthrottled. */
-  onTextDelta?: (delta: string) => void;
+  /**
+   * Receives the CURRENT line of the colleague's thinking/writing on every
+   * delta (the kernel's live-subtitle channel), unthrottled.
+   */
+  onLine?: (line: string, stage: "thinking" | "writing") => void;
+  /** Receives each streamed delta of the report's `answer` field. */
+  onAnswerDelta?: (delta: string) => void;
 }
 
 export type PlaygroundRecallResult =
@@ -441,7 +453,7 @@ export type PlaygroundRecallResult =
 export async function runPlaygroundRecall(
   input: PlaygroundRecallInput,
 ): Promise<PlaygroundRecallResult> {
-  const { question, snapshot, locale, onProgressLine, onTextDelta } = input;
+  const { question, snapshot, locale, onProgressLine, onLine, onAnswerDelta } = input;
 
   const strandNames = Object.keys(snapshot.strands);
   const strandsHint = strandNames.length > 0
@@ -468,12 +480,24 @@ IMPORTANT: You MUST end by calling recallReport. Even when the honest answer is 
   const validSliceIds = validSliceIdsFrom(snapshot.timeline);
   const sliceQuota = createSliceReadQuota();
 
-  const res = await runAgent<RecallReport>({
-    model: input.model,
-    system: buildSubAgentSystem(RECALL_ROLE),
-    prompt: userPrompt,
-    temperature: 0.3,
-    tools: {
+  // DeepSeek thinking shapes, ported from the kernel's effort-injector:
+  // thinking ON at effort "low" is the kernel default for every sub-agent;
+  // "disabled" is the thinking-off shape used by the downgrade retry.
+  const thinkingOn = {
+    deepseek: { thinking: { type: "enabled" }, reasoningEffort: "low" },
+  };
+  const thinkingOff = {
+    deepseek: { thinking: { type: "disabled" } },
+  };
+
+  const attempt = (thinking: boolean) =>
+    runAgent<RecallReport>({
+      model: input.model,
+      system: buildSubAgentSystem(RECALL_ROLE),
+      prompt: userPrompt,
+      temperature: 0.3,
+      providerOptions: thinking ? thinkingOn : thinkingOff,
+      tools: {
       readGlobalTimeline: tool({
         description:
           "Read the global timeline index — pointer lines for the newest " +
@@ -605,47 +629,69 @@ IMPORTANT: You MUST end by calling recallReport. Even when the honest answer is 
         },
       }),
       recallReport: recallReportSchema,
-    },
-    reportToolName: "recallReport",
-    reportSchema: recallReportInputSchema,
-    maxSteps: MAX_STEPS,
-    timeoutMs: RECALL_TIMEOUT_MS,
-    // Last-resort guarantee: if the model burned the budget exploring
-    // without reporting, force recallReport on the final step.
-    prepareStep: prepareRecallStep,
-    onProgressLine,
-    onTextDelta,
-    // Stream the sub-agent's exploration trail live: each tool the recall
-    // colleague starts surfaces as a progress line. Ported from the kernel's
-    // onToolProgress mapping.
-    onToolProgress: ({ toolName, input: toolInput }) => {
-      if (toolName === "readGlobalTimeline") {
-        return "Reading global timeline…";
-      }
-      if (toolName === "readTimelineWindow") {
-        return "Scoping timeline window…";
-      }
-      if (toolName === "listStrands") {
-        return "Listing memory topics…";
-      }
-      if (toolName === "readStrand") {
-        const strand = inputString(toolInput, "strand");
-        return strand ? `Tracing strand: ${strand}…` : "Tracing a strand…";
-      }
-      if (toolName === "readSliceSummary") {
-        const sid = inputString(toolInput, "sliceId");
-        return sid ? `Checking summary of ${sid}…` : "Checking a slice summary…";
-      }
-      if (toolName === "readSlice") {
-        const sid = inputString(toolInput, "sliceId");
-        return sid ? `Reading slice ${sid}…` : "Reading a slice…";
-      }
-      if (toolName === "recallReport") {
-        return "Compiling the answer…";
-      }
-      return undefined;
-    },
-  });
+      },
+      reportToolName: "recallReport",
+      reportSchema: recallReportInputSchema,
+      maxSteps: MAX_STEPS,
+      timeoutMs: RECALL_TIMEOUT_MS,
+      // Last-resort guarantee: if the model burned the budget exploring
+      // without reporting, force recallReport on the final step.
+      prepareStep: prepareRecallStep,
+      onProgressLine,
+      onLine,
+      // The playground has no main agent — the report's `answer` field IS the
+      // reply, so stream it token-by-token out of the report tool's input.
+      streamedReportField: "answer",
+      onAnswerDelta,
+      // Stream the sub-agent's exploration trail live: each tool the recall
+      // colleague starts surfaces as a progress line. Ported from the kernel's
+      // onToolProgress mapping.
+      onToolProgress: ({ toolName, input: toolInput }) => {
+        if (toolName === "readGlobalTimeline") {
+          return "Reading global timeline…";
+        }
+        if (toolName === "readTimelineWindow") {
+          return "Scoping timeline window…";
+        }
+        if (toolName === "listStrands") {
+          return "Listing memory topics…";
+        }
+        if (toolName === "readStrand") {
+          const strand = inputString(toolInput, "strand");
+          return strand ? `Tracing strand: ${strand}…` : "Tracing a strand…";
+        }
+        if (toolName === "readSliceSummary") {
+          const sid = inputString(toolInput, "sliceId");
+          return sid ? `Checking summary of ${sid}…` : "Checking a slice summary…";
+        }
+        if (toolName === "readSlice") {
+          const sid = inputString(toolInput, "sliceId");
+          return sid ? `Reading slice ${sid}…` : "Reading a slice…";
+        }
+        if (toolName === "recallReport") {
+          return "Compiling the answer…";
+        }
+        return undefined;
+      },
+    });
+
+  let res = await attempt(true);
+
+  // DeepSeek quirk (kernel-documented): thinking mode rejects a FORCED
+  // tool_choice with a 400 ("Thinking mode does not support this
+  // tool_choice"), which the prepareStep last-step report guarantee can
+  // trigger and which surfaces as the AI SDK's "No output generated". Retry
+  // once with thinking OFF — the kernel runner does the same downgrade.
+  if (
+    !res.ok &&
+    !res.timedOut &&
+    /tool_choice|thinking|no output generated/i.test(res.error ?? "")
+  ) {
+    console.warn(
+      `[Recall] thinking run failed (${res.error}) — retrying with thinking off`,
+    );
+    res = await attempt(false);
+  }
 
   if (!res.ok) {
     if (res.timedOut) {

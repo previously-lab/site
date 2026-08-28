@@ -4,19 +4,24 @@
  * Ported from previously-lab/agent src/components/chat/phase-indicator.tsx @ 0601d19
  * (simplified port).
  *
- * The recall progress card for the playground: collapsible, spinner while the
- * recall colleague runs, a settled state when it finishes, and the exploration
- * trail (one line per tool it started) as the expandable detail. The kernel
- * component's streaming typewriter, elapsed timer, and error/interrupted
- * states are dropped — the playground only needs the static trail card with a
- * live "current line" subtitle while running.
+ * The recall progress card for the playground, with the kernel's streaming
+ * subtitle behavior:
+ * - While running, the subtitle shows the CURRENT line of the colleague's
+ *   thinking/writing (single line, horizontal auto-scroll, blinking caret) —
+ *   the thinking tone is dim mono, the writing tone is foreground (the
+ *   kernel's subtitleTone), and it fades out shortly after the run settles.
+ * - An elapsed-seconds counter sits in the header while running.
+ * - After the run, the exploration trail (one line per tool it started) is
+ *   the expandable detail.
  *
- * Adaptations: motion/react (the site ships the `motion` package), the site's
- * @/components/ui/card, and the playground brand CSS variables in place of the
- * kernel's brand palette classes.
+ * Adaptations: the site's `running` flag replaces the kernel's ToolRenderState
+ * (no error/interrupted/denied states here), motion/react (the site ships the
+ * `motion` package), the site's @/components/ui/card, and the playground brand
+ * CSS variables in place of the kernel's brand palette classes. The kernel's
+ * per-newline fade-in remount is dropped — the line updates in place.
  */
 
-import { useState, useEffect, useCallback, type ReactNode } from "react";
+import { useState, useEffect, useRef, useCallback, type ReactNode } from "react";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,23 +30,34 @@ import { ChevronDown, Loader2 } from "lucide-react";
 interface PhaseIndicatorProps {
   icon: ReactNode;
   label: string;
-  /** True while the recall run is live — spinner + current-line subtitle. */
+  /** True while the recall run is live — spinner + streaming subtitle. */
   running: boolean;
-  /** The latest progress line, shown as the live subtitle while running. */
-  currentLine?: string;
+  /**
+   * The live subtitle line — the colleague's current thinking/writing line,
+   * or its latest exploration progress line. Shown while running and fades
+   * out shortly after the run settles (kernel behavior).
+   */
+  subtitle?: string;
+  /**
+   * Tone of the subtitle — "thinking" (dim mono, default) vs "answer"
+   * (foreground), so the transition from thinking to writing is visible.
+   */
+  subtitleTone?: "thinking" | "answer";
   /** The full exploration trail — the expandable detail, one line per tool. */
   lines: readonly string[];
   /** Extra classes on the container. */
   className?: string;
 }
 
+const FADE_DELAY_MS = 2000;
 const EXPANDED_CONTENT_TRANSITION_MS = 200;
 
 export function PhaseIndicator({
   icon,
   label,
   running,
-  currentLine,
+  subtitle,
+  subtitleTone = "thinking",
   lines,
   className,
 }: PhaseIndicatorProps) {
@@ -49,6 +65,53 @@ export function PhaseIndicator({
   const [isExpanded, setIsExpanded] = useState(false);
   const [shouldRenderExpandedContent, setShouldRenderExpandedContent] =
     useState(false);
+
+  // ── Streaming subtitle (ported from the kernel) ───────────────────────
+
+  const [subtitleVisible, setSubtitleVisible] = useState(true);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to the end as the line grows.
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
+    }
+  }, [subtitle]);
+
+  // Fade out the subtitle after the run settles.
+  useEffect(() => {
+    if (running) {
+      setSubtitleVisible(true);
+      return;
+    }
+    if (!subtitle) return;
+    const id = window.setTimeout(() => setSubtitleVisible(false), FADE_DELAY_MS);
+    return () => window.clearTimeout(id);
+  }, [running, subtitle]);
+
+  // ── Elapsed timer (ported from the kernel) ────────────────────────────
+
+  const [elapsed, setElapsed] = useState(0);
+  const startTimeRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!running) {
+      if (startTimeRef.current !== null) {
+        setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000));
+        startTimeRef.current = null;
+      }
+      return;
+    }
+    if (startTimeRef.current === null) startTimeRef.current = Date.now();
+    const interval = window.setInterval(() => {
+      setElapsed(
+        Math.floor((Date.now() - (startTimeRef.current ?? Date.now())) / 1000),
+      );
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [running]);
+
+  // ── Expand / collapse ─────────────────────────────────────────────────
 
   // Only allow toggle after the run completes.
   const canToggle = hasExpandedDetails && !running;
@@ -75,6 +138,8 @@ export function PhaseIndicator({
     }, EXPANDED_CONTENT_TRANSITION_MS);
     return () => window.clearTimeout(timeoutId);
   }, [hasExpandedDetails, isExpanded, shouldRenderExpandedContent]);
+
+  const showSubtitle = subtitleVisible && (running || subtitle);
 
   return (
     <motion.div
@@ -116,6 +181,13 @@ export function PhaseIndicator({
           {label}
         </span>
 
+        {/* Elapsed (while running) */}
+        {running && elapsed > 0 && (
+          <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+            {elapsed}s
+          </span>
+        )}
+
         {/* Expand chevron */}
         {canToggle && (
           <ChevronDown
@@ -127,14 +199,30 @@ export function PhaseIndicator({
         )}
       </div>
 
-      {/* Live subtitle — the current exploration line while running */}
-      {running && (
+      {/* Streaming subtitle — the current thinking/writing line, scrolling
+          horizontally inside the card (kernel behavior) */}
+      {showSubtitle && (
         <div className="mt-1.5 pl-6.5">
-          {currentLine ? (
-            <span className="font-mono text-xs text-muted-foreground">
-              {currentLine}
-              <span className="ml-0.5 inline-block h-3 w-px animate-pulse bg-[var(--pg-brand)] align-middle" />
-            </span>
+          {subtitle ? (
+            <div
+              ref={scrollRef}
+              className="overflow-x-auto whitespace-nowrap"
+              style={{ scrollbarWidth: "none" }}
+            >
+              <span
+                className={cn(
+                  "text-xs",
+                  subtitleTone === "answer"
+                    ? "text-foreground"
+                    : "font-mono text-muted-foreground",
+                )}
+              >
+                {subtitle}
+                {running && (
+                  <span className="ml-0.5 inline-block h-3 w-px animate-pulse bg-[var(--pg-brand)] align-middle" />
+                )}
+              </span>
+            </div>
           ) : (
             <span className="inline-block h-3 w-32 animate-pulse rounded bg-[var(--pg-brand)]/10" />
           )}

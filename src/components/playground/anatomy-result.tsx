@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import type { AnatomyResult } from "@/lib/playground/contracts";
+import { MarkdownRenderer } from "./markdown";
 
 /**
  * Anatomy preset result — a guided tour of one slice: the narrative explains
@@ -15,9 +16,7 @@ export function AnatomyResultView({ result }: { result: AnatomyResult }) {
   return (
     <div className="space-y-3">
       {/* Narrative */}
-      <p className="whitespace-pre-line text-sm leading-relaxed text-foreground/85">
-        {result.narrative}
-      </p>
+      <MarkdownRenderer content={result.narrative} />
 
       {/* The slice's actual frontmatter */}
       <div className="rounded-md border border-border/60 bg-muted/40">

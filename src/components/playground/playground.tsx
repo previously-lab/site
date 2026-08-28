@@ -14,6 +14,7 @@ import { RecallResultView, ReferenceCard } from "./recall-result";
 import { EvolutionResultView } from "./evolution-result";
 import { AnatomyResultView } from "./anatomy-result";
 import { PhaseIndicator } from "./phase-indicator";
+import { MarkdownRenderer } from "./markdown";
 
 export type PlaygroundCapability = PlaygroundKind;
 
@@ -47,7 +48,11 @@ interface LiveTurn {
   presetId: string;
   /** Recall exploration trail (one line per tool the colleague started). */
   lines: string[];
-  /** Answer text streamed so far (recall only — the write-as-you-go channel). */
+  /** The live subtitle line — the colleague's current thinking/writing line. */
+  liveLine?: string;
+  /** Stage of the live line — thinking (dim mono) vs writing (foreground). */
+  liveStage?: "thinking" | "writing";
+  /** Answer text streamed so far (from the report tool's input, recall only). */
   answer: string;
   state: LiveStatus;
 }
@@ -55,6 +60,7 @@ interface LiveTurn {
 /** One SSE event from POST /api/playground (recall presets). */
 type SseEvent =
   | { type: "progress"; line: string }
+  | { type: "line"; line: string; stage: "thinking" | "writing" }
   | { type: "delta"; text: string }
   | { type: "report"; result: RecallResult }
   | { type: "error"; message: string };
@@ -135,7 +141,21 @@ export function Playground({ capability }: { capability: PlaygroundCapability })
           }
           if (event.type === "progress") {
             setLive((prev) =>
-              prev ? { ...prev, lines: [...prev.lines, event.line] } : prev,
+              prev
+                ? {
+                    ...prev,
+                    lines: [...prev.lines, event.line],
+                    // Tool starts share the subtitle channel (kernel behavior).
+                    liveLine: event.line,
+                    liveStage: "thinking",
+                  }
+                : prev,
+            );
+          } else if (event.type === "line") {
+            setLive((prev) =>
+              prev
+                ? { ...prev, liveLine: event.line, liveStage: event.stage }
+                : prev,
             );
           } else if (event.type === "delta") {
             setLive((prev) =>
@@ -235,9 +255,7 @@ export function Playground({ capability }: { capability: PlaygroundCapability })
           <div key={`h-${i}`} className="space-y-3">
             <UserBubble text={turn.question} />
             <div className="space-y-3">
-              <p className="whitespace-pre-line text-sm leading-relaxed text-foreground/85">
-                {turn.answer}
-              </p>
+              <MarkdownRenderer content={turn.answer} />
               {turn.references && turn.references.length > 0 && (
                 <div className="space-y-1.5">
                   {turn.references.map((r, j) => (
@@ -263,7 +281,10 @@ export function Playground({ capability }: { capability: PlaygroundCapability })
                       : t("ui.recallDone")
                   }
                   running={live.state.status === "running"}
-                  currentLine={live.lines[live.lines.length - 1]}
+                  subtitle={live.liveLine}
+                  subtitleTone={
+                    live.liveStage === "writing" ? "answer" : "thinking"
+                  }
                   lines={live.lines}
                 />
               )}
@@ -277,11 +298,9 @@ export function Playground({ capability }: { capability: PlaygroundCapability })
                   </div>
                 )}
 
-              {/* Recall answer text streaming live (write-as-you-go) */}
+              {/* Recall answer streaming live (the report's answer field) */}
               {live.state.status === "running" && live.answer && (
-                <p className="whitespace-pre-line text-sm leading-relaxed text-foreground/85">
-                  {live.answer}
-                </p>
+                <MarkdownRenderer content={live.answer} isStreaming />
               )}
 
               {live.state.status === "error" && (

@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import type { RecallResult } from "@/lib/playground/contracts";
+import { MarkdownRenderer } from "./markdown";
 
 /**
  * One evidence anchor: mono slice id + verbatim quote. Shared by the recall
@@ -40,9 +41,7 @@ export function RecallResultView({ result }: { result: RecallResult }) {
   return (
     <div className="space-y-3">
       {/* Answer */}
-      <p className="whitespace-pre-line text-sm leading-relaxed text-foreground/85">
-        {result.answer}
-      </p>
+      <MarkdownRenderer content={result.answer} />
 
       {/* References — the auditable evidence anchors */}
       {result.references.length > 0 && (
