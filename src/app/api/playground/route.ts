@@ -3,8 +3,10 @@
  *
  * Constraints (per notes/playground-design.md):
  * - Preset whitelist only: no free-form prompts ever reach the model.
- * - Response cache: identical (presetId, locale) requests are served from a
- *   module-level Map — the cache hit rate IS the cost-control design.
+ * - Response cache: identical (presetId, locale, dataset version) requests are
+ *   served from a module-level Map — the cache hit rate IS the cost-control
+ *   design. The dataset is read live from the `you` repo; when it changes,
+ *   the version in the key changes and answers are regenerated.
  * - IP rate limit: 20 requests/hour sliding window (in-memory; per-instance
  *   under serverless — a known, accepted limitation for a demo endpoint).
  * - Demo mode: evolution runs compute what WOULD change; nothing is persisted.
@@ -17,7 +19,7 @@ import matter from "gray-matter";
 import { getPreset, isPresetId } from "@/lib/playground/presets";
 import { playgroundRateLimiter } from "@/lib/playground/rate-limit";
 import { buildPrompt } from "@/lib/playground/prompts";
-import { snapshot } from "@/lib/playground/snapshot";
+import { getSnapshot, type PlaygroundSnapshot } from "@/lib/playground/snapshot";
 import {
   anatomyModelSchema,
   evolutionModelSchema,
@@ -116,6 +118,7 @@ async function callDeepSeek(system: string, user: string): Promise<unknown> {
 function buildResult(
   presetId: string,
   raw: unknown,
+  snapshot: PlaygroundSnapshot,
 ): PlaygroundResult | null {
   const preset = getPreset(presetId);
   if (!preset) return null;
@@ -128,8 +131,8 @@ function buildResult(
     case "evolution": {
       const parsed = evolutionModelSchema.safeParse(raw);
       if (!parsed.success) return null;
-      // cardBefore comes from the vendored card, not the model — the diff is
-      // honest by construction.
+      // cardBefore comes from the dataset's current card, not the model — the
+      // diff is honest by construction.
       return { ...parsed.data, cardBefore: snapshot.currentCard };
     }
     case "anatomy": {
@@ -170,7 +173,10 @@ export async function POST(
     return res;
   }
 
-  const cacheKey = `${body.presetId}:${body.locale}`;
+  const snapshot = await getSnapshot();
+  // The cache key carries the dataset version: when the live `you` repo
+  // changes, cached answers are invalidated automatically.
+  const cacheKey = `${body.presetId}:${body.locale}:${snapshot.version}`;
   const cached = responseCache.get(cacheKey);
   if (cached) {
     return NextResponse.json({
@@ -192,7 +198,7 @@ export async function POST(
   try {
     const raw = await callDeepSeek(system, user);
     if (raw === null) return errorResponse(503, "unavailable", body.locale);
-    result = buildResult(body.presetId, raw);
+    result = buildResult(body.presetId, raw, snapshot);
   } catch (err) {
     console.error("[playground] upstream failure", err);
     return errorResponse(502, "upstream", body.locale);

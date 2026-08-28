@@ -1,13 +1,17 @@
 #!/usr/bin/env node
 /**
- * Sync playground demo data from the `you` dataset into a vendored snapshot.
+ * Refresh the playground's FALLBACK snapshot from the `you` dataset.
+ *
+ * At runtime the playground reads the live `you` repo from GitHub raw
+ * (see src/lib/playground/snapshot.ts) — the repo IS the demo user's memory.
+ * This vendored snapshot only exists so the demo still works when GitHub is
+ * unreachable.
  *
  * Source priority:
  *   1. Local sibling repo  ../you/user            (fast, works offline)
  *   2. GitHub raw          previously-lab/you     (CI / fresh clones)
  *
- * Output: src/lib/playground/data/snapshot.json — a compact JSON snapshot the
- * API route imports at build time. The build never touches the network.
+ * Output: src/lib/playground/data/snapshot.json
  *
  * Usage: pnpm playground:sync
  */

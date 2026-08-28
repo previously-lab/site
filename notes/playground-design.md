@@ -70,7 +70,7 @@ Previously 项目当前 demo 体验存在三个主要障碍：
 
 ### 架构总览
 
-- 数据：`scripts/sync-playground-data.mjs`（`pnpm playground:sync`）从本地 `../you/user`（优先）或 GitHub raw 拉取，打包成 vendored 快照 `src/lib/playground/data/snapshot.json`（~57KB，11 片切片全文 + timeline 全文 + strands + 用户卡片 + 可选 direction/mutations）。**构建不依赖网络**。
+- 数据：**运行时实时读取线上 `you` 仓库**（GitHub raw，`previously-lab/you/main/user`）——这个仓库就是 demo 用户的记忆本体，playground 的访问方式与真实内核一致。`src/lib/playground/snapshot.ts` 的 `getSnapshot()` 远程优先，模块级缓存 5 分钟；GitHub 不可达时回退到 vendored 兜底快照（`src/lib/playground/data/snapshot.json`，由 `pnpm playground:sync` 刷新，见 `scripts/sync-playground-data.mjs`），兜底状态下 1 分钟后重试远程。快照带内容哈希 `version`。
 - API：`POST /api/playground`（`src/app/api/playground/route.ts`）。
 - UI：`src/components/playground/`（仿真聊天窗口），页面 `src/app/[locale]/playground/page.tsx`，MDX 可用 `<Playground preset="recall-worldcup" />`。
 - preset 白名单：`src/lib/playground/presets.ts`，前后端共用。
@@ -111,7 +111,7 @@ Previously 项目当前 demo 体验存在三个主要障碍：
 
 ### Preset 清单与数据对应
 
-| presetId | kind | 切片（vendored） | 说明 |
+| presetId | kind | 深读切片 | 说明 |
 |---|---|---|---|
 | recall-worldcup | recall | 2026/06/19/2027、2026/06/27/1813、2026/07/24/1021 | 世界杯看球 + 赛后复盘 |
 | recall-mom | recall | 2025/07/30/1755、2025/08/23/1431 | 妈妈健康惊吓 + 恢复 |
@@ -123,15 +123,14 @@ recall prompt 复刻内核 recall 同事纪律：先给全量 timeline 索引 + 
 
 ### 缓存与限流
 
-- **缓存**：模块级 `Map`，key = `presetId:locale`。preset 制意味着所有用户发的是同一批请求，命中率就是成本设计目标。进程重启即清空。
+- **缓存**：模块级 `Map`，key = `presetId:locale:数据版本哈希`。preset 制意味着所有用户发的是同一批请求，命中率就是成本设计目标；数据集更新后版本哈希变化，旧回答自动失效。进程重启即清空。
 - **限流**：模块级 `SlidingWindowRateLimiter`，每 IP 20 次/小时滑动窗口（`src/lib/playground/rate-limit.ts`）。
 
 ### 已知限制
 
 - **Serverless 下缓存与限流都是 per-instance**：多实例部署时限流可被横向绕过、缓存命中率被实例数稀释。demo 场景接受；流量爆发时升级为共享存储（如 Upstash）或预录模式。
-- **direction.md / mutations.md 尚未进数据集**（`you/user/evolution/` 在并行开发中）：sync 脚本容忍缺失（快照中为 `null`），evolution prompt 会让模型声明 direction 未成文。数据就绪后重跑 `pnpm playground:sync` 即可。
+- **远程数据依赖 GitHub raw 可用性**：5 分钟缓存 + vendored 兜底；raw 的速率限制对 demo 量级足够，若成为问题可加 `GITHUB_TOKEN` 换 API 通道。
 - 结果文本按 plain text 渲染（whitespace-pre-line），不做完整 markdown 渲染——站内无 react-markdown 依赖，刻意不加。
-- 缓存键不含数据版本：重新 sync 数据后需重启/重新部署进程使缓存失效。
 
 ### 待联调
 
