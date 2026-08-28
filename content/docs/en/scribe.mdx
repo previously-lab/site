@@ -7,6 +7,8 @@ description: The scribe is a read-only observer of your other agents' session lo
 
 Your conversations with AI probably didn't happen in one place: late-night debugging in Claude Code, refactors in Codex, brainstorms in Kimi Code. Those conversations sit locked in each vendor's private format, unreadable to anyone else. Previously believes they belong on a single timeline — your whole AI life should be rememberable together. So we wrote a copyist: **the scribe reads your other agents' session logs and rebuilds those conversations as Previously time slices, on exactly the same timeline as your own.**
 
+The scribe is a capability of the **local (npm) form** — the logs it reads live on your machine, beyond a cloud deployment's reach.
+
 ## Transcribe, don't hijack
 
 The first rule is in the name: it is a scribe, not a driver. It holds read-only access to your other agents' session logs — no injection, no write-backs, no decisions on their behalf. The originals are never touched, not one byte.

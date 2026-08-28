@@ -1,11 +1,11 @@
 ---
 title: Introduction
-description: Previously is an AI agent that remembers by when — conversations become slices on one timeline, recall answers with verbatim evidence, and your memory is a plain folder you own.
+description: Previously is an AI agent that remembers by when — conversations become slices on one timeline, recall answers with verbatim evidence, and your memory is an ordinary folder you own.
 ---
 
 # Introduction
 
-Previously is an AI agent that lives on your own machine. There is exactly one fundamental difference between it and every other AI assistant, and that difference changes everything: **it remembers by *when*, not by chat thread.**
+Previously is an AI agent that owns its memories in time. There is exactly one fundamental difference between it and every other AI assistant, and that difference changes everything: **it remembers by *when*, not by chat thread.**
 
 ## No chat threads, one timeline
 
@@ -17,9 +17,9 @@ When you ask about the past, what answers is not a vector database but a **recal
 
 Meanwhile, a **user card** quietly updates after every conversation — who you are, what you're doing lately, what you plan to do next. It knows you not because you reintroduce yourself at the top of every chat, but because it was there.
 
-## It runs on your machine, and the memory is yours
+## It runs on infrastructure you own, and the memory is yours
 
-The whole product is one npm package running on your own hardware. Your memory is a plain folder — pure Markdown with a local git ledger — that belongs to you from day one: back it up, move it, open it with any tool.
+Previously is one kernel with two ways to run it: deployed to your own Vercel project (recommended), or run locally with npm (early preview). Either way — no servers of ours, no platform database. Your memory is plain Markdown files in an ordinary git repository, yours from day one: back it up, move it, open it with any tool.
 
 <Callout variant="info">
 **In one line**: Previously believes the unit of memory is time, not conversation. Fix the memory model, and "managing conversations" stops being a thing at all.
@@ -28,5 +28,5 @@ The whole product is one npm package running on your own hardware. Your memory i
 ## Related
 
 - [Why Previously](/docs/why) — the full reasoning behind the idea
-- [Getting Started](/docs/getting-started) — two commands to run it on your machine
+- [Getting Started](/docs/getting-started) — deploy on Vercel (recommended) or local npm, running within ten minutes
 - [The Memory Model](/docs/memory-model) — slices, the timeline, and the user card in detail

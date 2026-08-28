@@ -1,17 +1,17 @@
 ---
 title: The User Card
-description: The user card and the Darwinian loop that evolves it — direction.md as the selection criteria, fitness as the selection pressure, an append-only mutations archive, and the card plus sub-agent playbooks as the products.
+description: The user card distills the whole timeline into one compact brief — your identity, a rolling profile, what is happening right now, what you have committed to, and what Previously has learned about working with you.
 ---
 
-# User Card
+# The User Card
 
 Slices record what happened. The **user card** records who you are. It is a single Markdown file — `memory/episodic/current-previously.md` — that distills the entire timeline into one compact brief: your identity, a rolling profile, what is happening right now, what you have committed to, and what Previously has learned about working with you.
 
-But the card is only a **product**. What actually learns is the evolution loop around it: a direction document that defines what "better for you" means, a fitness score that applies selection pressure, an append-only archive of every accepted mutation, and the card — together with the sub-agent playbooks — as the current phenotype. The card is where the loop's output becomes visible; `memory/evolution/` is where the loop itself lives.
+But the card is only a **product**. What actually learns is the evolution loop around it — the card is where the loop's output becomes visible; `memory/evolution/` is where the loop itself lives. The loop's mechanics get their own page: [The Evolution Loop](/docs/evolution).
 
-The card is injected into every turn's system prompt, right after the identity constitution. Because it changes only on evolution — never mid-slice — the prompt prefix stays byte-stable and the provider's prompt cache keeps hitting (`src/app/api/chat/turn-workflow.ts`). The stored card keeps raw ISO dates; the injected copy is annotated with relative times ("3 days ago") computed on your local clock, so the model never does date arithmetic itself.
+The card is injected into every turn's system prompt, right after the identity constitution. Because it changes only on evolution — never while a slice is open — the prompt prefix stays byte-stable and the provider's prompt cache keeps hitting. The stored card keeps raw ISO dates; the injected copy is annotated with relative times ("3 days ago") computed on your local clock, so the model never does date arithmetic itself.
 
-## The v5 Format
+## The v5 format
 
 The card has five sections, making your time axis explicit — Past, Now, and Horizon:
 
@@ -60,97 +60,15 @@ relationship in your life.
 
 **Horizon** — future-facing open loops: commitments, deadlines, awaited replies. Every item carries an explicit `by:` date. Horizon items **never age out** — they leave the card only by being resolved. Overdue items are kept and flagged: the next turn's brief tells the agent to proactively ask you how they turned out.
 
-**Self-model** — compact operating lessons Previously has learned about working with you ("honest critique before reassurance on speech drafts"). These are a **delta from the standing directives only** — a lesson that restates or contradicts a core rule is rejected unless it cites an explicit user override. Cap: 10.
+**Self-model** — compact operating lessons Previously has learned about working with you ("on speech drafts, honest critique before reassurance"). These are a **delta from the standing directives only** — a lesson that restates or contradicts a core rule is rejected unless it cites an explicit override from you. Cap: 10.
 
 <Callout variant="info">
-**The card answers WHO you are, not what was said.** Every entry carries `refs` — pointers like `2026/08/10/2110` back into the slices, which remain the lossless source of truth. Before citing specifics from a past event, the agent asks the recall colleague, who quotes from the slices themselves.
+**The card answers who you are, not what was said.** Every entry carries `refs` — pointers like `2026/08/10/2110` back into the slices, which remain the lossless source of truth. Before citing specifics from a past event, the agent asks the recall colleague, who quotes from the slices themselves.
 </Callout>
 
-## The Evolution Loop
+## How the card itself changes
 
-Self-evolution in Previously is Darwinian, not accretive. Four roles, mapped onto the biology:
-
-| Darwinian role | In Previously |
-|----------------|---------------|
-| Environment / selection criteria | `memory/evolution/direction.md` — the cross-slice statement of what "better for you" means |
-| Selection pressure | Fitness scores — evidence-anchored, bucketed, aggregated in deterministic code |
-| Mutation mechanism | The evolution agent — the **single writer** of card, direction, and playbooks |
-| Phenotype / the product | The user card + `memory/agent-playbooks/{recall,search,thinkdeep}.md` |
-
-### Direction: the selection criteria
-
-`memory/evolution/direction.md` holds what the loop is optimizing *toward*. It has four fixed sections:
-
-```markdown
-# Direction
-
-- Favor honest, specific feedback over comfort — you act on blunt critique
-  (Priya's onboarding review, Marcus calling the weekly review "a magic
-  trick") and stall on vague reassurance.
-- Protect recovery: after the 2025 knee injury, pushing through pain is a
-  failure mode, not dedication.
-
-# Anti-goals
-
-- Never become a flatterer or a scorekeeper.
-
-# Evidence
-
-- refs: [2024/04/22/1930] [2025/02/17/2145] [2025/07/19/1030]
-
-# Log
-
-- 2025-08-23 — added "protect recovery" after the injury arc — refs: [2025/07/19/1030] [2025/08/21/0730]
-```
-
-The writing discipline is what keeps the direction honest — no cooldown timers, just the standard itself:
-
-- **Abstract.** "You went hiking yesterday" can never be direction — that is card material. A direction must still hold a month from now.
-- **Cross-slice.** Every conclusion is backed by multiple slices plus the agent timeline, with slice pointers in the Evidence section. Code enforces the skeleton and the evidence bar structurally (`src/lib/evolution/direction-agent.ts`): no slice pointer, no acceptance.
-- **Structure-open.** No fixed taxonomy of dimensions — the agent may grow new ones. What is fixed is the discipline, and the `Log` section is append-only: when the direction changed, and on what evidence.
-
-### Fitness: the selection pressure
-
-Scores come from a **turn analyzer** that reviews each turn after the fact — the agent never grades itself. Each slice it emits per-bucket deltas on a coarse ordinal scale: `-2` explicit complaint or correction, `-1` signs of dissatisfaction, `0` no signal, `+1` explicit approval. The buckets — `card`, `recall`, `search`, `thinkdeep`, `interaction` — keep their own accounts in `memory/evolution/fitness.json`.
-
-Every non-zero score must carry the user's own words as evidence; an evidence-less delta is force-zeroed structurally in the store (`src/lib/evolution/store.ts`), not by prompt discipline. Aggregation lives in deterministic code (`src/lib/evolution/triggers.ts`): a bucket whose net score over the newest 10 slices falls to ≤ −3 triggers that bucket's evolution, and a single evidence-anchored −2 this slice triggers immediately. **Scores only decide whether to evolve, never what to change** — a trigger buys a careful re-read of the original evidence by the evolution agent, which then rules for itself. The score is a sensor, not a judge.
-
-### Mutations: the archive
-
-Every accepted mutation lands in `memory/evolution/mutations.md`, append-only, with its expected benefit and evidence pointers:
-
-```markdown
-## 2026-08-03T22:14:05Z — playbook:recall
-
-- **Summary:** Recall now reads the full slice before answering anything
-  about the wedding-speech drafts, instead of answering from summaries.
-- **Expected benefit:** Fewer confident-but-wrong recalls on emotionally
-  loaded topics; the recall bucket stops losing points.
-- **Evidence:**
-  - fitness: 2026-07-28 recall -2 — "that's not what I said, read the actual conversation"
-  - slice 2026-07-28-2043
-```
-
-There is no automatic rollback, no cooldown, no mutation budget. Instead there is an effectiveness window (`src/lib/evolution/acceptance.ts`): each time a new mutation is archived for a target, the *previous* mutation on that same target is evaluated — if its fitness bucket kept scoring negative after it landed, the archive gains an `**Evaluation: ineffective**` line. The record is never deleted or rewritten; an ineffective mutation stays as a lesson. Acceptance requires both: user signals not degrading, and at least one dimension of evidence-backed improvement.
-
-## Two-Phase Evolution
-
-Evolution runs inline in the turn's housekeeping step, as two serial phases at a slice boundary:
-
-1. **Phase 1 — Direction.** Evaluate whether the direction itself should move: the current slice, the agent timeline, and the core timeline are compared against the existing direction. Low frequency, high bar — "no change" is the common and correct outcome, and it writes nothing (the evaluation itself is still recorded). The Phase-1 agent only *proposes*; it holds no write tools.
-2. **Phase 2 — Product.** Under the current direction, the Previously Agent evolves the card and the playbooks of whichever buckets triggered.
-
-Every slice boundary still forces one evolution **check** — a guaranteed generation. But a forced check is not a forced mutation: with no new signal, "no change" is a legitimate conclusion, and it leaves a trace.
-
-The **playbooks** are how the loop reaches the sub-agents: one short behavioral brief per colleague — `memory/agent-playbooks/{recall,search,thinkdeep}.md` ("on emotionally loaded topics, read the full slice before concluding"). A playbook is injected into the sub-agent's **user prompt**, never the static system prompt, so provider prefix caching survives; it is capped at 2,000 characters, and a missing playbook degrades gracefully — the injection block is simply omitted.
-
-<Callout variant="warning">
-**Single writer.** The evolution agent is the only writer of the card, the direction, the playbooks, and the archive. Recall, webSearch, and thinkDeep are all read-only reporters — when recall finds something worth remembering, it carries it back in its report and the evolution phase does the writing. One writer means the acceptance rules and the evidence chain have exactly one place to hold.
-</Callout>
-
-## How the Card Itself Changes
-
-The card is never rewritten wholesale. The Previously Agent (`src/lib/episodic/flash/previously-agent.ts`) holds an in-memory copy of the card and edits it through fine-grained, validated mutation tools:
+The card is never rewritten wholesale. The Previously Agent holds an in-memory copy of the card and edits it through fine-grained, validated mutation tools:
 
 | Tool | What it does |
 |------|--------------|
@@ -162,17 +80,13 @@ The card is never rewritten wholesale. The Previously Agent (`src/lib/episodic/f
 | `addHorizon` / `resolveHorizon` | Open or resolve a Horizon loop |
 | `addSelfModel` / `removeSelfModel` | Add or remove an operating lesson |
 
-Validation lives **inside the tools**, not in a post-hoc pass (`src/lib/episodic/card-session.ts`). An over-limit or malformed write is rejected with specific feedback — "2630 chars, limit 2400 — compress and retry" — and the agent itself decides what survives the cap. Refs are required: no evidence, no write. Untouched parts of the card are preserved by construction; a mutation session cannot silently drop a line it never looked at.
+Validation lives **inside the tools**, not in a post-hoc pass. An over-limit or malformed write is rejected with specific feedback — "2630 chars, limit 2400 — compress and retry" — and the agent itself decides what survives the cap. Refs are required: no evidence, no write. Untouched parts of the card are preserved by construction; a mutation session cannot silently drop a line it never looked at.
 
-The result is written back only when the card's substance actually changed (header stamps refresh on every pass and are ignored). Both the live card and a per-slice snapshot (`memory/episodic/slices/YYYY/MM/DD/HHMM/previously.md`) are written together — so every slice on the timeline carries the card as it stood when that conversation ended, and the "Previously On" dialog in the UI can show it.
+The result is written back only when the card's substance actually changed (header stamps refresh on every pass and are ignored in the comparison). Both the live card and a per-slice snapshot (`memory/episodic/slices/YYYY/MM/DD/HHMM/previously.md`) are written together — so every slice on the timeline carries the card as it stood when that conversation ended, and the "Previously On" dialog in the UI can show it.
 
-## When the Card Evolves
+## When the card evolves
 
-Engineering owns the trigger; the model owns the content. The triggers:
-
-1. **Fitness triggers at a slice boundary.** The deterministic aggregation fires: a bucket's 10-slice net at ≤ −3, or a single evidence-anchored −2 this slice. A triggered bucket gets its own Phase-2 evolution — including its playbook.
-2. **Card gates.** The turn analyzer can still judge a closed slice worth sedimenting (`evolve_card.worth` — on analyzer failure the default is to run: a wasted review is cheap, a missed evolution is permanent memory loss), and a legacy (pre-v5) card forces a run so format migration never waits.
-3. **Explicit request or correction.** When you say "记住…", "update your card", or state a behavioral correction — "stop doing X", "from now on always…" — the analyzer flags it (`memory_update`) and a card-only evolution runs immediately, mid-slice.
+The card gets an evolution check at slice boundaries, but most of the time nothing happens — no trigger, no evolution. The triggers (fitness signals, your explicit requests, forced upgrades of legacy cards) and the two phases of an evolution run are covered in [The Evolution Loop](/docs/evolution).
 
 Progress streams to the client as it happens, and when the card moved, an evolution indicator shows a one-sentence account of what changed plus the line-level diff. A skipped run is reported too, with the reason — a silent skip would read as "it never runs".
 
@@ -181,11 +95,12 @@ You wonder what these recent conversations will make it change about you:
 <Playground capability="evolution" />
 
 <Callout variant="warning">
-**Experimental:** evolution is model judgment all the way down — what to record, what to promote, what to change in a playbook. The rails (caps, refs, structural evidence-anchoring, deterministic triggers) keep it well-formed, not correct. Because everything is plain Markdown in git, you can always read the diff, edit the card or the direction by hand, or roll them back.
+**Experimental:** evolution is model judgment all the way down — what to record, what to promote, what to change in a playbook. The rails (caps, refs, structural evidence-anchoring, deterministic triggers) keep it well-formed, not correct. Because everything is plain Markdown in git, you can always read the diff, edit the card by hand, or roll it back.
 </Callout>
 
 ## Related
 
-- [Memory Model](/docs/memory-model) — where the card and the evolution layer sit in the memory stack
+- [The Evolution Loop](/docs/evolution) — the Darwinian loop that drives the card's changes
+- [The Memory Model](/docs/memory-model) — where the card and the evolution layer sit in the memory stack
 - [The Timeline](/docs/timeline) — slices, the lossless source of truth the card points into
-- [Recall](/docs/recall) — the colleague who quotes the slices the card refs point to
+- [Recall](/docs/recall) — the colleague who quotes from the slices the card's refs point to

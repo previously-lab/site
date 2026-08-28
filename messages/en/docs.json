@@ -22,7 +22,8 @@
       "start": "Start Here",
       "memory": "How Memory Forms",
       "mind": "How It Remembers and Thinks",
-      "client": "On Your Machine",
+      "local": "Run Locally (npm)",
+      "cloud": "Deploy on Vercel",
       "reference": "Reference"
     }
   }

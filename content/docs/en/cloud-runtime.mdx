@@ -1,0 +1,40 @@
+---
+title: How a Cloud Turn Works
+description: Once deployed to Vercel, every chat turn is a durable Workflow run — it survives dropped connections, closing the tab loses nothing, and callers beyond the browser pass one optional guard.
+---
+
+# How a Cloud Turn Works
+
+In the local (npm) form, a turn is an ordinary local request — the kernel is resident and always answering. Once deployed to Vercel, the shape changes: there is no resident process, and every chat turn must hold up against dropped connections, platform timeouts, and token caps inside a serverless environment. This page covers the execution machinery **unique to the cloud form**; the architectural decisions both forms share (the frozen prompt, the append-only write path, the security model) are in [Architecture](/docs/architecture).
+
+## One turn is one durable run
+
+Every cloud chat turn runs inside **a single durable Vercel Workflow run**, four steps end to end:
+
+1. **Housekeeping** — resolve or recover the active slice, apply the slicing rules, append the incoming turn; fitness scoring and the slice-boundary evolution check live here too.
+2. **Prompt assembly** — the layered prefix is frozen byte-for-byte for the life of a slice; details in [Architecture](/docs/architecture).
+3. **The main agent loop** — every LLM call and every tool call is an **individually durable, auto-retried** step. Transient failures retry in place; if a run hits a platform timeout or the token cap, a bounded continuation rebuilds the context from completed steps and resumes from the breakpoint.
+4. **finalizeTurn** — the turn is written into the slice's shared record, the agent's cognition into its own timeline, and the indexes are updated.
+
+Because every step is durable, the run survives dropped connections: refresh the page or lose the network, and the client re-attaches to the same run and replays what was missed. The "waiting" you see is an execution that can survive its own failures.
+
+## It cleans up after itself
+
+Durable doesn't mean nothing goes wrong, so the write path carries two layers of self-healing:
+
+- **Write-conflict self-heal** — when two writers commit different versions of the same turn, the system does an append-only turn merge keyed by turnId instead of letting one overwrite the other. History only grows.
+- **Emergency flush** — before the browser tab closes or navigates away (beforeunload), the client fires unsaved state back to the server with sendBeacon. Closing the tab loses nothing.
+
+## Callers beyond the browser
+
+Mutation endpoints sit behind a same-origin guard: calls from your own browser pass automatically; non-browser callers like curl or scripts need an `x-access-key` header once you've set the `ACCESS_SECRET` environment variable. If you only ever use your own browser, you can leave it unset — but remember, the cloud kernel has no account system: anyone with your deployment URL can use your instance, and this guard is a lock worth considering on a single-user deployment.
+
+<Callout variant="info">
+**In one line**: a cloud turn is designed to survive its own failures — that's not a robustness garnish, it's the precondition for the serverless form to exist at all.
+</Callout>
+
+## Related
+
+- [Deploy on Vercel](/docs/deployment) — the actual steps to get this machinery running
+- [Architecture](/docs/architecture) — the kernel decisions both forms share
+- [The Memory Model](/docs/memory-model) — the data structure the durable run reads and writes

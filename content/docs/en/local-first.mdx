@@ -1,15 +1,19 @@
 ---
 title: Local First
-description: The Previously kernel is an npm package that runs on your own machine — your memory lives on hardware you own from day one.
+description: The local client is Previously's optional form — the same kernel as an npm package running on your own machine, memory on hardware you own from day one. Currently in early preview.
 ---
 
 # Local First
 
-Your memory is the most private thing you produce with an AI: the anxieties you said out loud, the nights you didn't sleep, the plans you didn't finish. Keeping that in somebody else's database never made sense to us. So Previously made an architectural choice: **the kernel runs on your own machine, and your memory lives on hardware you own from day one.**
+<Callout variant="warning">
+**Early preview.** The local client is still in early preview: the core path works, but expect rough edges and breaking changes. For the stable, complete experience, choose [Deploy on Vercel](/docs/deployment) — that is Previously's recommended form.
+</Callout>
+
+Your memory is the most private thing that exists between you and an AI: the anxieties you said out loud, the nights you didn't sleep, the plans you didn't finish. Some people simply don't want a thing like that passing through any deployment — even a deployment to their own Vercel project. The local client is for those people: **the same kernel running on your own machine, memory lying on hardware you own from day one, conversations never leaving your machine.**
 
 ## The kernel is an npm package
 
-There is no "local edition" and "cloud edition" of Previously. There is one kernel, published as the npm package [`previously-kernel`](https://www.npmjs.com/package/previously-kernel) — your machine and the cloud run the same code, at the same version.
+Previously has one kernel and two ways to run it. In the local form, the kernel is packaged as the npm package [`previously-kernel`](https://www.npmjs.com/package/previously-kernel), distributed pinned to an exact version by the client — what runs on your machine is the same code a cloud deployment runs.
 
 Installing the whole product takes:
 
@@ -25,7 +29,7 @@ No Docker, no build toolchain, no git required. npm is the most battle-tested di
 After install, two directories appear, and the split is deliberate:
 
 - **`~/.previously`** is the runtime: kernel versions, logs, process state, scribe cursors. Delete it, reinstall, and it all comes back.
-- **`~/Documents/Previously`** is the memory itself: plain Markdown files plus a local git repository. That's the irreplaceable half — you'll see exactly what it looks like in [Your Memory Is a Folder](/docs/your-memory).
+- **`~/Documents/Previously`** is the memory itself: plain Markdown files plus a local git repository. That's the valuable half — you'll see exactly what it looks like in [Your Memory Is a Folder](/docs/your-memory).
 
 The runtime can always be rebuilt; the memory is only ever yours. This isn't tidiness — it means upgrades, reinstalls, and machine migrations never touch your memory.
 
@@ -41,12 +45,12 @@ npm i -g previously-client@latest
 
 The new kernel arrives as a dependency, installs into `~/.previously/kernel/versions/<version>/`, and the pointer flips atomically. The old version stays where it was. No in-place migration scripts, no "do not power off".
 
-## This doesn't contradict the cloud
+## Local and cloud don't contradict
 
-Local-first isn't anti-cloud. The same kernel runs in a cloud deployment (see [Deployment](/docs/deployment)), and your memory can be pushed to your own private GitHub repo as a backup. The difference is the subject of the sentence: a backup is something you push, not something we hold by default.
+The local form isn't anti-cloud. Both forms share the same kernel and the same memory format: a local memory repo can be pushed straight to your own private GitHub repo as a backup, and it works the other way too — clone a cloud deployment's memory repo back to your machine, and the local client will simply adopt it, history fully preserved. The difference is the subject of the sentence: backups and migrations are always a push you make, never a custody we hold by default.
 
 <Callout variant="info">
-**In one line**: Previously treats "your memory belongs to you" as an architectural constraint, not a sentence in a privacy policy.
+**In one line**: Previously treats "your memory belongs to you" as an architectural constraint, not a sentence in a privacy policy — and the local form is that constraint's most thorough expression.
 </Callout>
 
 ## Related

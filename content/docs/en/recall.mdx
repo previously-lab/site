@@ -48,7 +48,7 @@ The budget is generous enough for real searching — 20 steps, a 240-second wall
 
 The main agent kept exactly one memory-reading tool of its own: `readSlice`, reserved for **verifying recall's answers** — "open the original slice only when you need to check what recall reported."
 
-That verification channel is instrumented. When the main agent calls recall and then re-reads the same slice itself, the system classifies the read — a quick check is a `verify`, re-doing recall's job is a `rework`, asking the same thing again is a `repeat` — and records it into the agent timeline and the fitness store (`src/lib/episodic/rework-signal.ts`). A rework is an implicit demerit against recall: it means the answer wasn't trusted. It is the most reliable implicit signal the fitness scoring has, and enough of them trigger an evolution of recall's playbook (see [User Card](/docs/user-card#the-evolution-loop)).
+That verification channel is instrumented. When the main agent calls recall and then re-reads the same slice itself, the system classifies the read — a quick check is a `verify`, re-doing recall's job is a `rework`, asking the same thing again is a `repeat` — and records it into the agent timeline and the fitness store. A rework is an implicit demerit against recall: it means the answer wasn't trusted. It is the most reliable implicit signal the fitness scoring has, and enough of them trigger an evolution of recall's playbook (see [The Evolution Loop](/docs/evolution)).
 
 <Callout variant="warning">
 **One recall, then trust it.** If recall searched and found nothing, that is a definitive answer — the main agent does not re-ask the same question, and answering from the current conversation is correct. Re-searching what a colleague already searched reads as distrust, and the system now keeps score of exactly that.
@@ -58,34 +58,13 @@ Late one night, your mom's scare from last summer crosses your mind. You ask Pre
 
 <Playground capability="recall" />
 
-## Three-Phase Chat Rendering
+## Watching recall in the interface
 
-A single assistant message renders in three visually distinct phases, split by part type in `ChatMessage`:
-
-1. **Reasoning** — Brain icon, expandable card, inside the bubble
-2. **Recall / tools** — History / tool icons, inline cards
-3. **Response** — text + inline tool calls, inside the bubble
-
-### 1. Reasoning Phase
-
-When the main model has thinking enabled (default: on, reasoning effort per your toolbar selection), the reasoning streams as `reasoning` parts. The client renders them as `ThinkingSteps` — a `PhaseIndicator` expandable card with a Brain icon.
-
-- **Collapsed summary**: "Thought · Ns" timer
-- **Expanded content**: the reasoning markdown
-
-### 2. Recall / Tool Phase
-
-Tool calls render inline as expandable cards via `ToolRenderer`. Each tool — `recall`, `readSlice`, `readPreviously`, `webSearch`, `thinkDeep` — gets a content-aware label rather than a raw tool name: the recall card carries the question, a slice card names the date ("Viewing the July 16 conversation", not "readSlice"). While recall works, its steps stream live into the card — reading the timeline window, tracing a strand, opening a slice — settling on the answer and its confidence when the report lands.
-
-Each card has five visual states: **running** (spinner), **completed** (dot), **error** (red), **interrupted** (yellow), **denied** (red). Click to expand and see the full tool output — a CSS `grid-template-rows` transition, no JS height measurement.
-
-### 3. Response Phase
-
-The response body renders inside a `Bubble`. Text flows through `MarkdownRenderer` (react-markdown + remark-gfm + rehype-highlight). Tool calls appear inline in the order the main model invoked them, each wrapped in a per-tool renderer.
+Every step recall takes — reading a timeline window, tracing a strand, opening a slice, landing its report — renders live on a tool card in the chat: recall runs in the open, not behind a spinner. The three rendering phases and the five card states are covered in [The Chat Interface](/docs/chat-ui).
 
 ## Related
 
 - [Slices](/docs/slices) — how slices are created, closed, and indexed
 - [Strands](/docs/strands) — the semantic keyword index recall traces
-- [User Card](/docs/user-card) — the evolution loop that improves recall's playbook when the fitness score says so
+- [Evolution](/docs/evolution) — the loop that improves recall's playbook when the fitness score says so
 - [Architecture](/docs/architecture) — the colleague system and the narrowed main-agent tool surface

@@ -11,9 +11,9 @@ Configuration should be the most boring part of a product. If you have to study 
 
 Previously splits configuration into two layers, and the dividing line isn't technical — it's ownership.
 
-**The machine layer** answers "how does the product run on this machine": port, hostname, kernel location, whether the brain is a subscription bridge or bring-your-own-key. These facts belong to this machine — on a new computer, they have no reason to follow you. They live in `~/.previously/config.json` (mode 0600 on POSIX systems — readable by you alone).
+**The machine layer** answers "how does the product run on this machine": port, hostname, kernel location, whether the brain is a subscription bridge or bring-your-own-key. These facts belong to this machine — on a new computer, they have no reason to follow you. They live in `~/.previously/config.json` (mode 0600 on POSIX systems — readable by you alone). The machine layer is a concept of the local (npm) form; deployed to Vercel, the same facts are carried by environment variables — see [Deploy on Vercel](/docs/deployment).
 
-**The memory layer** answers "what do you, the person, prefer": which model, whether thinking is on, what reasoning effort, how long a time slice may run. These preferences belong to you — not to this machine, and certainly not to our database. So they aren't written into the local config; they live inside the memory repo itself, in `memory/user/config.json` and `memory/user/profile.md` — **your preferences are part of your memory**, and wherever the memory goes, they go. This also explains a detail you may have noticed: model choice and thinking effort persist server-side, not in the browser's localStorage. Switch browsers, switch devices — your preferences are still there.
+**The memory layer** answers "what do you, the person, prefer": which model, whether thinking is on, what reasoning effort, how long a time slice may run. These preferences belong to you — not to this machine, and certainly not to our database. So they aren't written into the local config; they live inside the memory repo itself, in `memory/user/config.json` and `memory/user/profile.md` — **your preferences are part of your memory**, and wherever the memory goes, they go. This layer is identical across both forms: in a Vercel deployment they are the same files in the repo. This also explains a detail you may have noticed: model choice and thinking effort persist server-side, not in the browser's localStorage. Switch browsers, switch devices — your preferences are still there.
 
 `profile.md` is the most human file of the bunch: name, pronouns, timezone, locale, plus a stretch of free text. It's read live on every request — the name that follows "Previously on" in the chat title comes from here.
 
@@ -76,4 +76,4 @@ Environment variables (rarely needed):
 - [Your Memory Is a Folder](/docs/your-memory) — where the memory-layer config files sit
 - [Two Engines](/docs/two-engines) — the difference between the bridge and BYOK brains
 - [The Kernel Supply Chain](/docs/kernel-supply-chain) — the version discipline behind `kernelDir`
-- [Deployment](/docs/deployment) — where configuration goes in a cloud deployment
+- [Deploy on Vercel](/docs/deployment) — where the machine-layer configuration goes in a cloud deployment

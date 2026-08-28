@@ -1,47 +1,107 @@
 ---
 title: The Evolution Loop
-description: The system learns how to treat you better at slice boundaries — but every step is evidence-anchored, append-only, and auditable: no trigger means no evolution, and a scoreless claim is force-zeroed.
+description: Previously's self-evolution is Darwinian — direction.md is the selection criteria, fitness is the selection pressure, and an append-only mutation archive records every accepted change. The user card and the sub-agent playbooks are just the products.
 ---
 
 # The Evolution Loop
 
 Previously learns how to treat you better — but it cannot quietly rewrite itself. Every change starts from evidence and lands in an append-only archive you can audit line by line afterwards. The loop runs at **slice boundaries**, in two phases — and most of the time, it doesn't run at all.
 
+Self-evolution in Previously is Darwinian, not accretive. Four roles, mapped onto the biology:
+
+| Darwinian role | In Previously |
+|----------------|---------------|
+| Environment / selection criteria | `memory/evolution/direction.md` — the cross-slice statement of what "better for you" means |
+| Selection pressure | Fitness scores — evidence-anchored, bucketed, aggregated in deterministic code |
+| Mutation mechanism | The evolution agent — the **single writer** of card, direction, and playbooks |
+| Phenotype / the product | The user card + `memory/agent-playbooks/{recall,search,thinkdeep}.md` |
+
 ## No trigger, no evolution
 
-Evolution is not a routine. The triggers are deterministic code (`src/lib/evolution/triggers.ts`), not vibes:
+Evolution is not a routine. The triggers are deterministic code, not vibes:
 
 - a fitness bucket's net score over the last 10 slices falls to **−3 or worse**;
 - or a single **evidence-anchored −2** lands this slice;
-- plus the analyzer's `evolve_card.worth` gate, a legacy-card force, and your explicit requests or corrections — "remember this...", "stop doing X" fires a **card-only** run mid-slice, without waiting for a boundary.
+- plus the turn analyzer's `evolve_card.worth` gate (on analyzer failure the default is to run: a wasted check is cheap, a missed evolution is permanent memory loss), a forced upgrade of legacy-format cards, and your explicit requests or corrections — "remember this...", "stop doing that" fire a **card-only** evolution immediately, without waiting for a slice boundary.
 
-With no trigger, no evolution sub-agent runs at all. It never "takes a look around to see what could improve."
+With no trigger, the evolution sub-agent doesn't run at all. It never "takes a look around to see what could improve."
 
 ## Phase one: direction
 
 The Direction Agent evaluates `memory/evolution/direction.md` — the loop's **learned reward model**. It is propose-only; it holds no write tools.
 
-direction.md has four fixed sections: Direction / Anti-goals / Evidence / Log. Its content discipline is **conditional mappings** — "when the situation is X, prefer Y" — never states; states belong in the user card's Now section. "No change" is the common case, and it writes nothing. A bootstrap gate covers the first-ever direction, with a lowered bar.
+direction.md has four fixed sections:
+
+```markdown
+# Direction
+
+- Favor honest, specific feedback over comfort — you act on blunt critique
+  and stall on vague reassurance.
+- Protect recovery: after the 2025 knee injury, pushing through pain is a
+  failure mode, not dedication.
+
+# Anti-goals
+
+- Never become a flatterer or a scorekeeper.
+
+# Evidence
+
+- refs: [2024/04/22/1930] [2025/02/17/2145] [2025/07/19/1030]
+
+# Log
+
+- 2025-08-23 — added "protect recovery" after the injury arc — refs: [2025/07/19/1030] [2025/08/21/0730]
+```
+
+What keeps the direction honest is the writing discipline — no cooldown timers, just the standard itself:
+
+- **Abstract.** "You went hiking yesterday" can never be direction — that's card material. A direction must still hold a month from now.
+- **Cross-slice.** Every conclusion is backed by multiple slices plus the agent timeline, with slice pointers in the Evidence section. Code enforces the skeleton and the evidence bar structurally: no slice pointer, no acceptance.
+- **Structure-open.** No preset list of dimensions — the agent may grow new ones. What is fixed is the discipline, and the `Log` section is append-only: when the direction changed, and on what evidence.
+
+"No change" is the most common outcome, and it writes nothing (the evaluation itself still leaves a trace). The first-ever direction is covered by a bootstrap gate with a correspondingly lowered bar.
 
 ## Phase two: the single writer
 
-The Previously Agent is the **single writer** of the user card and the colleagues' playbooks. It edits through validated per-entry mutation tools — always entry-level edits, never whole-file rewrites. Over-limit writes are rejected with compression instructions, and a loop brake force-lands repeated identical rejections instead of spinning forever.
+The Previously Agent is the **single writer** of the user card and the colleagues' playbooks. It edits through per-entry validated mutation tools (the card's tool list is in [The User Card](/docs/user-card)) — always entry-level edits, never whole-file rewrites. Over-limit writes are rejected with compression instructions, and when the same rejection keeps recurring, a loop brake force-lands the result instead of spinning forever.
+
+**Playbooks** are how the loop reaches the sub-agents: one short behavioral brief per colleague — `memory/agent-playbooks/{recall,search,thinkdeep}.md` ("on emotionally loaded topics, read the full slice before concluding"). A playbook is injected into the sub-agent's **user prompt**, never the static system prompt, so the provider's prefix cache survives; it is capped at 2,000 characters, and a missing playbook degrades gracefully — the injection block is simply omitted.
 
 ## Scorekeeping, no empty claims
 
-The fitness store has five buckets: `card` / `recall` / `search` / `thinkdeep` / `interaction`, with single deltas from −2 to +1. One structural rule: **any delta without evidence is force-zeroed**. Scores may be wrong, but they may not be sourceless — the same discipline as recall's evidence anchoring.
+Scores come from a **turn analyzer** that reviews each turn after the fact — the agent never grades itself. The fitness store has five buckets: `card` / `recall` / `search` / `thinkdeep` / `interaction`, with single deltas from −2 (explicit complaint or correction) to +1 (explicit approval), each bucket keeping its own account.
+
+One structural rule: **every non-zero score must carry the user's own words as evidence, and any delta without evidence is force-zeroed** — enforced in the store, not by prompt discipline. Scores may be wrong, but they may not be sourceless — the same discipline as recall's evidence anchoring. **Scores only decide whether to evolve, never what to change**: a trigger buys a careful re-read of the original evidence by the evolution agent, which then rules for itself. The score is a sensor, not a judge.
 
 ## The acceptance archive is append-only
 
-Every accepted mutation is appended to `memory/evolution/mutations.md` with its expected benefit and evidence. The archive is append-only and self-auditing: **archiving a new mutation evaluates the previous one on the same target**. A change that keeps losing points earns an `**Evaluation: ineffective**` line — which is never deleted. No rollback, no cooldown: just an ever-longer, honest record.
+Every accepted change is appended to `memory/evolution/mutations.md` with its expected benefit and evidence pointers:
 
-Two engineering details worth knowing: playbooks are injected into the colleague's **user prompt**, never the static system prompt — prefix-cache stability forbids it. And the whole run streams live into the chat; a skipped run is reported too, together with its reason.
+```markdown
+## 2026-08-03T22:14:05Z — playbook:recall
+
+- **Summary:** Recall now reads the full slice before answering anything
+  about the wedding-speech drafts, instead of answering from summaries.
+- **Expected benefit:** Fewer confident-but-wrong recalls on emotionally
+  loaded topics; the recall bucket stops losing points.
+- **Evidence:**
+  - fitness: 2026-07-28 recall -2 — "that's not what I said, read the actual conversation"
+  - slice 2026-07-28-2043
+```
+
+The archive is append-only and self-auditing: **archiving a new change evaluates the previous change on the same target**. If its fitness bucket kept losing points after it landed, the archive gains an `**Evaluation: ineffective**` line — which is never deleted. No automatic rollback, no cooldown, no mutation budget — just an ever-longer, honest record. Acceptance requires both conditions at once: user signals not degrading, and at least one dimension of evidence-backed improvement.
+
+The whole run streams live into the chat: a skipped run is reported too, together with its reason — a silent skip would read as "it never runs".
+
+<Callout variant="warning">
+**Single writer.** The evolution agent is the only writer of the card, the direction, the playbooks, and the archive. Recall, webSearch, and thinkDeep are all read-only reporters — when recall finds something worth remembering, it carries it back in its report and the evolution phase does the writing. One writer means the acceptance rules and the evidence chain have exactly one place to hold.
+</Callout>
 
 <Callout variant="info">
 **In one line**: it is learning how to treat you better, and it leaves footprints on every step.
 </Callout>
 
-## Related links
+## Related
 
 - [The User Card](/docs/user-card) — the evolution loop's main product
 - [Colleagues, Not Tools](/docs/colleagues) — where the fitness buckets come from

@@ -7,6 +7,8 @@ description: previously ingest 是外部 agent 写入记忆的唯一通道——
 
 你的记忆是整个系统里最需要保护的东西。如果任何外部工具都能直接往 `~/Documents/Previously` 里写文件，那个文件夹迟早会变成一堆谁也不敢信的草稿。所以 Previously 只开了一扇写门：**外部 agent 和工具想往记忆里放东西，只能走 `previously ingest`——这是一道边防检查站，不是一扇敞开的门。**
 
+ingest 是**本机（npm）形态**的命令——它是本机其他 agent 写入本地记忆仓库的通道。
+
 ## 门的另一侧是只读的
 
 先把边界说清楚。对被桥接的 agent，记忆的绝大部分接口是只读的：`readslice`、`timeline`、`strands`、`card`、`slicesummary`、`agentlog` 这组命令是它们的"看"——行范围截取、`--search`、输出上限、slice id 校验、路径穿越防御，一样不少。而"写"只有 ingest 这一条路：调用方从不直接碰 memory 目录，校验全部通过之后，由 client 自己落盘。

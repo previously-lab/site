@@ -37,7 +37,7 @@ The researcher keeps its own playbook (`memory/agent-playbooks/search.md`) and i
 ## Setup
 
 <Callout variant="warning">
-**`DEEPSEEK_API_KEY` is required.** The web-search infrastructure call always goes through DeepSeek, regardless of which model you chat with. Without that key, `webSearch` fails with an explicit error instead of silently degrading into a guess.
+**`DEEPSEEK_API_KEY` is required.** The web-search infrastructure call always goes through DeepSeek, regardless of which model you chat with — the same in both forms (Vercel deployment / local npm). Without that key, `webSearch` fails with an explicit error instead of silently degrading into a guess — under a pure-bridge (zero-key) local configuration, it is simply unavailable.
 </Callout>
 
 ## Related links

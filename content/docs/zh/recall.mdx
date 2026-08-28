@@ -48,7 +48,7 @@ Recall 持有全套只读记忆工具——`readGlobalTimeline`、`readTimelineW
 
 主 Agent 只保留了一个记忆读取工具:`readSlice`,专门用于**核验 recall 的回答**——「只在需要核对 recall 说了什么时,才打开原始切片」。
 
-这条核验通道是埋了点的。当主 Agent 调用 recall 之后又自己重读同一个切片,系统会给这次读取分类——快速核对是 `verify`,把 recall 的活重干一遍是 `rework`,同一个问题再问一遍是 `repeat`——并记进 agent 时间线与 fitness store(`src/lib/episodic/rework-signal.ts`)。一次 rework 是对 recall 的隐式扣分:它意味着回答没被采信。这是 fitness 评分最可靠的隐式信号源;攒够了,就会触发 recall playbook 的一次进化(见[用户卡片](/docs/user-card#进化回路))。
+这条核验通道是埋了点的。当主 Agent 调用 recall 之后又自己重读同一个切片,系统会给这次读取分类——快速核对是 `verify`,把 recall 的活重干一遍是 `rework`,同一个问题再问一遍是 `repeat`——并记进 agent 时间线与 fitness store。一次 rework 是对 recall 的隐式扣分:它意味着回答没被采信。这是 fitness 评分最可靠的隐式信号源;攒够了,就会触发 recall playbook 的一次进化(见[进化回路](/docs/evolution))。
 
 <Callout variant="warning">
 **回忆一次,然后采信。** 如果 recall 找过且没找到,那就是确定性的答案——主 Agent 不会为同一个问题再问一遍,基于当前对话作答就是正确做法。把同事已经找过的东西再搜一遍,读起来就是不信任,而系统现在恰恰在给这种行为记分。
@@ -58,34 +58,13 @@ Recall 持有全套只读记忆工具——`readGlobalTimeline`、`readTimelineW
 
 <Playground capability="recall" />
 
-## 三阶段聊天渲染
+## 在界面里看回忆
 
-单条助手消息渲染为三个视觉上不同的阶段,在 `ChatMessage` 中按 part 类型划分:
-
-1. **推理**——大脑图标,可折叠卡片,在气泡内
-2. **回忆 / 工具**——历史 / 工具图标,内联卡片
-3. **响应**——文本 + 行内工具调用,在气泡内
-
-### 1. 推理阶段
-
-当主模型启用了思考功能(默认:开启,推理程度按工具栏选择),推理作为 `reasoning` parts 流出。客户端将其渲染为 `ThinkingSteps`——一个带 Brain 图标的 `PhaseIndicator` 可折叠卡片。
-
-- **折叠摘要**:「思考 · Ns」计时器
-- **展开内容**:推理 markdown
-
-### 2. 回忆 / 工具阶段
-
-工具调用通过 `ToolRenderer` 以内联可折叠卡片渲染。每个工具——`recall`、`readSlice`、`readPreviously`、`webSearch`、`thinkDeep`——都会得到内容感知的标签,而不是原始工具名:回忆卡片带上提问,切片卡片指明日期(显示「查看了 7 月 16 日的对话」,而不是 "readSlice")。recall 工作时,它的步骤实时流入卡片——读时间窗、追 Strand、打开切片——报告落地时定格为答案与置信度。
-
-每张卡片有五种视觉状态:**运行中**(spinner)、**已完成**(圆点)、**错误**(红)、**中断**(黄)、**拒绝**(红)。点击展开查看完整工具输出——CSS `grid-template-rows` 过渡,无需 JS 测高。
-
-### 3. 响应阶段
-
-响应正文在 `Bubble` 内渲染。文本通过 `MarkdownRenderer`(react-markdown + remark-gfm + rehype-highlight)处理。工具调用按照主模型调用的顺序以内联方式出现,每个由对应的工具渲染器包装。
+recall 的每一步——读时间窗、追 Strand、打开切片、报告落地——都实时渲染在聊天里的一张工具卡片上：回忆在明处运行，而不是藏在 spinner 后面。渲染的三个阶段与五种卡片状态，见[聊天界面](/docs/chat-ui)。
 
 ## 相关文档
 
 - [切片(Slices)](/docs/slices) —— 切片如何创建、关闭和索引
 - [主题索引(Strands)](/docs/strands) —— recall 所追踪的语义关键词索引
-- [用户卡片](/docs/user-card) —— 当 fitness 分数开口时,进化 recall playbook 的那条回路
+- [进化回路(Evolution)](/docs/evolution) —— 当 fitness 分数开口时,进化 recall playbook 的那条回路
 - [架构(Architecture)](/docs/architecture) —— 同事制与主 Agent 收窄的工具面

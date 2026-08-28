@@ -38,8 +38,6 @@ export const docsManifest: DocSection[] = [
       { slug: "slices", title: "Time Slices" },
       { slug: "timeline", title: "The Timeline" },
       { slug: "strands", title: "Strands" },
-      { slug: "scribe", title: "The Scribe" },
-      { slug: "ingest", title: "The Only Way In" },
       { slug: "memory-model", title: "The Memory Model" },
     ],
   },
@@ -56,13 +54,23 @@ export const docsManifest: DocSection[] = [
     ],
   },
   {
-    i18nKey: "client",
-    title: "On Your Machine",
+    i18nKey: "cloud",
+    title: "Deploy on Vercel",
+    items: [
+      { slug: "deployment", title: "Deploy on Vercel" },
+      { slug: "cloud-runtime", title: "How a Cloud Turn Works" },
+    ],
+  },
+  {
+    i18nKey: "local",
+    title: "Run Locally (npm)",
     items: [
       { slug: "local-first", title: "Local First" },
       { slug: "your-memory", title: "Your Memory Is a Folder" },
       { slug: "two-engines", title: "Two Engines" },
       { slug: "everyday", title: "Everyday Commands" },
+      { slug: "scribe", title: "The Scribe" },
+      { slug: "ingest", title: "The Only Way In" },
       { slug: "skill-pack", title: "The Skill Pack" },
       { slug: "kernel-supply-chain", title: "The Kernel Supply Chain" },
       { slug: "configuration", title: "Configuration" },
@@ -74,7 +82,6 @@ export const docsManifest: DocSection[] = [
     items: [
       { slug: "chat-ui", title: "The Chat Interface" },
       { slug: "architecture", title: "Architecture" },
-      { slug: "deployment", title: "Deployment" },
       { slug: "faq", title: "FAQ" },
     ],
   },

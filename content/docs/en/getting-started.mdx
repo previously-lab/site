@@ -1,54 +1,74 @@
 ---
 title: Getting Started
-description: Install Previously with one npm command, let the first-run wizard set everything up, and start your first conversation — it becomes the first slice on your timeline.
+description: Two ways to run Previously — deploy it to your own Vercel project (recommended, the full experience), or install the client locally with npm (early preview, memory stays on your local disk).
 ---
 
 # Getting Started
 
-Previously runs on your own machine: one npm package is the whole product. There is only one command you need to remember.
+Previously is an agent we built ourselves — one kernel, two ways to run it:
+
+- **Deploy on Vercel (recommended)** — the full form: every conversation turn is a durable run that survives dropped connections; reachable from anywhere, including your phone's browser; every capability switched on. Memory lives in **your own private GitHub repository** — no database.
+- **Run locally (npm, early preview)** — the optional path when you don't want to deploy anything: one npm command, memory on your local disk. Feature-for-feature the same as the cloud, but the client itself is still in early preview.
+
+Both paths are walked through on this page, the recommended one first.
+
+## Path one: deploy on Vercel (recommended)
+
+Three steps, about ten minutes:
+
+1. **Create the private repo.** On [previously-lab/agent](https://github.com/previously-lab/agent), click **Use this template** to create your copy, and **make it private** — it will hold your memory data.
+2. **Create a token.** A GitHub fine-grained personal access token, scoped to only this repository, with Contents: Read and write.
+3. **Deploy to Vercel.** Import the repo, set the environment variables, hit Deploy.
+
+```bash
+GITHUB_TOKEN=github_pat_...        # the token from step 2
+GITHUB_REPO_OWNER=your-username
+GITHUB_REPO_NAME=your-private-repo
+# a provider key for the main model (OPENAI_API_KEY / ANTHROPIC_API_KEY / … pick one)
+DEEPSEEK_API_KEY=sk-...            # powers the search colleague's web retrieval
+```
+
+Open the deployed URL and type your first message — it opens the **first slice** on your timeline. The cloud form has exactly one kind of brain: your own provider API key (BYOK), which is also the fullest experience.
+
+Step-by-step detail, the access defense, and upgrades are in [Deploy on Vercel](/docs/deployment).
+
+## Path two: run locally (npm)
+
+<Callout variant="warning">
+**Early preview.** The local client is still in early preview: the core path works, but expect rough edges and breaking changes. For the stable, complete experience, take the Vercel path above.
+</Callout>
 
 **Requirements**: Node.js ≥ 20. No Docker, no git installation needed.
-
-## Install
 
 ```bash
 npm i -g previously-client
 previously
 ```
 
-## The first run: one wizard
-
-The bare `previously` command is the front door. On first run it walks you through an init wizard in the terminal and settles everything:
+Bare `previously` is the front door. On first run it walks you through an init wizard in the terminal:
 
 1. **Sets up the runtime** — creates `~/.previously` for kernel versions, logs, and process state.
 2. **Sets up your memory** — creates your memory repository at `~/Documents/Previously`; if a Previously repo already lives there (say, cloned back from a backup), it adopts it — history fully preserved.
-3. **Picks an engine** — the wizard detects agent CLIs already on your PATH (Claude Code, Codex, Kimi Code) and offers to configure a detected subscription as the bridge engine: zero API keys, zero extra cost. If nothing is detected, or you'd rather bring your own, it asks for an API key (BYOK). The trade-offs are in [Two Engines](/docs/two-engines).
+3. **Picks an engine** — the recommended answer is your own provider API key (BYOK), identical to the cloud experience. The wizard also detects agent CLIs on your PATH (Claude Code, Codex, Kimi Code) and can bridge an existing subscription into an engine — zero extra cost, but it's a **fallback**: a bridged agent's behavior is beyond our control, and the experience can be noticeably short of BYOK. The trade-offs are in [Two Engines](/docs/two-engines).
 4. **Transcribes your existing history** — turns your other local agents' existing conversation logs into slices on the timeline. This step costs zero tokens: transcription is deterministic parsing, not a model call.
 
 Any step that would spend tokens shows you the estimate first and defaults to not running. Nothing quietly spends your money.
 
-## Start, open, talk
+Once init finishes, bare `previously` becomes a status panel — what's running, where the memory repo lives, what to do next, all on one screen:
+
+<Terminal demo="status-fresh" />
+
+Start it and open it:
 
 ```bash
 previously start   # start the kernel in the background
 previously open    # open the Web UI in your browser
 ```
 
-The Web UI lives at `127.0.0.1:3210` — reachable only from your own machine. Open it and type your first message. That message opens the **first slice** on your timeline: from this moment on, memory accumulates.
-
-No account creation, no database setup, no seed data.
-
-## The dashboard: `previously status`
-
-Once you're running, the bare `previously` (or `previously status`) is your dashboard: whether the kernel is up, the Web UI address, memory repo state, engine detection, transcription progress. The everyday rhythm of starting, stopping, and reading logs is in [Everyday Commands](/docs/everyday).
-
-## Try it in the browser first
-
-Want a feel for the product before installing anything? The [Recall](/docs/recall) doc has questions you can click right on the page — answered from a real memory, with verbatim quotes, no setup required.
+The Web UI lives at `127.0.0.1:3210` — reachable only from your own machine. No account creation, no database setup, no seed data.
 
 ## Related
 
-- [Two Engines](/docs/two-engines) — choosing between the subscription bridge and your own key
-- [The Scribe](/docs/scribe) — how existing agent history becomes slices
-- [Everyday Commands](/docs/everyday) — start, open, status, logs, stop
-- [Local First](/docs/local-first) — why all of this runs on your own machine
+- [Deploy on Vercel](/docs/deployment) — the full walkthrough of the recommended path
+- [Local First](/docs/local-first) — the thinking and current state of the local form
+- [Two Engines](/docs/two-engines) — the BYOK vs. bridge trade-off

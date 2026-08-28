@@ -11,11 +11,11 @@ Yes. The [Recall](/docs/recall) and [User Card](/docs/user-card) docs have quest
 
 ## Where does my memory live?
 
-By default on your own machine: `~/Documents/Previously`, a directory of plain Markdown files plus a local git repository. No database, no vector store, no proprietary format — you can open it in any editor. If you self-host in the cloud, memory lives in your own private GitHub repo as the very same files. What it actually looks like on disk is in [Your Memory Is a Folder](/docs/your-memory).
+It depends on which way you run it. **Local (npm)**: at `~/Documents/Previously`, a directory of plain Markdown files plus a local git repository. **Deployed to Vercel**: in your own private GitHub repo, as the very same files. Neither form has a database, a vector store, or a proprietary format — you can open it in any editor. What it actually looks like on disk is in [Your Memory Is a Folder](/docs/your-memory).
 
 ## Who can see my memory?
 
-By default, only you and your model provider. In the local form your conversations never leave the machine; the single external path is the model itself — bridge mode rides your local agent CLI subscription, BYOK mode rides the provider key you configured, and that exposure is inherent to using any hosted model. With cloud self-hosting, memory sits in your private GitHub repo, and who can see it comes down to repo permissions and how well you guard the deployment URL. There is no Previously server and no platform database — we hold nothing.
+By default, only you and your model provider. In the **local (npm)** form your conversations never leave the machine; the single external path is the model itself — bridge mode rides your local agent CLI subscription, BYOK mode rides the provider key you configured, and that exposure is inherent to using any hosted model. When **deployed to Vercel**, memory sits in your private GitHub repo, and who can see it comes down to repo permissions and how well you guard the deployment URL (the cloud has no account system — set `ACCESS_SECRET` if needed). There is no Previously server and no platform database — we hold nothing.
 
 ## Does it forget the beginning of a long conversation?
 
@@ -23,7 +23,7 @@ No, because there is no single conversation that grows without bound. Context is
 
 ## What does it cost to run?
 
-Previously itself charges nothing: no subscription, no per-seat fee, no markup. What you pay for is the brain — bridge mode reuses your existing Claude/Codex/Kimi subscription at zero marginal cost; BYOK mode is your own API key and your own bill, with an architecture designed to be cheap (inexpensive steps do the housekeeping, the strong model is reserved for the conversation). The full comparison is in [Two Engines](/docs/two-engines). Cloud self-hosting adds whatever your Vercel plan costs; GitHub repo storage is effectively free.
+Previously itself charges nothing: no subscription, no per-seat fee, no markup. What you pay for is the brain — in the **local (npm)** form, bridge mode reuses your existing Claude/Codex/Kimi subscription at zero marginal cost; BYOK mode is your own API key and your own bill, with an architecture designed to be cheap (inexpensive steps do the housekeeping, the strong model is reserved for the conversation). The full comparison is in [Two Engines](/docs/two-engines). **Deploying to Vercel** adds whatever your Vercel plan costs; GitHub repo storage is effectively free, and the brain is likewise your own provider key.
 
 ## Can I move my memory elsewhere?
 

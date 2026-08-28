@@ -1,35 +1,17 @@
 ---
 title: Architecture
-description: One kernel, two worlds — an npm package with a git ledger locally, a Vercel Workflow with your private GitHub repo in the cloud. Every chat turn is one durable run, and the prompt is frozen to the slice.
+description: One kernel, two ways to run — an npm package with a git ledger locally, the same app with your private GitHub repo on Vercel. The prompt is frozen to the slice, and the write path is append-only and auditable.
 ---
 
 # Architecture
 
-Previously has a single kernel, but it lives in two worlds: on your machine it is a local server the client spawns; in the cloud it is a Next.js app on Vercel with your private GitHub repo as the store. Both worlds run the same code and read and write the same memory format — the only difference is where the files land.
+Previously has a single kernel, but two ways to run it: deployed to Vercel, it is a Next.js app with your own private GitHub repo as the store (the recommended form); on your machine, it is a local server the npm client spawns. Both run the same code and read and write the same memory format — the only difference is where the files land.
 
-## One kernel, two worlds
+## One kernel, two homes
 
-**Local (the default path).** The kernel ships as an npm package, pinned exactly by the client, reading and writing a memory directory on the local filesystem — a git ledger maintained in pure JS (isomorphic-git), no git binary required. See [Local First](/docs/local-first).
+**Vercel (recommended).** The same codebase deploys to Vercel, where memory reads and writes go through the GitHub API against your own private repo. No database: state lives entirely in files — the files just lie somewhere else. Deployment steps are in [Deploy on Vercel](/docs/deployment); the execution machinery unique to the cloud form (durable runs, resuming after dropped connections) has its own page: [How a Cloud Turn Works](/docs/cloud-runtime).
 
-**Cloud (the advanced path).** The same codebase deploys to Vercel, where memory reads and writes go through the GitHub API against your own private repo. There is no database and no persistent process: state lives entirely in files, the files just lie somewhere else. Deployment steps are in [Deployment](/docs/deployment).
-
-## One turn, one durable run
-
-In the cloud, every chat turn runs inside **a single durable Vercel Workflow run**, four steps end to end:
-
-1. **Housekeeping** — resolve or recover the active slice, apply the slicing rules, append the incoming turn; fitness scoring and the slice-boundary evolution check live here too.
-2. **Prompt assembly** — the most deliberate decision in the whole architecture; see the next section.
-3. **The main agent loop** — every LLM call and every tool call is an **individually durable, auto-retried** step. Transient failures retry in place; if a run hits a platform timeout or the token cap, a bounded continuation rebuilds the context from completed steps and resumes from the breakpoint.
-4. **finalizeTurn** — the turn is written into the slice's shared record, the agent's cognition into its own timeline, and the indexes are updated.
-
-Because every step is durable, the run survives dropped connections: refresh the page or lose the network, and the client re-attaches to the same run and replays what was missed. The "waiting" you see is an execution that can survive its own failures.
-
-## It cleans up after itself
-
-Durable doesn't mean nothing goes wrong, so the write path carries two layers of self-healing:
-
-- **Write-conflict self-heal** — when two writers commit different versions of the same turn, the system does an append-only turn merge keyed by turnId instead of letting one overwrite the other. History only grows.
-- **Emergency flush** — before the browser tab closes or navigates away (beforeunload), the client fires unsaved state back to the server with sendBeacon. Closing the tab loses nothing.
+**Local (npm, early preview).** The kernel ships as an npm package, pinned exactly by the client, reading and writing a memory directory on the local filesystem — a git ledger maintained in pure JS (isomorphic-git), no git binary required. See [Local First](/docs/local-first).
 
 ## A prompt frozen to the slice
 
@@ -44,24 +26,29 @@ This layered prefix is **byte-stable for the lifetime of a slice** — the provi
 
 When a slice closes and a new one opens, the snapshot updates: the prompt's freeze is scoped to the slice.
 
+## The write path: append-only and self-healing
+
+Memory only grows, never rewrites. When two writers commit different versions of the same turn, the kernel does an append-only turn merge keyed by turnId instead of letting one overwrite the other — history stays auditable forever, and there is no "last write wins".
+
 ## Colleagues and evolution
 
 Around the main agent sit three colleagues with independent judgment (recall, webSearch, thinkDeep) and a Darwinian self-evolution loop. Each deserves its own page: [Colleagues, Not Tools](/docs/colleagues) and [The Evolution Loop](/docs/evolution). Architecturally only one thing matters here: they all obey the same discipline — evidence anchoring and append-only archives — and where that discipline is enforced is the next section.
 
 ## The security model
 
-Security is enforced at the tool boundary, identically in both worlds:
+Security is enforced at the tool boundary, identically in both forms:
 
 - **Path whitelist** — agent tools may only write under the memory-related directories; paths are normalized first, then absolute paths, drive letters, and directory traversal are rejected. The code directories simply aren't on the whitelist.
 - **Server-side validation** — every write is re-validated on the server; the shape the client sends is not trusted.
-- **Same-origin guard** — mutation endpoints accept same-origin browser requests; non-browser callers must carry `ACCESS_SECRET` when you've set it. An optional line of defense for a single-user cloud deployment.
+
+Deployed to Vercel there is one more, optional line of defense: non-browser callers must carry `ACCESS_SECRET`. It belongs to the cloud form — see [How a Cloud Turn Works](/docs/cloud-runtime).
 
 <Callout variant="info">
-**In one line**: one kernel, one durable run, one frozen prompt — every architectural decision serves "memory that is reliable and cheap".
+**In one line**: one kernel, one frozen prompt, one append-only write path — every architectural decision serves "memory that is reliable and cheap".
 </Callout>
 
 ## Related
 
 - [Local First](/docs/local-first) — how the kernel ships and runs as an npm package
-- [Deployment](/docs/deployment) — the actual steps for cloud self-hosting
-- [Memory Model](/docs/memory-model) — the data structure the durable run reads and writes
+- [How a Cloud Turn Works](/docs/cloud-runtime) — the durable execution machinery unique to the Vercel form
+- [The Memory Model](/docs/memory-model) — the data structure this kernel reads and writes

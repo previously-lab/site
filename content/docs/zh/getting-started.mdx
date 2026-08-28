@@ -1,54 +1,74 @@
 ---
 title: 快速开始
-description: 用一条 npm 命令安装 Previously，让首次运行的向导完成初始化，然后开始你的第一段对话——它会变成你时间线上的第一个切片。
+description: 两种跑法：把 Previously 部署到你自己的 Vercel 项目（推荐，完整体验）；或者在本机用 npm 装客户端（早期预览，记忆留在本机硬盘上）。
 ---
 
 # 快速开始
 
-Previously 跑在你自己的机器上：一个 npm 包就是整个产品。你只需要记住一条命令。
+Previously 是我们自己造的 agent——同一颗内核，两种跑法：
+
+- **部署到 Vercel（推荐）** —— 完整形态：每一轮对话都是耐久运行，断线可续；随处可达，包括手机浏览器；所有能力全开。记忆存进**你自己的私有 GitHub 仓库**，没有数据库。
+- **在本机运行（npm，早期预览）** —— 不想部署任何东西时的可选路径：一条 npm 命令，记忆躺在本机硬盘上。功能与云端同构，但客户端本身还在早期预览阶段。
+
+两条路都在本篇走完，先推荐的那条。
+
+## 路径一：部署到 Vercel（推荐）
+
+三步，大约十分钟：
+
+1. **建私有仓库。** 在 [previously-lab/agent](https://github.com/previously-lab/agent) 点 **Use this template** 创建副本，**务必设为私有**——它将存储你的记忆数据。
+2. **建 token。** 创建 GitHub 细粒度个人访问 token，范围只选这个仓库，权限给 Contents: Read and write。
+3. **部署到 Vercel。** 导入仓库，配好环境变量，点 Deploy。
+
+```bash
+GITHUB_TOKEN=github_pat_...        # 第 2 步的 token
+GITHUB_REPO_OWNER=your-username
+GITHUB_REPO_NAME=your-private-repo
+# 主模型的提供商 key（OPENAI_API_KEY / ANTHROPIC_API_KEY / …任选一家）
+DEEPSEEK_API_KEY=sk-...            # 驱动搜索同事的 web 检索
+```
+
+打开部署好的链接，输入你的第一条消息——它会打开你时间线上的**第一个切片**。云端形态的大脑只有一种：你自己的 provider API key（BYOK），这也是体验最完整的方式。
+
+每一步的展开说明、访问防线与升级方式见[部署到 Vercel](/docs/deployment)。
+
+## 路径二：在本机运行（npm）
+
+<Callout variant="warning">
+**早期预览。** 本地客户端还在早期预览阶段：核心链路可用，但你会遇到毛边和破坏性变更。想要稳定完整的体验，选上面的 Vercel 路径。
+</Callout>
 
 **要求**：Node.js ≥ 20。不需要 Docker，不需要装 git。
-
-## 安装
 
 ```bash
 npm i -g previously-client
 previously
 ```
 
-## 第一次运行：一个向导
-
-裸 `previously` 是前门。第一次运行时，它会在终端里带你走一遍初始化向导，把一切都安顿好：
+裸 `previously` 是前门。第一次运行时，它会在终端里带你走一遍初始化向导：
 
 1. **安顿运行区** —— 创建 `~/.previously`，放内核版本、日志和进程状态。
 2. **安顿记忆** —— 在 `~/Documents/Previously` 创建你的记忆仓库；如果那里已经有一个 Previously 仓库（比如从备份克隆回来的），它会直接领养，历史原样保留。
-3. **选一个引擎** —— 向导会探测你 PATH 上已有的 agent CLI（Claude Code、Codex、Kimi Code），并建议把探测到的订阅配置为 bridge 引擎：零 API key、零额外费用。没探测到，或者你更想自己带 key，它会问你要一个 API key（BYOK）。两条路的取舍见[双引擎](/docs/two-engines)。
+3. **选一个引擎** —— 推荐填一个你自己的 provider API key（BYOK），与云端体验一致。向导也会探测你 PATH 上的 agent CLI（Claude Code、Codex、Kimi Code），可以把既有订阅桥接为引擎——零额外费用，但这是**兜底方案**：被桥接 agent 的表现我们控制不了，体验与 BYOK 可能有明显差距。取舍见[双引擎](/docs/two-engines)。
 4. **转录已有历史** —— 把你本机其他 agent 的既有对话记录转录成时间线上的切片。这一步不消耗任何 token——转录是确定性的解析，不是模型调用。
 
 任何会消耗 token 的步骤，向导都会先给你估账，并默认不执行。没有任何一步是悄悄花你钱的。
 
-## 启动，打开，开始聊
+初始化完成后，裸 `previously` 就变成了状态面板——什么在跑、记忆仓库在哪、下一步做什么，一屏看完：
+
+<Terminal demo="status-fresh" />
+
+启动并打开：
 
 ```bash
 previously start   # 后台启动内核
 previously open    # 在浏览器里打开 Web UI
 ```
 
-Web UI 在 `127.0.0.1:3210`——只有你自己的机器能访问。打开它，输入你的第一条消息。这条消息会打开你时间线上的**第一个切片**：从这一刻起，记忆开始累积。
-
-没有账号注册，没有数据库配置，没有种子数据。
-
-## 仪表盘：`previously status`
-
-跑起来之后，裸 `previously`（或 `previously status`）就是你的仪表盘：内核是否在运行、Web UI 地址、记忆仓库状态、引擎探测结果、转录进度。日常的开、关、看日志都在[日常](/docs/everyday)里。
-
-## 先在浏览器里试试
-
-想在安装之前感受一下产品？[回忆](/docs/recall)这篇文档里有几个可以直接点的问题——Previously 就着一段真实记忆当场作答，带原文引用，无需任何安装。
+Web UI 在 `127.0.0.1:3210`——只有你自己的机器能访问。没有账号注册，没有数据库配置，没有种子数据。
 
 ## 相关文档
 
-- [双引擎](/docs/two-engines) —— bridge 订阅与自备 key 怎么选
-- [转录](/docs/scribe) —— 已有 agent 历史如何变成切片
-- [日常](/docs/everyday) —— start、open、status、logs、stop
-- [本地优先](/docs/local-first) —— 为什么这一切都跑在你自己的机器上
+- [部署到 Vercel](/docs/deployment) —— 推荐路径的完整走查
+- [本地优先](/docs/local-first) —— 本地形态的理念与现状
+- [双引擎](/docs/two-engines) —— BYOK 与 bridge 的取舍

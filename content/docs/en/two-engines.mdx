@@ -1,19 +1,19 @@
 ---
 title: Two Engines
-description: Two ways to power the local kernel — bring your own API key, or bridge the agent subscriptions you already pay for. Switch any time.
+description: Two ways to power the local kernel — bring your own API key (BYOK, recommended, identical to the cloud experience), or bridge the agent subscription you already pay for (a fallback — zero extra cost, but its behavior is beyond our control).
 ---
 
 # Two Engines
 
-You are probably already paying for a Claude Code, Codex, or Kimi Code subscription. Your memory shouldn't bill you a second time for the same models. So Previously's local kernel offers two engines — **choosing one is an economic decision and a philosophical one, and you can change your mind at any time.**
+Previously is an agent we built ourselves — every layer of the kernel's design (the frozen prompt, the colleague system, the evolution loop) rests on the premise that we talk to the model directly. So the conclusion first: **bringing your own API key (BYOK) is the recommended path, and the cloud form has only this one engine.** The local form adds one fallback option: bridging an agent subscription you already pay for.
 
-## Engine one: bring your own key (BYOK)
+## Engine one: bring your own key (BYOK, recommended)
 
 Hand the kernel your own provider API key — in the config's `apiKeys`, or in the `byok` section of the Web UI settings page — and the kernel talks to the models directly.
 
-This is the fullest path: complete streaming, every capability present. If you want the richest experience, this is the one we recommend.
+This is the most complete path: full streaming, every colleague capability, behavior identical to a cloud deployment. If you want Previously as it was designed, choose this one.
 
-## Engine two: bridge the subscription you already have
+## Engine two: bridge the subscription you already have (fallback)
 
 Bridge mode thinks differently: the kernel never touches a model itself. It delegates model work to an agent CLI already logged in on your machine:
 
@@ -27,13 +27,15 @@ Authentication rides on your existing subscription's OAuth — the client never 
 
 ## Honest trade-offs
 
-Bridging is not a free lunch, and we put the costs on the table:
+Bridging is a fallback, not a peer option. The costs, on the table:
 
+- **Behavior is beyond our control.** A bridged agent is its own complete product, with its own system prompt, toolset, and habits — the kernel can only influence it through a single CLI call. Its answer style and instruction-following can be visibly short of BYOK.
 - **Every call pays a CLI cold start.** Spinning up the process costs a few seconds.
-- **Streaming is more limited.** Protocol-2 events and deltas can only stream what the CLI gives out: Claude Code streams at token level, while Codex and Kimi Code get narration derived from their output.
-- Adapters verified against real prompts on a real machine: Claude Code 2.1.204 and Kimi Code 0.34.0. Codex's shape is covered by fixture-CLI tests, and we say so honestly.
+- **Streaming is more limited.** Events and deltas can only stream what the CLI gives out: Claude Code streams at token level, while Codex and Kimi Code get narration derived from their output. When structured events aren't available, the interface honestly wears a degradation notice instead of pretending everything is fine.
+- **Some capabilities hard-require a key.** The search colleague's web retrieval, for example, always needs `DEEPSEEK_API_KEY` — under a pure-bridge (zero-key) configuration it fails with an explicit error rather than silently degrading into a guess.
+- Adapters verified against real runs on a real machine: Claude Code 2.1.204 and Kimi Code 0.34.0. Codex's shape is covered by fixture-CLI tests, and we say so honestly.
 
-If those costs bother you, choose BYOK — it's the recommended path to the fullest experience. If you'd rather never pay twice for memory, the bridge was built for you.
+The scenarios where bridging fits are clear: you don't want to set up a key and want a zero-cost first look, or you want your existing subscription to earn its keep. The moment you start taking this memory seriously, we recommend bringing your own key.
 
 ## Switch any time
 
@@ -47,7 +49,7 @@ The engine choice is one block of config:
 `agent` can be `codex` or `kimi` instead. Switching engines changes nothing about the memory format — not one slice moves, and everything recorded yesterday reads fine on tomorrow's engine.
 
 <Callout variant="info">
-**In one line**: the engine is your choice, not your lock-in — what you pay for memory, or don't, stays in your hands.
+**In one line**: the engine is your choice, not your lock-in — but only BYOK gets Previously as it actually is.
 </Callout>
 
 ## Related

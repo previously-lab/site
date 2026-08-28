@@ -37,7 +37,7 @@ description: webSearch 是一位独立的研究员同事——主 Agent 用自�
 ## 配置
 
 <Callout variant="warning">
-**需要 `DEEPSEEK_API_KEY`。** 搜索这条链路的底层调用固定走 DeepSeek，与你聊天选用的模型无关。没有这把 key，`webSearch` 会明说报错，而不会悄悄退化成瞎答。
+**需要 `DEEPSEEK_API_KEY`。** 搜索这条链路的底层调用固定走 DeepSeek，与你聊天选用的模型无关，两种跑法（Vercel 部署 / 本机 npm）都一样。没有这把 key，`webSearch` 会明说报错，而不会悄悄退化成瞎答——纯 bridge（零 key）的本地配置下，它就是不可用的。
 </Callout>
 
 ## 相关文档

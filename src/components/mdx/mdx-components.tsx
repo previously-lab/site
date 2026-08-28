@@ -4,6 +4,7 @@ import type { MDXComponents } from "mdx/types";
 import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 import { Playground } from "@/components/playground/playground";
+import { Terminal } from "@/components/mdx/terminal";
 
 /* ------------------------------------------------------------------ */
 /*  Callout                                                           */
@@ -242,4 +243,5 @@ export const mdxComponents: MDXComponents = {
 
   Callout,
   Playground,
+  Terminal,
 };

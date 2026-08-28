@@ -1,30 +1,19 @@
 ---
-title: Deployment
-description: Most people shouldn't deploy anything — installing the client locally is the whole story. Cloud self-hosting (Vercel + your private GitHub repo) is the advanced path for those who want a tab reachable from anywhere.
+title: Deploy on Vercel
+description: The recommended way to run Previously — deploy it to your own Vercel project, with your own private GitHub repo as the memory backend. No database, and upgrades ride on upstream merges.
 ---
 
-# Deployment
+# Deploy on Vercel
 
-The honest truth first: **most people should not deploy anything.** Previously's default form is the local client — one npm command, and your memory stays on your own machine. Cloud self-hosting is the advanced option, meant for exactly one kind of person: you want a browser tab reachable from anywhere (including your phone), and you're willing to maintain a Vercel project and a GitHub token yourself.
+This is Previously's recommended form: the same kernel running inside your own Vercel project, with **your own private GitHub repository** as the memory backend — no database; the same files, just lying in your repo. You get a tab you can open from anywhere (including your phone's browser), plus the full cloud execution capabilities (durable runs, resuming after dropped connections — see [How a Cloud Turn Works](/docs/cloud-runtime)).
 
-## The default path: don't deploy
-
-```bash
-npm i -g previously-client
-previously
-```
-
-That is the entire "deployment". The kernel ships pinned to the client, runs on your machine, and memory is a local git repository. The full walkthrough is in [Getting Started](/docs/getting-started); the thinking behind it is in [Local First](/docs/local-first).
-
-## The advanced path: cloud self-hosting
-
-The cloud form is the same kernel deployed to Vercel, with the memory backend swapped for **your own private GitHub repository** — no database, same files, just lying in your repo instead.
+If you'd rather not deploy anything, the local npm client is the optional other path (early preview) — see [Getting Started](/docs/getting-started).
 
 <Callout variant="warning">
-**Single-user product, no login system.** The cloud kernel has no accounts: anyone with your deployment URL can use your instance and read your memory. Guard the URL, and set `ACCESS_SECRET` if needed.
+**Single-user product, no login system.** The cloud kernel has no accounts: anyone who gets your deployment URL can use your instance and read your memory. Guard the URL, and set `ACCESS_SECRET` if needed (see "Defenses" below).
 </Callout>
 
-### Steps
+## Steps
 
 1. **Create the private repo.** On [previously-lab/agent](https://github.com/previously-lab/agent), click **Use this template** to create your copy, and **make it private** — it will hold your memory data.
 2. **Create a token.** A GitHub fine-grained personal access token, scoped to only this repository, with Contents: Read and write.
@@ -34,21 +23,25 @@ The cloud form is the same kernel deployed to Vercel, with the memory backend sw
 GITHUB_TOKEN=github_pat_...        # the token from step 2
 GITHUB_REPO_OWNER=your-username
 GITHUB_REPO_NAME=your-private-repo
-DEEPSEEK_API_KEY=sk-...            # powers the web-search colleague's retrieval
-# plus one provider API key for the main model (OPENAI_API_KEY / ANTHROPIC_API_KEY / …)
+# a provider key for the main model (OPENAI_API_KEY / ANTHROPIC_API_KEY / … pick one)
+DEEPSEEK_API_KEY=sk-...            # powers the search colleague's web retrieval
 # ACCESS_SECRET=                   # optional: access key for non-browser callers
 ```
 
-`DEEPSEEK_API_KEY` is reserved for the search colleague (webSearch's provider retrieval); the main model runs on whatever provider key you set — setting a provider's key makes its models appear in Settings.
+The cloud brain comes in exactly one kind: **your own provider API key**. Whichever provider's key you set, that provider's models appear in the settings page — this is the fullest experience. `DEEPSEEK_API_KEY` is reserved for the search colleague (webSearch's provider retrieval) and has nothing to do with the chat model.
 
-### Defenses and upgrades
+The machine-layer facts the local form writes into `~/.previously/config.json` (port, backend, brain) are carried by these environment variables in the cloud; the memory-layer preferences (`memory/user/config.json`, `profile.md`) are identical across both forms — they live in the repo either way. See [Configuration](/docs/configuration).
 
-Mutation endpoints sit behind a same-origin guard: calls from your own browser pass automatically; non-browser callers like curl or scripts need an `x-access-key` header once `ACCESS_SECRET` is set. If you only ever use your own browser, you can leave it unset.
+## Defenses
 
-Upgrades ride on GitHub: **Sync from upstream** in your instance's Settings merges upstream changes into your repo as a proper merge commit, and Vercel redeploys right after. The sync touches code only — it never overwrites what's in `memory/`.
+Mutation endpoints sit behind a same-origin guard: calls from your own browser pass automatically; non-browser callers like curl or scripts need an `x-access-key` header once `ACCESS_SECRET` is set. If you only ever use your own browser, you can leave it unset. The execution model behind the guard is in [How a Cloud Turn Works](/docs/cloud-runtime).
+
+## Upgrades
+
+Upgrades ride on GitHub: **Sync from upstream** in your instance's settings page merges upstream changes into your repo as a proper merge commit, and Vercel redeploys right after. The sync touches code only — it never overwrites what's in `memory/`.
 
 ## Related
 
-- [Getting Started](/docs/getting-started) — the full walkthrough of the default path
-- [Local First](/docs/local-first) — why local is the default
-- [Architecture](/docs/architecture) — how the cloud form's durable runs work
+- [How a Cloud Turn Works](/docs/cloud-runtime) — how each chat turn actually runs after deployment
+- [Getting Started](/docs/getting-started) — the entry point for both ways to run
+- [Architecture](/docs/architecture) — one kernel, two storage homes

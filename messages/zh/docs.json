@@ -22,7 +22,8 @@
       "start": "起点",
       "memory": "记忆如何成形",
       "mind": "它如何回忆与思考",
-      "client": "跑在你机器上",
+      "local": "在本机运行（npm）",
+      "cloud": "部署到 Vercel",
       "reference": "参考"
     }
   }
