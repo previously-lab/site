@@ -96,7 +96,18 @@
       "strandFamily": "家人",
       "strandAlex": "Alex",
       "strandCamping": "露营",
-      "legendText": "五条线索,一条时间线"
+      "legendText": "五条线索,一条时间线",
+      "nowQuestion": {
+        "question": "我半马冲线那天，到底发生了什么？",
+        "answer": "你跑完了。Alex 举着一块傻乎乎的牌子在终点等你，你攥着奖牌在那儿站了十分钟。五天前你的脑子还在停不下来地反复过那条路线。四天后你写下：这场比赛从来不关乎成绩——它证明了你能把一件事坚持到底。",
+        "refs": [
+          { "date": "2026/07/11", "note": "赛前紧张；和 Alex 的最后一次长跑", "strand": "running" },
+          { "date": "2026/07/16", "note": "终点线——牌子、奖牌、十分钟", "strand": "alex" },
+          { "date": "2026/07/20", "note": "那篇帖子：「从来不关乎成绩」", "strand": "running" }
+        ],
+        "meta": "一个问题 → 3 个切片 · 跑步 × Alex",
+        "liveCta": "真跑一次"
+      }
     },
     "Act2": {
       "eyebrow": "02",

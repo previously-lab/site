@@ -96,7 +96,18 @@
       "strandFamily": "family",
       "strandAlex": "Alex",
       "strandCamping": "camping",
-      "legendText": "five strands, one timeline"
+      "legendText": "five strands, one timeline",
+      "nowQuestion": {
+        "question": "What actually happened the day I finished the half-marathon?",
+        "answer": "You finished it. Alex was at the finish line with a ridiculous sign, and you stood there ten minutes just holding the medal. Five days earlier your brain wouldn't stop replaying the route. Four days later you wrote it down: the race was never about the time — it was proof you can stick with something.",
+        "refs": [
+          { "date": "2026/07/11", "note": "pre-race nerves; Friday's long run with Alex", "strand": "running" },
+          { "date": "2026/07/16", "note": "the finish line — the sign, the medal, ten minutes", "strand": "alex" },
+          { "date": "2026/07/20", "note": "the post: \"never about the time\"", "strand": "running" }
+        ],
+        "meta": "one question → 3 slices · running × Alex",
+        "liveCta": "Run it live"
+      }
     },
     "Act2": {
       "eyebrow": "02",
