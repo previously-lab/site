@@ -12,6 +12,7 @@ import { ThinkingVisual } from "@/components/landing/thinking-visual";
 import { ThreeTimelinesVisual, type ThreeTimelineNode } from "@/components/landing/three-timelines-visual";
 import { OrchestrationVisual } from "@/components/landing/orchestration-visual";
 import { TrustBand, type TrustCard } from "@/components/landing/trust-band";
+import { GetStartedSection, type GetStartedPath } from "@/components/landing/get-started-section";
 import { FinaleSection } from "@/components/landing/finale-section";
 import { StageAtmosphere } from "@/components/landing/stage-atmosphere";
 import { JsonLd } from "@/components/landing/json-ld";
@@ -67,7 +68,8 @@ function getList<T>(messages: unknown, path: string): T[] {
  *   5 Act 04      — No black box.            (centered stack)
  *   6 Act 05      — Specialists, not brute force. (centered stack)
  *   7 Trust band  — three compact cards
- *   8 Finale      — tagline + NOW dot pulse + CTAs
+ *   8 Get started — the two ways to run it: Vercel (recommended) / npm client
+ *   9 Finale      — tagline + NOW dot pulse + CTAs
  *
  * The .landing-scope wrapper makes this route theme-aware (cinematic
  * dark palette in dark mode, product light theme in light mode);
@@ -288,6 +290,31 @@ export default async function HomePage({ params }: Props): Promise<React.ReactEl
             command: s("Trust.oss.command"),
             badges: list<string>("Trust.oss.badges"),
           },
+        }}
+      />
+
+      {/* ── Get started — the two ways to run it ────────── */}
+      <GetStartedSection
+        eyebrow={t("GetStarted.eyebrow")}
+        title={t("GetStarted.title")}
+        body={t("GetStarted.body")}
+        cloud={{
+          badge: s("GetStarted.cloud.badge"),
+          title: s("GetStarted.cloud.title"),
+          body: s("GetStarted.cloud.body"),
+          cta: s("GetStarted.cloud.cta"),
+          recommended: true,
+          href: "/docs/deployment",
+        }}
+        local={{
+          badge: s("GetStarted.local.badge"),
+          title: s("GetStarted.local.title"),
+          body: s("GetStarted.local.body"),
+          cta: s("GetStarted.local.cta"),
+          commands: list<string>("GetStarted.local.commands"),
+          comment: s("GetStarted.local.comment"),
+          notes: list<string>("GetStarted.local.notes"),
+          href: "/docs/local-first",
         }}
       />
 

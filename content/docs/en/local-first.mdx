@@ -13,12 +13,12 @@ Your memory is the most private thing that exists between you and an AI: the anx
 
 ## The kernel is an npm package
 
-Previously has one kernel and two ways to run it. In the local form, the kernel is packaged as the npm package [`previously-kernel`](https://www.npmjs.com/package/previously-kernel), distributed pinned to an exact version by the client — what runs on your machine is the same code a cloud deployment runs.
+Previously has one kernel and two ways to run it. In the local form, the kernel is packaged as the npm package [`@previously-lab/kernel`](https://www.npmjs.com/package/@previously-lab/kernel), distributed pinned to an exact version by the client — what runs on your machine is the same code a cloud deployment runs.
 
 Installing the whole product takes:
 
 ```bash
-npm i -g previously-client
+npm i -g @previously-lab/client
 previously
 ```
 
@@ -40,7 +40,7 @@ The kernel version is pinned exactly by the client — not "compatible with ^0.9
 So an upgrade is always one sentence:
 
 ```bash
-npm i -g previously-client@latest
+npm i -g @previously-lab/client@latest
 ```
 
 The new kernel arrives as a dependency, installs into `~/.previously/kernel/versions/<version>/`, and the pointer flips atomically. The old version stays where it was. No in-place migration scripts, no "do not power off".

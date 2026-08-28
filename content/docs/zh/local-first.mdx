@@ -13,12 +13,12 @@ description: 本地客户端是 Previously 的可选形态：同一颗内核以 
 
 ## 内核是一个 npm 包
 
-Previously 只有一颗内核，两种跑法。本地形态里，内核被打包成 npm 包 [`previously-kernel`](https://www.npmjs.com/package/previously-kernel)，随客户端精确锁版分发——你机器上跑的和云端部署跑的是同一份代码。
+Previously 只有一颗内核，两种跑法。本地形态里，内核被打包成 npm 包 [`@previously-lab/kernel`](https://www.npmjs.com/package/@previously-lab/kernel)，随客户端精确锁版分发——你机器上跑的和云端部署跑的是同一份代码。
 
 安装整个产品只需要：
 
 ```bash
-npm i -g previously-client
+npm i -g @previously-lab/client
 previously
 ```
 
@@ -40,7 +40,7 @@ previously
 所以升级永远只有一句话：
 
 ```bash
-npm i -g previously-client@latest
+npm i -g @previously-lab/client@latest
 ```
 
 新版本的内核随依赖一起到来，装进 `~/.previously/kernel/versions/<版本号>/`，指针原子切换。旧版本原地保留。没有原地迁移脚本，没有"升级中请勿关机"。

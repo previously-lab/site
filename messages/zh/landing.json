@@ -289,7 +289,7 @@
         {
           "icon": "github",
           "title": "一条命令,本地优先。",
-          "body": "npm i -g previously-client,然后裸跑 previously——向导会帮你把记忆初始化为一个普通的本地 git 仓库(默认 ~/Documents/Previously),边聊边 commit。想备份就 push 成私有 repo;不 push,它也是你的。",
+          "body": "npm i -g @previously-lab/client,然后裸跑 previously——向导会帮你把记忆初始化为一个普通的本地 git 仓库(默认 ~/Documents/Previously),边聊边 commit。想备份就 push 成私有 repo;不 push,它也是你的。",
           "cta": "在 GitHub 查看"
         },
         {
@@ -301,7 +301,7 @@
         {
           "icon": "scale",
           "title": "开源。无锁定。",
-          "body": "MIT 许可,无遥测。内核以精确版本绑定的 previously-kernel npm 包分发——升级 client 就是升级全部。哪天本地不够用了,Vercel 自部署云端内核仍是进阶选项。",
+          "body": "MIT 许可,无遥测。内核以精确版本绑定的 @previously-lab/kernel npm 包分发——升级 client 就是升级全部。哪天本地不够用了,Vercel 自部署云端内核仍是进阶选项。",
           "cta": "开始使用"
         }
       ],
@@ -354,12 +354,39 @@
         "resumedLabel": "从你离开的地方继续"
       },
       "oss": {
-        "command": "npm i -g previously-client",
+        "command": "npm i -g @previously-lab/client",
         "badges": [
           "MIT",
           "本地优先",
           "BYOK 或 bridge"
         ]
+      }
+    },
+    "GetStarted": {
+      "eyebrow": "06",
+      "title": "现在就能跑起来。",
+      "body": "Previously 有两种跑法:部署到 Vercel 是我们推荐的路径;想完全留在本机,npm 客户端已经可用(早期预览)。",
+      "cloud": {
+        "badge": "推荐",
+        "title": "云端 · Vercel",
+        "body": "Fork 仓库,一键部署到 Vercel——记忆写进你自己的 GitHub 私有仓库,模型跑在你自己的 API key 上。五分钟上线。",
+        "cta": "部署指南"
+      },
+      "local": {
+        "badge": "早期预览",
+        "title": "本地 · npm",
+        "body": "一条命令装好,裸跑 previously,向导接手剩下的。记忆是你磁盘上的普通 git 仓库,不经过任何第三方。",
+        "commands": [
+          "npm i -g @previously-lab/client",
+          "previously"
+        ],
+        "comment": "# 向导会带你完成初始化",
+        "notes": [
+          "需要 Node.js ≥ 20",
+          "建议配置自己的 API key(BYOK)——体验与云端完全一致",
+          "没有 key?可以桥接本机已有的 Claude / Codex / Kimi 先行体验;这是兜底方案,部分 agent 表现受目标 CLI 限制"
+        ],
+        "cta": "本地运行指南"
       }
     },
     "Finale": {

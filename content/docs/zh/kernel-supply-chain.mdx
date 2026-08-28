@@ -9,7 +9,7 @@ description: 记忆格式与内核行为绑定，所以我们把内核当成一�
 
 ## 精确到 patch
 
-内核以 [`previously-kernel`](https://www.npmjs.com/package/previously-kernel) 发布在 npm——它是 agent 仓库（previously-lab/agent）的预构建 standalone 产物。client 把它钉死：同一个版本字符串同时出现在 `dependencies` 和 `previously.kernelVersion` 里——没有范围号，没有"兼容 ^0.9"，patch 位也不例外。
+内核以 [`@previously-lab/kernel`](https://www.npmjs.com/package/@previously-lab/kernel) 发布在 npm——它是 agent 仓库（previously-lab/agent）的预构建 standalone 产物。client 把它钉死：同一个版本字符串同时出现在 `dependencies` 和 `previously.kernelVersion` 里——没有范围号，没有"兼容 ^0.9"，patch 位也不例外。
 
 `start` 和 `status` 时的版本检查因此不是兼容性门槛，而是完整性自检：它回答的不是"能不能跑"，而是"跑的是不是我们以为的那个"。
 
@@ -18,7 +18,7 @@ description: 记忆格式与内核行为绑定，所以我们把内核当成一�
 升级路径只有一条：
 
 ```bash
-npm i -g previously-client
+npm i -g @previously-lab/client
 ```
 
 内核作为 client 的依赖随行而来。回滚同样简单：装回旧版 client，就装回旧版内核。没有独立的内核升级命令，也就没有"client 和内核版本错位"这种状态。
