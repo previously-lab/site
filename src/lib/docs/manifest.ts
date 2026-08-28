@@ -3,7 +3,9 @@
  * slug ordering, and static param generation.
  *
  * Sections and item ordering define sidebar layout and prev/next navigation.
- * Content bodies live in `content/docs/{locale}/{slug}.mdx`.
+ * Content bodies live in `content/docs/{locale}/{slug}.mdx`; displayed titles
+ * come from each doc's frontmatter (localized) — `title` here is the English
+ * fallback for non-localized contexts (e.g. llms.txt).
  */
 
 export type DocItem = {
@@ -21,39 +23,58 @@ export type DocSection = {
 
 export const docsManifest: DocSection[] = [
   {
-    i18nKey: "overview",
-    title: "Overview",
+    i18nKey: "start",
+    title: "Start Here",
     items: [
       { slug: "introduction", title: "Introduction" },
       { slug: "why", title: "Why Previously" },
-    ],
-  },
-  {
-    i18nKey: "concepts",
-    title: "Concepts",
-    items: [
-      { slug: "timeline", title: "The Timeline" },
-      { slug: "slices", title: "Slices" },
-      { slug: "strands", title: "Strands" },
-      { slug: "memory-model", title: "Memory Model" },
-      { slug: "user-card", title: "User Card" },
-      { slug: "recall", title: "Recall" },
-    ],
-  },
-  {
-    i18nKey: "guides",
-    title: "Guides",
-    items: [
       { slug: "getting-started", title: "Getting Started" },
-      { slug: "deployment", title: "Deployment" },
+    ],
+  },
+  {
+    i18nKey: "memory",
+    title: "How Memory Forms",
+    items: [
+      { slug: "slices", title: "Time Slices" },
+      { slug: "timeline", title: "The Timeline" },
+      { slug: "strands", title: "Strands" },
+      { slug: "scribe", title: "The Scribe" },
+      { slug: "ingest", title: "The Only Way In" },
+      { slug: "memory-model", title: "The Memory Model" },
+    ],
+  },
+  {
+    i18nKey: "mind",
+    title: "How It Remembers and Thinks",
+    items: [
+      { slug: "recall", title: "Recall" },
+      { slug: "web-search", title: "The Web Researcher" },
+      { slug: "think-deep", title: "The Clean Room" },
+      { slug: "colleagues", title: "Colleagues, Not Tools" },
+      { slug: "user-card", title: "The User Card" },
+      { slug: "evolution", title: "The Evolution Loop" },
+    ],
+  },
+  {
+    i18nKey: "client",
+    title: "On Your Machine",
+    items: [
+      { slug: "local-first", title: "Local First" },
+      { slug: "your-memory", title: "Your Memory Is a Folder" },
+      { slug: "two-engines", title: "Two Engines" },
+      { slug: "everyday", title: "Everyday Commands" },
+      { slug: "skill-pack", title: "The Skill Pack" },
+      { slug: "kernel-supply-chain", title: "The Kernel Supply Chain" },
+      { slug: "configuration", title: "Configuration" },
     ],
   },
   {
     i18nKey: "reference",
     title: "Reference",
     items: [
-      { slug: "configuration", title: "Configuration" },
+      { slug: "chat-ui", title: "The Chat Interface" },
       { slug: "architecture", title: "Architecture" },
+      { slug: "deployment", title: "Deployment" },
       { slug: "faq", title: "FAQ" },
     ],
   },

@@ -1,0 +1,42 @@
+---
+title: The Only Way In
+description: previously ingest is the only write door into memory — a border crossing, not an open door: zero-token re-transcription of raw logs, strict admission for submitted slices, and a price quote before any token is spent.
+---
+
+# The Only Way In
+
+Your memory is the most protection-worthy thing in the whole system. If any external tool could write files straight into `~/Documents/Previously`, that folder would sooner or later become a pile of drafts nobody dares to trust. So Previously built exactly one write door: **external agents and tools that want to put something into memory go through `previously ingest` — a border crossing, not an open door.**
+
+## The other side of the door is read-only
+
+The boundary first. For bridged agents, most of the memory interface is read-only: the `readslice` / `timeline` / `strands` / `card` / `slicesummary` / `agentlog` commands are how they look — line ranges, `--search`, output caps, slice-id validation, path-traversal defense, all included. Writing has exactly one route: ingest. Callers never touch the memory directory directly; only after every check passes does the client write to disk itself.
+
+## Three ways through
+
+- **`--source <claude-code|codex|kimi-code|gemini>`** — raw-log mode. Hand session logs (a whole directory or a single exported file) to the same transcription pipeline the scribe runs: parse, slice, write. Fully local, zero tokens; `--root` / `--path` point somewhere other than the defaults.
+- **`--submit <file|->`** — finished-document mode. A caller (usually an agent that already processed its own conversation) submits a fully rendered slice document for strict admission.
+- **`--mark`** — fill in the clues for "dry" slices. Each slice missing focus/summary/tags costs one bridge-brain call to complete — always quoted up front, and nothing is spent without `--yes`.
+
+## Admission, not trust
+
+`--submit` is border inspection: if the paperwork is incomplete or a rule is broken, the whole submission is rejected. The checklist covers required frontmatter (`slice_id`, `status: closed`, ISO `start` and `end`, `source`, `session_id`), a `## Turn` body, and timestamps in non-decreasing order. Violate any one of them and ingest prints the full issue list and writes nothing; pass them all and the client re-renders the document in the kernel's canonical byte shape before writing — no matter who drafted it, the memory directory always carries our shape.
+
+Two guards make re-submission safe: dedup by `(source, session_id)` — identical bytes are an idempotent no-op, and the same session with different content is a hard conflict, never an overwrite; and when the same minute is already taken by another session, the slice id steps forward a minute at a time and tells you about the remap.
+
+## History doesn't rewrite the present
+
+Slices admitted through ingest are historical records: they trigger no user-card evolution and carry no per-slice card snapshots. This is deliberate — history informs what happened; it does not retroactively change who the card thinks you are. Your two-years-ago self has no power to reshape today's.
+
+## Quote first, spend second
+
+`--mark` is the only step behind this door that spends tokens, and its rule is as strict as the border's: it prints the estimate — "N slices → N calls" — and only after you confirm with `--yes` does it call the bridge brain. The quote always comes before the spending; inside this door, "spend first, apologize later" does not exist.
+
+<Callout variant="info">
+**In one line**: writes to memory pass admission, and tokens are quoted before they're spent — ingest made both rules the shape of a command.
+</Callout>
+
+## Related
+
+- [The Scribe](/docs/scribe) — the other zero-token write path: rebuilding from raw logs
+- [Slices](/docs/slices) — the document shape the checklist validates
+- [User Card](/docs/user-card) — why historical slices don't evolve the card

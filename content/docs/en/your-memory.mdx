@@ -1,0 +1,65 @@
+---
+title: Your Memory Is a Folder
+description: Previously's memory is not rows in someone's database — it is a plain folder on your disk, plus a local git ledger.
+---
+
+# Your Memory Is a Folder
+
+Plenty of products tell you "your data belongs to you" and then lock it in a format only they can read. We don't think promises count — **ownership is not a promise, it's a format.** Previously's memory is an ordinary folder at `~/Documents/Previously`: plain Markdown that any editor can open. You can read it, grep it, back it up, feed it to another tool — without our permission, or even our existence.
+
+## Where it lives
+
+The default location hugs your system's documents directory: `~/Documents/Previously` (falling back to `~/Previously` when there is no Documents folder). During setup you can move it, or point at an existing Previously repository — say, one you cloned back from GitHub — and the client will adopt it, history intact.
+
+## What's inside
+
+Open the folder and you don't find a database dump. You find a tree that grows along time:
+
+```
+~/Documents/Previously/
+├── episodic/
+│   ├── slices/YYYY/MM/DD/HHMM/    # one folder per time slice
+│   │   ├── timeline/core.md       # the verbatim conversation
+│   │   ├── timeline/agent.md      # the agent's own cognition log
+│   │   ├── timeline/appendix.md   # raw lines that didn't parse
+│   │   └── previously.md          # the user card as of that moment
+│   ├── timeline/index.json        # timeline index + monthly _index.json
+│   ├── timeline.md
+│   ├── strands.json
+│   └── current-previously.md      # the living user card
+├── evolution/
+│   ├── direction.md
+│   ├── fitness.json
+│   └── mutations.md               # append-only, never rewritten
+├── agent-playbooks/*.md
+└── user/
+    ├── config.json
+    └── profile.md                 # name, timezone, how to address you
+```
+
+Each piece earns its place:
+
+- **`timeline/core.md`** is the verbatim conversation. Turns are delimited as `## Turn N — ISO timestamp (role)` — what you said is what it says, unedited.
+- **`timeline/agent.md`** is the agent's own cognition log: extracted reasoning and tool calls. You see not only what it said, but what it "thought".
+- **`timeline/appendix.md`** is the most honest file of the three: raw lines that drifted in format and failed to parse land here. **No line is ever silently dropped.**
+- Slice frontmatter carries structured fields: `slice_id`, `focus`, `summary`, `tags`, `status`, `start`/`end`, `open_loops`, `decisions`, `emotional_tone` — plus a per-slice `previously.md` card snapshot.
+- The index layer (`strands.json`, `timeline/index.json` and `timeline.md`, monthly `_index.json`) is a table of contents for humans and machines alike.
+- The name and `address_as` in `user/profile.md` drive the title — `Previously on <Your Name>`.
+
+## Git is the ledger, not the lock
+
+The folder is also an ordinary local git repository, maintained through isomorphic-git — pure JavaScript, so your machine doesn't need git installed.
+
+But the division of labor matters: **the filesystem is the source of truth; git is a best-effort ledger.** A failed commit never blocks a write — memory hits disk first, the ledger catches up. The commit cadence mirrors the cloud exactly: one chat turn produces two commits (housekeeping + agent response), the scribe and ingest commit in batches, and `previously stop` sweeps up any uncommitted stragglers.
+
+Want a backup? Push it to your own private GitHub repo. Runtime clutter — `.workflow-data/`, logs, scribe cursors — lives in `~/.previously`, not in the repo, so the repository is safe to push as-is. A backup is something you push, not something we hold by default.
+
+<Callout variant="info">
+**In one line**: your memory belongs to you not because we promise not to touch it, but because it has been a format you fully own since day one.
+</Callout>
+
+## Related
+
+- [Time Slices](/docs/slices) — where every sentence in a single slice goes
+- [The Timeline](/docs/timeline) — how slices weave into a browsable timeline
+- [Local First](/docs/local-first) — why the memory sits on your hardware from day one

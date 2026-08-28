@@ -1,71 +1,32 @@
 ---
 title: Introduction
-description: What Previously is — a local-first persistent agent organized around one continuous relationship on one timeline, with episodic memory as its defining feature.
-order: 0
+description: Previously is an AI agent that remembers by when — conversations become slices on one timeline, recall answers with verbatim evidence, and your memory is a plain folder you own.
 ---
 
 # Introduction
 
-Previously is a lightweight local-first agent whose defining feature is episodic memory: it reads, writes, reasons, and acts, and is designed to never forget across time.
+Previously is an AI agent that lives on your own machine. There is exactly one fundamental difference between it and every other AI assistant, and that difference changes everything: **it remembers by *when*, not by chat thread.**
 
-## What Previously Is
+## No chat threads, one timeline
 
-Previously is not another assistant you chat with in disposable threads. It is a persistent agent that lives on your own machine, organized around a single idea: **one continuous relationship on one timeline.** You are the commander; Previously is your staff. You show up, you talk, you leave. When you come back — hours, days, or weeks later — the first thing you see is a timeline of your past, not a list of chat threads. The agent figures out relevance by scanning *when* something happened, then retrieving *what* was said.
+Mainstream assistants cut your life into disposable conversations, each starting from zero. There is no conversation list in Previously: everything you say becomes a **slice** on a single timeline, recording what happened and when it happened. Come back hours, days, or weeks later and you pick up the same timeline where you left it — like a long-running series where you never have to "start a new chat".
 
-There are no conversations. There is no conversation management. There is one timeline.
+## Recall is a colleague, and it answers with evidence
 
-## The "Previously on..." Metaphor
+When you ask about the past, what answers is not a vector database but a **recall colleague**: it browses your timeline itself, replies in natural language, and anchors every claim to a verbatim quote. "We don't remember discussing that" is an honest, valid answer.
 
-The name comes from television: before a new episode, a brief recap reminds you what happened last time — just enough context to resume. Previously does the same thing. Every time you return, it recaps your own timeline, pulling forward what matters so you never start cold. On screen, that recap is your **arrival briefing**: what happened recently, what is in focus now, and which threads are still open.
+Meanwhile, a **user card** quietly updates after every conversation — who you are, what you're doing lately, what you plan to do next. It knows you not because you reintroduce yourself at the top of every chat, but because it was there.
+
+## It runs on your machine, and the memory is yours
+
+The whole product is one npm package running on your own hardware. Your memory is a plain folder — pure Markdown with a local git ledger — that belongs to you from day one: back it up, move it, open it with any tool.
 
 <Callout variant="info">
-**Key takeaway: Previously replaces the chat-thread model with time slices, so memory and interaction are unified. Fix the memory model and you remove the need to manage conversations at all.**
+**In one line**: Previously believes the unit of memory is time, not conversation. Fix the memory model, and "managing conversations" stops being a thing at all.
 </Callout>
-
-## How It Differs from Chat-Thread Agents
-
-Mainstream agents split your life into chat threads. Each thread starts cold. Memory across threads is siloed, fragile, and lossy — bolting on vector databases, RAG pipelines, and prompt hacking to approximate what should be a native capability.
-
-Previously replaces threads with **time slices**. Because interaction history and memory share the same structure — a chronological sequence of slices — cross-session recall is a property of the system, not a retrofit. The agent never abruptly forgets the start of a long exchange because context is assembled dynamically per request rather than accumulated in a growing prompt window. Per-request load stays bounded and relevant.
-
-## Vocabulary Tour
-
-Three terms carry the architecture.
-
-**Slice** — One conversation burst. A directory on the timeline at `memory/episodic/slices/YYYY/MM/DD/HHMM/`. Opens when you start talking, stays active while you stay engaged, closes automatically after about 15 minutes of silence by default (or a configurable turn cap, 20 by default). Carries structured YAML frontmatter: focus, summary, decisions, open loops, tags, emotional tone. Slice = *what happened, and when.*
-
-**Strand** — A keyword (like `health`, `work`, `housing`) that recurs across slices. The index `memory/episodic/strands.json` maps each keyword to every slice path that carries it. Strands are built at slice-close from the slice's tags, and a worker-model pass then consolidates the index — merging near-duplicate keywords and pruning stale entries. A slice = what happened; a strand = what it was about. Strands form the thin, lossless semantic layer over the timeline.
-
-**Recall** — The episodic-recall colleague. You ask in natural language, the way you would ask a colleague who was there. The recall sub-agent scans breadth first (the global timeline catalog, time windows, strands), then reads up to five slices in full, and answers in natural language with quoted source passages and a confidence score — "we don't remember discussing this" is a valid answer. The **main agent** keeps a `readSlice` tool only to verify what recall reports. Sibling colleagues handle the rest: webSearch researches a topic online (searching, then reading pages directly), and thinkDeep is an isolated chamber for unbiased second opinions.
-
-| Term | Layer | Role | Speed |
-|------|-------|------|-------|
-| Slice | Episodic (when) | Records what happened | Storage, not retrieval |
-| Strand | Semantic (what) | Keywords across slices | Built at slice-close |
-| Recall | Retrieval | Colleague sub-agent: breadth-first scan, then quoted answers | One bounded sub-agent run |
-| Main agent | Verification | Spot-checks recall with `readSlice`, reads slices directly when needed | Per tool call |
-
-## Research Grounding
-
-The episodic / semantic split is not arbitrary. It is grounded in Endel Tulving's episodic vs. semantic memory theory (1972) and context-dependent memory research (Godden & Baddeley 1975; Smith & Vela 2001). Slices encode the *when* (episodic). Strands and memory nodes encode the *what* (semantic). Recall follows the same order: scan when first, then retrieve what.
-
-## Status
-
-Previously is **EXPERIMENTAL** — early development, not yet ready for personal or production use. It is a one-person research project, but intended to be maintained long-term. What works today:
-
-- **Local-first install** — one command (`npm i -g previously-client`), then a bare `previously` wizard initializes everything. Your memory is a local git repository (default `~/Documents/Previously`) that you can push as a private GitHub repo; the kernel ships as a version-pinned `previously-kernel` npm package.
-- **Your own brain, your own bill** — bring your own API key (BYOK), or bridge to an existing local Claude / Codex / Kimi subscription: zero keys, zero API fees.
-- **Sub-agents as colleagues** — recall answers episodic questions with quoted source passages, webSearch researches a topic and reads pages directly, thinkDeep is an isolated chamber for unbiased second opinions.
-- **Darwinian self-evolution** — a direction document (`memory/evolution/direction.md`), evidence-anchored fitness scoring, an append-only mutation archive (`memory/evolution/mutations.md`), and per-sub-agent playbooks (`memory/agent-playbooks/`) let the agent improve across slices without drifting.
-- **The memory core described above** — time-slice storage with automatic time-silence slicing, the timeline catalog rebuilt deterministically from slice frontmatter, the recall pipeline, and a compact user card that evolves once per closed slice.
-- **Memory skills, not MCP** — the read-only MCP server is retired; local agents receive a read-only "Previously" memory skill instead.
-
-Self-hosting on Vercel with a GitHub backend still exists as the advanced path.
-
-What is still missing: per-strand rolling summaries with deeper recall integration, and the timeline visualization UI the catalog schema is designed for. Both are future milestones.
 
 ## Related
 
-- [The Timeline](/docs/timeline)
-- [Memory Model](/docs/memory-model)
-- [Architecture Overview](/docs/architecture)
+- [Why Previously](/docs/why) — the full reasoning behind the idea
+- [Getting Started](/docs/getting-started) — two commands to run it on your machine
+- [The Memory Model](/docs/memory-model) — slices, the timeline, and the user card in detail

@@ -1,119 +1,72 @@
 ---
 title: Strands
-description: The semantic layer over the episodic timeline — keywords woven across every slice that carries them, mapping topic to the whole history of that thing.
-order: 2
+description: The semantic layer over the episodic timeline — one keyword woven through every slice that carries it, turning "the whole history of that thing" into a single lookup.
 ---
 
 # Strands
 
-A strand is a keyword woven across every time slice that carries it — the semantic layer over the episodic timeline. Where a slice says *what happened* (by time), a strand says *what it was about* (by topic).
-
-## The Problem: Episodic Memory Has No Topic Index
-
-Time slices organize your history chronologically. You can ask "what happened yesterday afternoon" and get the right slice file. But you cannot easily ask "everything I've ever said about Rust" — that question cuts *across* time, not along it.
-
-You need both axes:
+Time slices answer "what happened" along time. But the mind asks another way too: "everything we've ever said about that thing" — a question that cuts *across* time, not along it. Strands are the semantic layer built for that question: one keyword, woven through every slice that carries it.
 
 | Memory type | Organized by | Unit | Question it answers |
 |---|---|---|---|
-| **Episodic** | Time | Slice | "What happened when?" |
+| **Episodic** | Time | Time slice | "What happened when?" |
 | **Semantic** | Topic | Strand | "What was said about X?" |
 
-Strands fill the semantic axis. They are the by-topic counterpart to the by-time slice record.
+## How it works
 
-## How It Works
+Every slice carries `tags` in its frontmatter — keywords like `wedding-speech` or `running`. When a slice closes, those tags are woven into one global file: `memory/episodic/strands.json`.
 
-A slice carries `tags` in its YAML frontmatter — keywords like `"rust"`, `"async"`, `"deployment"`. Every time a slice closes, those tags are woven into a single global file:
-
-> `memory/episodic/strands.json`
-
-Each key in that file is a **strand** (one tag). Each value is the list of relative slice paths tagged with that keyword — "the whole history of that thing" across time.
+Each key in that file is a **strand** (one tag); each value is the list of relative paths of every slice carrying that keyword — "the whole history of that thing," across time:
 
 ```json
 {
-  "rust": [
+  "wedding-speech": [
     "2026/06/22/1400",
     "2026/07/01/0915",
     "2026/07/08/1630"
   ],
-  "async": [
+  "running": [
     "2026/06/22/1400"
-  ],
-  "deployment": [
-    "2026/07/08/1630"
   ]
 }
 ```
 
-The paths are relative: no `slices/` prefix, no `.md` extension. `sliceIdToRelPath` converts a slice id like `2026-06-30-1430` to `2026/06/30/1430` so you can walk directly to the slice directory at `memory/episodic/slices/2026/06/30/1430/`.
+The paths are relative, and each one walks you straight to a slice directory. A strand plus the slice paths it points to is the complete history of that thing — no more, no less.
 
-## Derived, Not Authored
+## Derived, not authored
 
-Strands have no separate authoring step. They are **derived entirely** from the `tags` array in each slice's YAML frontmatter. Tags are maintained per-round by the worker model as part of its housekeeping update — it reads the conversation, classifies the topic, and writes the tags. Those tags become strands automatically.
+There is no separate authoring step for strands. Tags are maintained by the turn analyzer during each turn's housekeeping — it reads the conversation, classifies the topic, writes the tags, and **prefers reusing existing tags** so the same concept merges across languages and phrasings. When a slice closes (and when an in-progress slice saves a snapshot), `updateStrands` weaves each tag into the index: append the path, deduplicate, write back.
 
-The cycle is:
-
-1. **The worker runs metadata maintenance** → writes `tags` into the active slice's frontmatter
-2. **The slice is persisted** (either closed after about 15 min of silence by default, or snapshotted mid-conversation)
-3. **`updateStrands(slice)` runs** → reads `strands.json`, weaves each tag in as a key, appends the slice's relative path (deduplicated), writes back
-
-The weave is **merge-first**: before a tag creates a new key, it is normalized (trimmed, ASCII-lowercased, full-width forms folded to half-width, inner whitespace collapsed) and matched against existing keys — so `Apex` and `apex` land on the same strand instead of splitting one topic into two. Only a genuinely new tag creates a new key.
+The weave is **merge-first**: before a tag creates a new key, it is normalized (trimmed, ASCII-lowercased, full-width forms folded to half-width, inner whitespace collapsed) and matched against existing keys — so `Apex` and `apex` land on the same strand instead of splitting one topic in two. Only a genuinely new tag creates a new key.
 
 Tags weave into strands. You never write a strand directly.
 
-## When Strands Are Written
+## Keeping the index clean
 
-`updateStrands` runs in two places:
+An append-only index rots: typos split one concept across two keys, and a tag used once a year ago stays forever. So on every slice close, a consolidation pass (`consolidateStrands`) runs in two stages:
 
-- **On slice close** (`closeSlice` in `manager.ts`): after the slice `.md` file is written and the monthly `_index.json` is updated, `updateStrands` publishes the slice's tags into the global index.
-- **On active-slice snapshots** (`ensureIndexEntries` in `manager.ts`): when a snapshot is saved mid-conversation, `updateStrands` also runs — but only if the slice has at least one tag. This means an in-progress slice appears in the strand index before it closes.
+1. **Deterministic pruning (always runs).** Strands that never became threads are pruned — concretely, ones carrying very few slices, all of them stale. A strand survives with enough slices *or* at least one recent slice, so a genuinely new topic is never pruned on the day it appears. This stage needs no model.
+2. **A model merge pass (only once the index has grown past 25 strands).** Normalization catches mechanical duplicates, but semantic duplicates — a typo in a name, the same concept under two names — need judgment. The model reviews the index and proposes a from→to merge map (at most 30 merges per pass, precision over recall: when in doubt, do not merge); the engineering layer then unions the path lists and drops the redundant keys.
 
-The result: `strands.json` stays current even for active slices, so a recall scan never misses a tag just because the slice hasn't closed yet.
+The whole pass is defensive: any failure returns the index unchanged — a slice close never breaks because consolidation did.
 
-## Keeping the Index Clean
+## How strands are read
 
-A naive append-only index rots: typos split one concept across two keys, and a tag used once a year ago stays forever. At every slice close, a consolidation pass (`consolidateStrands`) runs in two stages:
+The index is not write-only; it feeds every conversation through several paths:
 
-1. **Deterministic pruning (always).** A strand that never became a thread is pruned — specifically, one with fewer than 2 slices whose slices are all older than 14 days. A strand survives if it has enough slices *or* at least one recent slice, so a genuinely new topic is never pruned the day it appears.
-2. **LLM merge pass (only when the index has 25+ strands).** Normalization catches mechanical duplicates like `Apex`/`apex`, but the worker model itself mints semantic duplicates — typos in names, the same concept under two names. The worker model reviews the index and proposes a from→to merge map (capped at 30 merges per pass, precision over recall: when in doubt, do not merge). The engineering layer then unions the path lists and removes the redundant keys.
+- **The memory-topics menu.** The system prompt carries a Memory topics block: strands sorted by most recent activity, each annotated with when it was last seen. When you mention one of them, the main agent knows it is time to ask recall.
+- **The recall pipeline.** The recall colleague receives the strand list up front and uses `readStrand` to trace a matching strand to every slice that carries it. Strands are recall's topic axis; timeline windows are its time axis. See [Recall](/docs/recall).
+- **The timeline projection.** Every timeline reconcile resolves each entry's strand membership, so the timeline index itself records which strands pass through which slices.
 
-The whole pass is defensive: on any failure it returns the index unchanged, so slice close never breaks because consolidation did.
-
-## How Strands Are Read
-
-The index is not write-only — it feeds the agent on every turn, through three paths:
-
-- **The memory-topics menu.** During turn housekeeping, the system prompt's variable tail gets a `## Memory topics` block: up to 20 strands, sorted by most recently active slice, each annotated with when it was last seen. When the user mentions one of these topics, the main agent is instructed to run `recall`.
-- **The recall pipeline.** The `recall` tool hands the question to the recall sub-agent — a colleague that answers in natural language with quoted sources. That sub-agent receives the strand list up front, is told to check which strands match the query, and has its own `readStrand` tool to trace a matching strand to every slice path that carries it. Strands are the topic axis of recall; `readTimelineWindow` is the time axis.
-- **The timeline projection.** Every `weaveTimeline` pass reads `strands.json` once and resolves each timeline entry's `strands` field — the subset of the slice's tags that are woven strands. The structured timeline index therefore records which strands pass through which slices, ready for consumers like a UI that renders a strand as a parallel timeline.
-
-The main agent itself does not walk the raw index — `readStrand` and `listStrands` stay with the recall engine. What the main agent sees is the menu plus whatever `recall` returns.
-
-## The Type
-
-The `StrandIndex` type (defined in `src/lib/episodic/types.ts`) is a plain string-keyed map:
-
-```typescript
-interface StrandIndex {
-  [strand: string]: string[];
-}
-```
-
-If `strands.json` does not exist yet — no slices have ever had tags — `readStrands()` returns an empty object `{}`. Writing always produces pretty-printed JSON via `JSON.stringify(index, null, 2)`.
-
-## Dual Storage
-
-The read/write path goes through `fsReadFile`/`fsWriteFile` wrappers that transparently target the local filesystem in development or the GitHub API in production. The strand index itself (`strands.json`) is a runtime data artifact — it lives in the same memory repo as the slices, not in the application source tree. Nothing in the working tree of this code repository contains a committed `strands.json`.
-
-## What a Strand Is Not (Yet)
+## Deliberately thin
 
 <Callout variant="info">
-A strand is still the thin, lossless index: the map from keyword to slice paths, nothing more. A richer **first-class strand** — one with its own rolling summary, its own metadata, and a visual rendering as a parallel timeline — is an explicit future milestone. The v0.8 timeline schema already carries per-slice strand membership so that view can be built without reworking the data.
+A strand is a **thin, lossless** index: a map from keyword to slice paths, nothing more. That is the design, not a shortcoming — the richness lives in the slices; the strand only points. The index can be lost and rebuilt; the truth is always in the slices.
 </Callout>
 
 ## Related
 
-- [Slices](/docs/slices) — the episodic counterpart: what happened, by time
-- [Timeline](/docs/timeline) — the vertical view of slices across days and months
-- [Recall](/docs/recall) — how the worker and main model navigate memory
-- [Memory Model](/docs/memory-model) — the three-tier architecture
+- [Time Slices](/docs/slices) — the episodic record itself: what happened, by time
+- [The Timeline](/docs/timeline) — the catalog on the time axis; strands are the topic axis
+- [Recall](/docs/recall) — the colleague who searches along both axes
+- [The Memory Model](/docs/memory-model) — where strands sit in the full memory architecture

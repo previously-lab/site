@@ -1,0 +1,44 @@
+---
+title: Colleagues, Not Tools
+description: The main agent's tool surface is deliberately narrowed to six tools, with all memory browsing pushed down into the colleagues — narrow surfaces are auditable; every colleague runs on one shared runner, and the user is always the third party in the room.
+---
+
+# Colleagues, Not Tools
+
+v1.0 made a decision that looks backwards: not giving the main agent more tools, but **narrowing** its tool surface. An all-powerful agent that does everything itself is a black box nobody can audit. So Previously is a team: the main agent owns the conversation and the judgment, and specialist work goes to specialist colleagues.
+
+## The main agent's six tools
+
+Six tools remain, each with an explicit reason to exist:
+
+- **`recall`** — ask the past (see [Recall](/docs/recall)).
+- **`webSearch`** — ask the world (see [The Web Researcher](/docs/web-search)).
+- **`thinkDeep`** — ask a mind the conversation never touched (see [The Clean Room](/docs/think-deep)).
+- **`readSlice`** — the one memory-reading tool it kept, reserved as a **verification-only channel**: open the raw slice only to audit what recall reported.
+- **`readPreviously`** — read the user card and the current belief snapshot.
+- **`currentTime`** — the agent's watch check. Precise time must come from a tool, because the system prompt is byte-frozen within each slice — the precondition for provider prefix caching.
+
+Every memory-browsing tool — `readTimelineWindow`, `readStrand`, `readSliceSummary`, and the rest — moved **down** into the colleagues. The main agent no longer walks the archive itself. And every tool is conceptual: it sees slices, strands, and timelines, never filesystem paths.
+
+## Narrow is auditable
+
+A narrow surface isn't a capability cut — it's where auditability comes from. Everything the main agent can do that touches memory or the outside world is a named call with a payload and a report, reviewable one by one after the fact. A god-agent's "I looked around and felt that..." can't be checked; a `recall` call's question and report are on the record.
+
+## Trust, but verify
+
+Trusting a colleague doesn't mean giving up the audit — and the audit is **structural**. When the main agent re-reads a slice after a recall, the read is classified and scored: a quick check is a `verify`, re-doing recall's job is a `rework`, asking the same question again is a `repeat`. A rework is an implicit demerit against the colleague, and enough of them trigger an evolution (see [The Evolution Loop](/docs/evolution)). Not "we trust our colleagues" — "the system keeps score of them, continuously."
+
+## One runner, one set of house rules
+
+All colleagues run through one shared runner with a shared base prompt that pins the relationship: the caller is a colleague, and **the user is always a third party** — nobody role-plays you, and nobody treats the other side as you. Colleagues stream live, time out gracefully with partial results, and never throw an exception into the chat.
+
+## The memory gatekeeper
+
+Every turn also runs one structured housekeeping pass — the turn analyzer. It doubles as the memory gatekeeper: its `memory_worthy` verdict decides whether the turn earns a place in memory. Small talk and content-free turns stop here. **Not every sentence deserves remembering** — trustworthy memory starts with refusal.
+
+## Related links
+
+- [Recall](/docs/recall) — the first colleague: evidence anchoring and the rework signal
+- [The Web Researcher](/docs/web-search) — the researcher colleague
+- [The Clean Room](/docs/think-deep) — the isolated-reasoning colleague
+- [The Evolution Loop](/docs/evolution) — how the scorekeeping becomes improvement

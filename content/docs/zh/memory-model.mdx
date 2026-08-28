@@ -1,79 +1,78 @@
 ---
 title: 记忆模型
-description: 记忆如何构建——构建时打包的身份宪法、由 slice 与 strand 组成的情景时间线、持续演化的用户卡、进化数据层(direction、fitness、变异档案、playbooks)、白名单边界,以及逐轮动态组装的上下文。
-order: 3
+description: 记忆如何构建——构建时打包的身份宪法、由切片与 strand 组成的情景时间线、持续演化的用户卡、进化数据层（direction、fitness、变异档案、playbooks）、白名单边界，以及随切片冻结的上下文。
 ---
 
 # 记忆模型
 
-Previously 没有数据库,也没有向量存储。记忆是 git 仓库里的纯 Markdown 文件,按时间组织。产品里流淌着三条时间线,而只有一条是共享的:
+Previously 没有数据库，也没有向量存储。记忆是 git 仓库里的纯 Markdown 文件，按时间组织。产品里流淌着三条时间线，而只有一条是共享的：
 
-- **你的生活** —— 你经历的一切。其中大部分只有你自己经历过,Previously 看不见。
-- **共同的记录** —— 每一次对话、每个决定、每个没说出口但被记住的瞬间。这就是 Previously 存储的东西:一条由情景 slice 组成的时间线。
-- **它的思考** —— 代理工作时的认知过程:它回忆了什么、推理了什么、得出了什么结论。这也被记录下来,就存在每个 slice 旁边。
+- **你的生活** —— 你经历的一切。其中大部分只有你自己经历过，Previously 看不见。
+- **共同的记录** —— 每一次对话、每个决定、每个没说出口但被记住的瞬间。这就是 Previously 存储的东西：一条由情景切片组成的时间线。
+- **它的思考** —— 代理工作时的认知过程：它回忆了什么、推理了什么、得出了什么结论。这也被记录下来，就存在每个切片旁边。
 
-记忆模型就是这三条线的维护方式:构建时打包的不可变身份、运行时无损的情景时间线、一张把时间线蒸馏成「你是谁」的紧凑用户卡——以及自 v1.0 起,一层记录系统自身该如何改变的进化数据层。
+记忆模型就是这三条线的维护方式：构建时打包的不可变身份、运行时无损的情景时间线、一张把时间线蒸馏成「你是谁」的紧凑用户卡——以及一层记录系统自身该如何改变的进化数据层。
 
-## L0:身份宪法
+## L0：身份宪法
 
-最底层根本不是数据——而是代理是谁。`identity/agent/SOUL.md` 与 `identity/agent/DIRECTIVES.md` 承载着代理的宪法:它的品格与常驻规则。
+最底层根本不是数据——而是代理是谁。`identity/agent/SOUL.md` 与 `identity/agent/DIRECTIVES.md` 承载着代理的宪法：它的品格与常驻规则。
 
-构建时,`scripts/generate-identity.mjs` 把这两个文件编译成一个生成的 TypeScript 模块(`src/lib/identity/agent-prompt.generated.ts`),宪法由此被冻结进部署产物。它在运行时从不从磁盘读取,源文件也位于工具白名单之外——代理无法重写自己的灵魂,对仓库的错误修改也无法改变线上的提示词。
+构建时，这两个文件被编译成一个生成的 TypeScript 模块，宪法由此被冻结进部署产物。它在运行时从不从磁盘读取，源文件也位于工具白名单之外——代理无法重写自己的灵魂，对仓库的错误修改也无法改变线上的提示词。
 
-## 情景层:时间线上的 Slice
+## 情景层：时间线上的切片
 
-每段对话爆发都会成为一个 **slice** —— 你个人时间线上的一个目录,路径精确编码了它发生的时刻:
+每段对话爆发都会成为一个**时间切片**——你个人时间线上的一个目录，路径精确编码了它发生的时刻：
 
 ```
 memory/episodic/slices/2026/08/10/2130/
   timeline/
-    core.md      -- 共同的记录:YAML frontmatter + 对话轮次
-    agent.md     -- 它的思考:该 slice 的代理认知日志
-  previously.md  -- 截至此 slice 的用户卡快照
+    core.md      -- 共同的记录：YAML frontmatter + 对话轮次
+    agent.md     -- 它的思考：该切片的代理认知日志
+  previously.md  -- 截至此切片的用户卡快照
 ```
 
-注意 `timeline/` 下的两个文件:`core.md` 是共同的记录(说了什么,附带结构化元数据——`focus`、`summary`、`open_loops`、`decisions`、`tags`、`emotional_tone`、`status`、`start`/`end`),而 `agent.md` 是代理自己的那条线——它当时的思考,由机械提取生成。Slice 在你开始说话时开启,按纯时间规则关闭(片龄上限、上下文丢失,或轮次上限这个安全阀)。没有主题切换规则:切片完全由时间驱动,因此时间线始终是一份无损的自传。完整生命周期见 [Slices](/docs/slices)。
+注意 `timeline/` 下的两个文件：`core.md` 是共同的记录（说了什么，附带结构化元数据——`focus`、`summary`、`open_loops`、`decisions`、`tags`、`emotional_tone`、`status`、`start`/`end`），而 `agent.md` 是代理自己的那条线——它当时的思考，由机械提取生成。切片在你开始说话时开启，按纯时间规则关闭（片龄上限、上下文丢失，或轮次上限这个安全阀）。没有主题切换规则：切片完全由时间驱动，因此时间线始终是一份无损的自传。完整生命周期见[时间切片](/docs/slices)。
 
-**Strand** 是时间线之上薄薄的语义索引:一个像 `wedding-speech`、`running` 这样的关键词,贯穿所有携带它的 slice,以 strand → slice 路径的映射形式存于 `memory/episodic/strands.json`。Slice 是发生了什么;strand 是它关于什么。详见 [Strands](/docs/strands)。
+**Strand** 是时间线之上薄薄的语义索引：一个像 `wedding-speech`、`running` 这样的关键词，贯穿所有携带它的切片，以 strand → 切片路径的映射形式存于 `memory/episodic/strands.json`。切片是发生了什么；strand 是它关于什么。详见 [Strands](/docs/strands)。
 
 <Callout variant="info">
-**关键要点:slice 是唯一事实来源。** 其他一切——strand 索引、时间线目录、用户卡、playbook——都是从 slice 文件派生、可重建的投影。
+**关键要点：切片是唯一事实来源。** 其他一切——strand 索引、时间线目录、用户卡、playbook——都是从切片文件派生、可重建的投影。
 </Callout>
 
 ## 时间线索引
 
-为了回答一个问题而去读上百个 slice 是对上下文的浪费,因此 Previously 维护着覆盖全部历史的第一类派生索引(`src/lib/episodic/timeline/`):
+为了回答一个问题而去读上百个切片是对上下文的浪费，因此 Previously 维护着覆盖全部历史的派生索引：
 
-- `memory/episodic/timeline/index.json` —— 权威的结构化目录:每个 slice 一条记录,携带 `focus`、`summary`、`tags`、`strands`、`open_loops`、`decisions`,以及标记语义尚未填充的 `needs_marking` 标志。
-- `memory/episodic/timeline.md` —— 同一份目录的 Markdown 投影,按月、按日分组,代理(和你)都可读。
+- `memory/episodic/timeline/index.json` —— 权威的结构化目录：每个切片一条记录，携带 `focus`、`summary`、`tags`、`strands`、`open_loops`、`decisions`，以及标记语义尚未填充的 `needs_marking` 标志。
+- `memory/episodic/timeline.md` —— 同一份目录的 Markdown 投影，按月、按日分组，代理（和你）都可读。
 
-两者都由 `weaveTimeline` 确定性地重建——枚举 slice 文件、diff、调和——零模型调用。新 slice 在创建的当轮就会被插入目录;任何被标记为 `needs_marking` 的记录,随后由 housekeeping 子代理在回合关键路径之外补全 `focus`/`summary`。
+两者都由确定性对账重建——枚举切片文件、diff、调和——零模型调用。新切片在创建的当轮就会被插入目录；任何被标记为 `needs_marking` 的记录，随后在切片关闭的边界上被补全 `focus`/`summary`，绝不在对话的关键路径上。
 
-索引是地图,不是答案来源:每行携带足以判断相关性的纹理,但正确性永远来自打开原始 slice。这个向下钻取如今是 recall 同事的工作——它自己在目录、Strand 与切片之间导航,并引述原文。详见 [Recall](/docs/recall)。
+索引是地图，不是答案来源：每行携带足以判断相关性的纹理，但正确性永远来自打开原始切片。这个向下钻取是 recall 同事的工作——它自己在目录、strand 与切片之间导航，并引述原文。详见[回忆](/docs/recall)与[时间线](/docs/timeline)。
 
 ## 用户卡
 
-`memory/episodic/current-previously.md` 是时间线的活体蒸馏——一张回答「你是谁」的紧凑卡片,在 slice 边界之后被精炼。它是「存储你历史的代理」与「抵达时已经认识你的代理」之间的差别:arrival briefing 因它而成可能。
+`memory/episodic/current-previously.md` 是时间线的活体蒸馏——一张回答「你是谁」的紧凑卡片，在切片边界之后被精炼。它是「存储你历史的代理」与「抵达时已经认识你的代理」之间的差别：抵达简报因它而成可能。
 
-卡片有五个区块:
+卡片有五个区块：
 
 | 区块 | 内容 |
 |------|------|
-| **Identity** | 结构化头部:姓名、称呼方式、别名 |
-| **Past** | 一段原地更新的第三人称画像段落,外加锚定事实——多年后依然成立的日期、决定与红线 |
-| **Now** | 当下状态的钩子,不是叙事——7 天后机械过期 |
-| **Horizon** | 面向未来的承诺与截止期限,每条带 `by:` 日期;逾期项会被标记,绝不会被静默丢弃 |
+| **Identity** | 结构化头部：姓名、称呼方式、别名 |
+| **Past** | 一段原地更新的第三人称画像段落，外加锚定事实——多年后依然成立的日期、决定与红线 |
+| **Now** | 当下状态的钩子，不是叙事——7 天后机械过期 |
+| **Horizon** | 面向未来的承诺与截止期限，每条带 `by:` 日期；逾期项会被标记，绝不会被静默丢弃 |
 | **Self-model** | 代理关于如何与你共事的操作经验——只记录相对常驻指令的增量 |
 
-每条记录都带有指回证据 slice 的 `refs` 指针,任何论断都可以下钻到原始记录。卡片从不被整体重写,通用写入工具也碰不到它:进化 Agent 通过经过校验的逐条变更(`addNow`、`updatePastProfile`、`resolveHorizon`……)来编辑它,超限的写入会被拒绝并附带回压指令。硬性上限把整张卡控制在约 8 KB 以内,因此它可以便宜地注入每个提示词。完整格式见 [用户卡](/docs/user-card)。
+每条记录都带有指回证据切片的 `refs` 指针，任何论断都可以下钻到原始记录。卡片从不被整体重写，通用写入工具也碰不到它：进化代理通过经过校验的逐条变更（`addNow`、`updatePastProfile`、`resolveHorizon`……）来编辑它，超限的写入会被拒绝并附带回压指令。硬性上限把整张卡控制在约 8 KB 以内，因此它可以便宜地注入每个提示词。完整格式见[用户卡片](/docs/user-card)。
 
 ## 进化数据层
 
-自 v1.0 起,情景层旁边多了一层更小的数据层——自进化回路自身的状态(`src/lib/evolution/`):
+情景层旁边还有一层更小的数据层——自进化回路自身的状态：
 
 ```
 memory/evolution/
-  direction.md      -- 筛选标准:Direction / Anti-goals / Evidence / Log
+  direction.md      -- 筛选标准：Direction / Anti-goals / Evidence / Log
   fitness.json      -- 有界的已评分事件 + 机械信号存储
   mutations.md      -- append-only 的被接受变异档案
 memory/agent-playbooks/
@@ -82,62 +81,58 @@ memory/agent-playbooks/
   thinkdeep.md      -- ……thinkDeep 的
 ```
 
-- **direction.md** —— 跨 slice 的「什么是对你更好」。抽象(一个月后仍成立)、跨片(每条结论由多个 slice 加 agent 时间线支撑,Evidence 节挂指针),Log 节 append-only。这是回路的环境;卡片和 playbook 只是它的产物。
-- **fitness.json** —— 选择压力的账本。事件是按 slice、按桶(`card` / `recall` / `search` / `thinkdeep` / `interaction`)的序数增量(−2…+1),附带用户原话证据——无证据的分数在写入时被结构性强制归零。旁边是由埋点而非任何模型记录的机械信号(recall 的 verify/rework/repeat)。存储刻意有界(各约 200 条):它是软信号日志,从来不是事实档案。
-- **mutations.md** —— 变异档案。Append-only:每条带 target、Summary、Expected benefit 与证据指针。归档新变异时会先评估同 target 的上一条——桶若持续扣分,就追加一行 `**Evaluation: ineffective**`。不回滚、不删除、不设预算。
-- **agent-playbooks/** —— 每个子 Agent 一份简短简报(≤2,000 字符),调用时注入它的 user prompt。playbook 缺失是正常状态:注入直接跳过。
+- **direction.md** —— 跨切片的「什么是对你更好」。抽象（一个月后仍成立）、跨片（每条结论由多个切片加 agent 时间线支撑，Evidence 节挂指针），Log 节 append-only。这是回路的环境；卡片和 playbook 只是它的产物。
+- **fitness.json** —— 选择压力的账本。事件是按切片、按桶（`card` / `recall` / `search` / `thinkdeep` / `interaction`）的序数增量（−2…+1），附带用户原话证据——无证据的分数在写入时被结构性强制归零。旁边是由埋点而非任何模型记录的机械信号（recall 的 verify/rework/repeat）。存储刻意有界：它是软信号日志，从来不是事实档案。
+- **mutations.md** —— 变异档案。Append-only：每条带 target、Summary、Expected benefit 与证据指针。归档新变异时会先评估同 target 的上一条——桶若持续扣分，就追加一行 `**Evaluation: ineffective**`。不回滚、不删除。
+- **agent-playbooks/** —— 每个子代理一份简短简报，调用时注入它的 user prompt。playbook 缺失是正常状态：注入直接跳过。
 
 <Callout variant="info">
-**可进化的是数据面;契约留在代码里。** `memory/` 下的 direction、playbook、卡片与档案,是进化回路允许重写的东西。子 Agent 的 schema、工具集、预算、触发器数学与接受规则留在 `src/`——刻意置于回路够不到的地方,治理进化的协议本身不可被进化。
+**可进化的是数据面；契约留在代码里。** `memory/` 下的 direction、playbook、卡片与档案，是进化回路允许重写的东西。子代理的 schema、工具集、预算、触发器数学与接受规则留在代码里——刻意置于回路够不到的地方，治理进化的协议本身不可被进化。详见[进化回路](/docs/evolution)。
 </Callout>
 
 ## 白名单边界
 
-代理工具被限制在三个可写目录内(`src/lib/whitelist/index.ts`):
+代理工具被限制在三个可写目录内：
 
 ```
 memory/   tasks/   sessions/
 ```
 
-`src/` 目录对代理**只读**——任何工具都不能修改它。路径验证会先规范化输入——解码 URI 编码字符、把反斜杠转为正斜杠、解析 `./` 与 `../`、去除前导斜杠——然后在匹配允许前缀之前拒绝空路径、绝对路径(`/`)和盘符路径(`A:`)。
+源代码目录对代理**只读**——任何工具都不能修改它。路径验证会先规范化输入——解码 URI 编码字符、把反斜杠转为正斜杠、解析 `./` 与 `../`、去除前导斜杠——然后在匹配允许前缀之前拒绝空路径与绝对路径。
 
-在白名单之内,系统管理的路径对通用写入工具可读但禁止写入:
+在白名单之内，系统管理的路径对通用写入工具可读但禁止写入：
 
-- `memory/episodic/` —— slice、索引与用户卡均为系统所有
+- `memory/episodic/` —— 切片、索引与用户卡均为系统所有
 - 任何 `_index.json` 文件
 - 任何 `strands.json` 文件
 
-进化层的保护是另一种形态:不是路径模式,而是**工具归属**。只有进化 Agent 持有对 `memory/evolution/` 与 `memory/agent-playbooks/` 的写入——recall、webSearch、thinkDeep 全部只读、只汇报——接受规则与证据链因此只有一处要守。
+进化层的保护是另一种形态：不是路径模式，而是**工具归属**。只有进化代理持有对 `memory/evolution/` 与 `memory/agent-playbooks/` 的写入——recall、webSearch、thinkDeep 全部只读、只汇报——接受规则与证据链因此只有一处要守。
 
-这保护了情景时间线及其结构索引免受意外或恶意破坏;用户卡与进化文件只能通过它们各自专用的、受校验的路径变更。
+这保护了情景时间线及其结构索引免受意外或恶意破坏；用户卡与进化文件只能通过它们各自专用的、受校验的路径变更。
 
-## 上下文组装:每轮重新构建
+## 上下文组装：随切片冻结
 
-不存在不断膨胀的提示词窗口。每一轮,工作流都会从时间线动态组装系统提示词(`src/app/api/chat/turn-workflow.ts` 中的 `assembleSystemPrompt`):
+不存在不断膨胀的提示词窗口，也不存在每轮重新拼装的提示词。系统提示词是**分层的，并且锚定在切片开始时刻**：身份宪法、用户卡、切片头（`evolution_summary` 逐字重放于此）、时间线与 strand 简报——在一个切片的整个生命周期内逐字节不变。
 
-1. **身份宪法** —— SOUL + DIRECTIVES,跨轮稳定。
-2. **用户卡** —— 只在演化时变化。
-3. **当轮简报** —— 时间戳、意图、连续性、语义链接。
-4. **时间线与 strand 区块** —— 近期 slice 的指针视图与 strand 菜单。
-5. **通知** —— 演化结果、演示模式。
+这是刻意的缓存决策：服务商的提示词前缀缓存按字节匹配，切片内提示词不动，前缀就持续命中。每轮真正变化的东西不进系统提示词——模型需要精确时间时，通过 `currentTime` 工具自己读。
 
-排序是缓存决策,不只是排版:稳定的区块构成一段长长的字节级一致前缀,供服务商的提示词缓存跨轮复用;可变的尾部则可以自由变化而不使其失效。深层上下文默认不会被塞进提示词——主 Agent 问 recall 同事,由它自己检索时间线、带回挂着锚点引用的回答。详见 [Recall](/docs/recall)。
+深层上下文默认也不塞进提示词——主代理问 recall 同事，由它自己检索时间线、带回挂着锚点引用的回答。详见[回忆](/docs/recall)。
 
 ## 为什么是纯 Markdown + YAML
 
-每一段记忆都是带 YAML frontmatter 的 Markdown 文件。这个选择是深思熟虑的:
+每一段记忆都是带 YAML frontmatter 的 Markdown 文件。这个选择是深思熟虑的：
 
-- **可移植** —— `git clone` 到任何地方,在任何设备上阅读,无需服务器。
-- **git 可 diff** —— 对 slice、用户卡、方向文档或变异档案的每次更改都记录在版本历史里。你能看到 Previously 学到了什么、什么时候学到的。
-- **人类可编辑** —— 在编辑器里打开任意文件,改摘要、加标签。没有管理后台,没有 SDK。
-- **任何工具都能读** —— Previously 写,Claude Code 读,Codex 扩展。无锁定,无集成成本,无 schema 迁移。
+- **可移植** —— `git clone` 到任何地方，在任何设备上阅读，无需服务器。
+- **git 可 diff** —— 对切片、用户卡、方向文档或变异档案的每次更改都记录在版本历史里。你能看到 Previously 学到了什么、什么时候学到的。
+- **人类可编辑** —— 在编辑器里打开任意文件，改摘要、加标签。没有管理后台，没有 SDK。
+- **任何工具都能读** —— Previously 写，Claude Code 读，Codex 扩展。无锁定，无集成成本，无 schema 迁移。
 
 文件即接口。
 
-## 相关
+## 相关文档
 
-- [时间线](/docs/timeline) —— 这套记忆模型所驱动的交互界面
-- [Slices](/docs/slices) —— 情景层详解
-- [Strands](/docs/strands) —— 语义关键词索引
-- [用户卡](/docs/user-card) —— 关于你的活体蒸馏,以及进化它的回路
-- [Recall](/docs/recall) —— 在推理时调取时间线的那位同事
+- [回忆](/docs/recall) —— 在推理时调取时间线的那位同事
+- [用户卡片](/docs/user-card) —— 关于你的活体蒸馏，以及进化它的回路
+- [进化回路](/docs/evolution) —— direction、fitness 与变异验收的完整故事
+- [转录](/docs/scribe) —— 别的工具里的对话如何进入这条时间线
+- [写入记忆的唯一一扇门](/docs/ingest) —— 外部内容进入记忆的验收式入口

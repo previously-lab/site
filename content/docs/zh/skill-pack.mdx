@@ -1,0 +1,47 @@
+---
+title: 技能包
+description: 只有一个 agent 能读的记忆是又一座孤岛。技能包教会你已经在用的 agent，在回答之前先读你的 Previously 记忆。
+---
+
+# 技能包
+
+只有一个 agent 能读的记忆，是又一座孤岛。你在 Claude Code 里谈过的项目、在 Kimi Code 里改过的 bug，不该在你换工具的那一刻清零。**技能包做的事，是教会你已经在用的那些 agent：在回答之前，先读你的 Previously 记忆。** 于是你的历史跟着你跨工具走。
+
+## 装到你已有的 agent 里
+
+`previously install` 探测机器上的 agent CLI，把名为 "Previously" 的 skill 组写进各家的约定位置：
+
+- Claude Code → `~/.claude/skills/previously/`
+- Kimi Code → `~/.kimi/skills/previously/`
+- Codex → 往共享的 `~/.codex/AGENTS.md` 追加一段哨兵注释包裹的块——绝不覆盖外来内容
+
+## 四份文档
+
+skill 组的内容是四份 Markdown，各有分工：
+
+- **`SKILL.md`** —— 总览与文档地图，告诉 agent 这套东西是什么、去哪找细节。
+- **`memory.md`** —— 只读记忆协议：记忆目录的布局、严格的只读规则（持久化是内核和 scribe 的责任，不是 agent 的）、回答前先回忆的指引，以及最终回复只含答复正文的逐字输出契约。
+- **`ingest.md`** —— 写入契约：agent 想把对话写进记忆时，走哪扇门、按什么格式。
+- **`setup.md`** —— 初始化走查。你可以直接对 agent 说一句"帮我初始化 Previously"，它会照这份文档带你走完全程，每一步的 token 成本都先披露。
+
+## 一个礼貌的安装程序
+
+技能包把自己当客人：安装幂等，重复运行不会产生重复内容；首次修改任何文件前，一次性备份 `.bak`；`uninstall` 只删自己写下的文件和块，绝不动别的；`--dry-run` 让你先看一遍彩排再决定。
+
+## 桥接零配置
+
+同一份文档还有第二条投递通道：每次 bridge 调用前，记忆协议会被物化进一个临时工作目录，作为被桥接 agent 的启动上下文，调用结束后清理。也就是说，走桥接的 agent 不需要任何手工配置，就能拿到同样的回忆能力。
+
+## 一段小历史
+
+曾经存在过一个 MCP server，后来退役了。持久连接和不可控的注入深度，输给了一份零驻留、幂等、可备份的 skill 文档——它不占你的上下文，不维持任何连接，你可以用 git 备份它，也可以用眼睛审阅它。
+
+<Callout variant="info">
+**一句话**：你的记忆不该是任何一家 agent 的私有财产——包括我们自己的。
+</Callout>
+
+## 相关文档
+
+- [双引擎](/docs/two-engines) —— 桥接调用时技能包如何随行
+- [回忆](/docs/recall) —— 被教会先回忆的 agent 究竟读到什么
+- [写入记忆的唯一一扇门](/docs/ingest) —— `ingest.md` 背后的写入契约

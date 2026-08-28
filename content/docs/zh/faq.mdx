@@ -1,97 +1,44 @@
 ---
 title: 常见问题
-description: 关于 Previously 的常见问题——无数据库、可移植性、切片规则、成本、隐私与项目状态。
-order: 2
+description: 记忆存在哪、谁能看到、花多少钱、能不能迁走——以及不装任何东西，怎么先看看效果。
 ---
 
 # 常见问题
 
-关于 Previously 如何工作、运行成本以及边界在哪里的常见问题。
+## 不装东西能先看看效果吗？
 
-## 有数据库吗?
+能。[回忆](/docs/recall)和[用户卡片](/docs/user-card)这两篇文档里嵌着可以直接点的问题——Previously 就着一段真实的两年半记忆当场作答，无需安装，无需 key。
 
-没有。所有状态都是带有 YAML frontmatter 的纯 Markdown 文件,存储在你自己机器上的本地 git 仓库中(默认 `~/Documents/Previously`),需要远端的话可以 push 成 GitHub 私有仓库。没有数据库、没有向量存储、没有 ORM,也没有专有格式。Slice、Strand、用户卡——一切都是文件。
+## 我的记忆存在哪？
 
-索引只是几个 JSON 文件。全局目录位于 `memory/episodic/timeline/index.json`,列出所有 slice(并附带一个 Markdown 投影 `memory/episodic/timeline.md`);按月度的 slice 索引(`_index.json`)位于月份目录中;`memory/episodic/strands.json` 将每个 Strand 关键字映射到其对应的 slice 路径。每个 slice 是一个目录(`slices/YYYY/MM/DD/HHMM/`),其中的 `timeline/` 保存共享记录(`core.md`)和 agent 自己的认知记录(`agent.md`)。这就是全部"管道"了。没有 Postgres、没有 SQLite、没有 Pinecone。
+默认在你自己的机器上：`~/Documents/Previously`，一个纯 Markdown 文件加本地 git 仓库的目录。没有数据库、没有向量库、没有专有格式——你可以用任何编辑器打开它。云端自托管的话，记忆在你自己的私有 GitHub 仓库里，还是同样那些文件。磁盘上的真实样子见[记忆是一个文件夹](/docs/your-memory)。
 
-<Callout variant="info">
-**关键要点:你的记忆就是一个 git 仓库里 Markdown 文件的目录树。仅此而已。**
-</Callout>
+## 谁能看到我的记忆？
 
-## 其他工具能读取我的记忆吗?
+默认只有你，和你的模型供应商。本地形态下对话不出你的机器；唯一的外部通路是模型本身——bridge 模式走你本机的 agent CLI 订阅，BYOK 模式走你自己配置的提供商，这是使用任何托管模型都固有的暴露面。云端自托管时，记忆在你的私有 GitHub 仓库里，谁能看到取决于仓库权限和你对部署链接的保管。没有 Previously 服务器，没有平台数据库——我们手里什么都没有。
 
-可以。记忆是带有 YAML frontmatter 的纯 Markdown——没有 SDK、没有 API 网关、没有供应商锁定。Previously 写入记忆。Claude Code 读取记忆。Codex 扩充记忆。任何能解析 Markdown 并读取 git 仓库的工具都能读取你的记忆。本地客户端更进一步:`previously install` 会把一份只读的「Previously」记忆 skill 投递进本机的 Claude Code / Codex / Kimi Code,让这些 Agent 开箱就懂得如何导航记忆目录。
+## 它会在长对话里忘掉开头吗？
 
-这种可移植性是核心设计目标。你永远不需要导出或迁移数据;只需让不同的工具指向同一个仓库即可。
+不会，因为根本没有一条无限变长的对话。每一轮都重新组装上下文：系统提示词分层构建、在一个切片内逐字节冻结（所以精确时间靠 `currentTime` 工具现查，而不是注入提示词），时间线里的过往是指针而不是内容本体——看着相关时，agent 现场打开那片切片来读。归档可以跨月增长，装进单次请求的永远只有窗口大小的一块。
 
-## 在长对话中它会遗忘吗?
+## 运行成本是多少？
 
-不会——不像不断增长的提示窗口那样会遗忘。Previously 没有无限累积的聊天线程。每一轮对话都会从头组装上下文,并且保持边界可控。
+Previously 本身不收钱：没有订阅费，没有席位费，没有加价。你付的是"大脑"——bridge 模式复用你已有的 Claude/Codex/Kimi 订阅，零边际成本；BYOK 模式是你自己的 API key、自己的账单，架构为省钱而设计（便宜的步骤做 housekeeping，强模型只留给对话）。两条引擎的对比见[双引擎](/docs/two-engines)。云端自托管再加一份 Vercel 套餐费；GitHub 仓库存储基本免费。
 
-每个对话轮次都会构建一个全新的系统提示(`src/app/api/chat/turn-workflow.ts` 中的 `assembleSystemPrompt`)。稳定的块排在最前——身份章程和用户卡——这样提供商的提示缓存可以跨轮次复用这个长前缀。可变的尾部紧随其后:每轮简报(时间戳、意图、连续性)、近期时间线条目块,以及 Strand 菜单。随请求发送的可见聊天历史由可配置的最近轮次上限约束(默认为 20)。
+## 我能把记忆迁走吗？
 
-关键在于,时间线条目是指针而非内容本体。当某条记录看起来相关时,agent 会通过 `readSliceSummary` / `readSlice` 工具按需打开对应的 slice,而不是把数月的对话都塞进提示里。归档可以跨月增长,但加载到任何单次请求中的内容始终保持窗口大小。
+随时可以，因为它本来就不"在 Previously 里"。记忆是一个 git 仓库：clone 它、push 它、打包带走，或者直接让别的工具读这个目录。迁走不需要导出功能——你没有任何东西被锁住。
 
-不存在 agent 突然忘记长对话开头的情况,因为根本没有单一的长对话——上下文每轮都会重建。
+## 我现有的 Claude/Codex/Kimi 历史呢？
 
-## 切片是如何关闭的?
+可以被转录进来。client 的 scribe 会把这些 agent 的会话日志增量转录成 Previously 的时间切片——转录而不劫持，原工具该怎么用还怎么用。机制见[转录](/docs/scribe)。
 
-三个触发条件,在每个对话轮次的 housekeeping 步骤中检查(`src/app/api/chat/steps.ts`):
+## 它成熟了吗？
 
-- **静默超时**——一段时间无活动后 slice 关闭(默认 15 分钟)。
-- **轮次上限**——强制关闭超长会话的安全阀(默认 20 轮)。
-- **上下文丢失**——如果客户端回来时没有任何 assistant 历史记录,而恢复出的 slice 已有 agent 轮次(页面刷新、更换设备),旧 slice 会被关闭并开启一个新 slice。
-
-两个阈值都可以在设置中调整——它们存放在 `memory/user/config.json` 中:
-
-```json
-{
-  "slicing": {
-    "maxTurnsPerSlice": 20,
-    "timeSilenceMinutes": 15
-  }
-}
-```
-
-当 slice 关闭时,其元数据被冻结,时间线目录和 Strand 索引随之更新,下一条消息会开启一个新的 slice。
-
-## 它达到生产就绪了吗?
-
-没有。Previously 是实验性的(内核 v1.0)。README 带有"实验性"状态徽章,并明确说明"尚未准备好用于个人或生产用途"。
-
-这是个人部署,而非 SaaS 产品。作者承诺长期维护,但项目处于活跃的早期开发阶段。预计会遇到粗糙的边缘、破坏性变更以及仍在路线图上的功能。
-
-## 代码和记忆共享同一个仓库吗?
-
-可以共享,也可以分开。部署后的应用读写由环境变量 `GITHUB_REPO_OWNER` 和 `GITHUB_REPO_NAME` 指定的 GitHub 仓库。这些环境变量也可以指向一个与代码仓库不同的专用私有记忆仓库。
-
-项目自身的约定(在 `CLAUDE.md` 中描述)将代码和数据放在同一个仓库中——其中 `src/` 为 agent 只读,而数据目录(`memory/`、`tasks/`、`sessions/`)为 agent 读写。但配置给了你选择权。独立的记忆仓库也是可行的,并在[快速上手](/docs/getting-started)中有文档说明。
-
-## 运行成本是多少?
-
-取决于你选择哪种「大脑」,以及是否自部署:
-
-- **本地优先(默认)——没有托管费。** 客户端与内核跑在你自己的机器上,记忆是本地 git 仓库。无需向 Vercel 或任何人付托管费。
-- **bridge 模式——零 API 费用。** 内核通过各家 CLI 驱动你本机已有的 Claude / Codex / Kimi 订阅。完全不需要 API key,Previously 也不碰 key——调用走的是你已经在付费的订阅。
-- **BYOK 模式——自己的 key,自己的账单。** 如果你改为配置 API key,用量由你的供应商按其费率计费。架构本身是为省钱设计的:廉价档处理 housekeeping 与回忆扫描,强模型只留给对话本身。
-- **云端自部署(进阶路径)** —— 如果用 Vercel + GitHub 后端自部署,托管费取决于你的 Vercel 套餐;GitHub 仓库存储基本免费。
-
-Previously 本身不收订阅费、不收席位费、不加价。你出机器和大脑;项目只是中间的编排层。
-
-## 我的数据隐私吗?
-
-是的,这是设计使然。本地优先就是字面意思:记忆存放在你自己机器上的 git 仓库里,对话不出这台机器。没有平台数据库,没有 Previously 服务器,没有任何第三方存储你的 slice 或 strand。想要异地备份,就把仓库 push 成 GitHub **私有**仓库——那是你的选择,不是必需品。
-
-唯一的外部数据通路是模型本身。bridge 模式下,prompt 发给你已订阅的本机 agent CLI;BYOK 模式下,你的 LLM 供应商会看到你发给它的 prompt。无论哪种,这都是使用任何托管模型所固有的——除此之外没有任何数据出机。
-
-你完全拥有数据。克隆它、备份它、迁到别的工具——它只是 git 仓库里的文件。
-
-## 有没有可以试玩的 demo?
-
-有——站内的 [playground](/playground)。它跑的是只读演示数据集 [`previously-lab/you`](https://github.com/previously-lab/you):97 个时间片,覆盖 2024-01 到 2026-08,由 [`previously-lab/loom`](https://github.com/previously-lab/loom) 生成。无需安装,无需 key。
+还没有，是诚实的那种没有。Previously 处在活跃的早期开发阶段：会遇到毛边和破坏性变更。但核心纪律——记忆是文件、写路径可审计、数据归你——从第一天起就是架构约束，不是路线图上的条目。它是个人项目，不是 SaaS。
 
 ## 相关文档
 
-- [记忆模型](/docs/memory-model) —— 了解 Slice、Strand 和用户卡如何组合
-- [Slices](/docs/slices) —— Slice 的生命周期与存储布局
-- [架构概述](/docs/architecture)
+- [记忆是一个文件夹](/docs/your-memory) —— 记忆在磁盘上的真实样子
+- [双引擎](/docs/two-engines) —— bridge 与 BYOK 的完整对比
+- [转录](/docs/scribe) —— 已有 agent 历史如何变成切片

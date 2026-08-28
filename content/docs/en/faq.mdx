@@ -1,97 +1,44 @@
 ---
 title: FAQ
-description: Common questions about how Previously works, what it costs, and where the boundaries are.
-order: 2
+description: Where memory lives, who can see it, what it costs, whether you can move it — and how to see it in action without installing anything.
 ---
 
 # FAQ
 
-Common questions about how Previously works, what it costs, and where the boundaries are.
+## Can I see it in action without installing anything?
 
-## Is there a database?
+Yes. The [Recall](/docs/recall) and [User Card](/docs/user-card) docs have questions you can click right on the page — Previously answers them from a real two-and-a-half-year memory. No install, no key.
 
-No. All state is plain Markdown files with YAML frontmatter, stored in a local git repository on your own machine (default `~/Documents/Previously`), which you can push to GitHub as a private repo. There is no database, no vector store, no ORM, and no proprietary format. Slices, strands, the user card — everything is a file.
+## Where does my memory live?
 
-The indexes are a handful of JSON files. A global catalog at `memory/episodic/timeline/index.json` lists every slice (with a Markdown projection at `memory/episodic/timeline.md`); per-month slice indexes (`_index.json`) live in the month directory; and `memory/episodic/strands.json` maps each strand keyword to its slice paths. Each slice is a directory (`slices/YYYY/MM/DD/HHMM/`) whose `timeline/` holds the shared record (`core.md`) and the agent's own cognitive record (`agent.md`). That is the full extent of the "plumbing." No Postgres, no SQLite, no Pinecone.
+By default on your own machine: `~/Documents/Previously`, a directory of plain Markdown files plus a local git repository. No database, no vector store, no proprietary format — you can open it in any editor. If you self-host in the cloud, memory lives in your own private GitHub repo as the very same files. What it actually looks like on disk is in [Your Memory Is a Folder](/docs/your-memory).
 
-<Callout variant="info">
-**Key takeaway: your memory is a directory tree of Markdown files in a git repo. That's it.**
-</Callout>
+## Who can see my memory?
 
-## Can other tools read my memory?
+By default, only you and your model provider. In the local form your conversations never leave the machine; the single external path is the model itself — bridge mode rides your local agent CLI subscription, BYOK mode rides the provider key you configured, and that exposure is inherent to using any hosted model. With cloud self-hosting, memory sits in your private GitHub repo, and who can see it comes down to repo permissions and how well you guard the deployment URL. There is no Previously server and no platform database — we hold nothing.
 
-Yes. Memory is plain Markdown with YAML frontmatter — no SDK, no API gateway, no vendor lock-in. Previously writes memories. Claude Code reads them. Codex extends them. Any tool that can parse Markdown and read a git repo can read your memory. The local client goes one step further: `previously install` delivers a read-only "Previously" memory skill into your local Claude Code / Codex / Kimi Code, so those agents know how to navigate the memory layout out of the box.
+## Does it forget the beginning of a long conversation?
 
-This portability is a core design goal. You never need to export or migrate data; you just point a different tool at the same repo.
+No, because there is no single conversation that grows without bound. Context is reassembled on every turn: the system prompt is built in layers and frozen byte-for-byte within a slice (which is why precise time comes from the `currentTime` tool on demand instead of being injected), and the past in the timeline is pointers, not payloads — when something looks relevant, the agent opens that slice and reads it on the spot. The archive can grow across months; what goes into any single request stays window-sized.
 
-## Does it forget in a long conversation?
+## What does it cost to run?
 
-No — not the way a growing prompt window does. Previously has no chat threads that accumulate indefinitely. Context is assembled from scratch on every turn and stays bounded.
+Previously itself charges nothing: no subscription, no per-seat fee, no markup. What you pay for is the brain — bridge mode reuses your existing Claude/Codex/Kimi subscription at zero marginal cost; BYOK mode is your own API key and your own bill, with an architecture designed to be cheap (inexpensive steps do the housekeeping, the strong model is reserved for the conversation). The full comparison is in [Two Engines](/docs/two-engines). Cloud self-hosting adds whatever your Vercel plan costs; GitHub repo storage is effectively free.
 
-Each chat turn builds a fresh system prompt (`assembleSystemPrompt` in `src/app/api/chat/turn-workflow.ts`). The stable blocks come first — the identity constitution and the user card — so the provider's prompt cache can reuse that long prefix across turns. The variable tail follows: a per-turn brief (timestamp, intent, continuity), a recent-timeline block, and the strands menu. The visible chat history sent along is capped by a configurable recent-turns limit (20 by default).
+## Can I move my memory elsewhere?
 
-Crucially, timeline lines are pointers, not payloads. When a line looks relevant, the agent opens that slice on demand with the `readSliceSummary` / `readSlice` tools instead of carrying months of conversation in the prompt. The archive can grow across months, but what gets loaded into any single request stays window-sized.
+Any time, because it was never "inside Previously" to begin with. Memory is a git repository: clone it, push it, pack it up, or just point another tool at the directory. Moving away needs no export feature — there is nothing of yours being held.
 
-There is no point where the agent suddenly forgets the beginning of a long exchange, because there is no single long exchange — context is rebuilt every round.
+## What about my existing Claude/Codex/Kimi history?
 
-## How is a slice closed?
+It can be transcribed in. The client's scribe incrementally transcribes those agents' session logs into Previously time slices — transcribe, don't hijack; the original tools keep working exactly as they did. The mechanism is in [The Scribe](/docs/scribe).
 
-Three triggers, checked in the housekeeping step of every chat turn (`src/app/api/chat/steps.ts`):
+## Is it finished?
 
-- **Time silence** — the slice closes after a period of inactivity (15 minutes by default).
-- **Turn cap** — a safety net that force-closes a marathon session (20 turns by default).
-- **Context lost** — if the client comes back with no assistant history while the recovered slice has agent turns (a page refresh, a device switch), the old slice is closed and a fresh one opens.
-
-Both thresholds are user-configurable in Settings — they live in `memory/user/config.json`:
-
-```json
-{
-  "slicing": {
-    "maxTurnsPerSlice": 20,
-    "timeSilenceMinutes": 15
-  }
-}
-```
-
-When a slice closes, its metadata is frozen, the timeline catalog and strand index are updated, and the next message opens a fresh slice.
-
-## Is it production-ready?
-
-No. Previously is experimental (kernel v1.0). The README carries an "experimental" status badge and explicitly states it is "not yet ready for personal or production use."
-
-It is a personal deployment, not a SaaS product. The author commits to long-term maintenance, but the project is in active early development. Expect rough edges, breaking changes, and features still on the roadmap.
-
-## Do code and memory share a repo?
-
-They can. They can also be separate. The deployed app reads and writes the GitHub repo identified by the environment variables `GITHUB_REPO_OWNER` and `GITHUB_REPO_NAME`. Those same env vars can point at a dedicated private memory repo that is distinct from the code repo.
-
-The project's own convention (described in `CLAUDE.md`) co-locates code and data in one repo — with `src/` agent-read-only and data directories (`memory/`, `tasks/`, `sessions/`) agent-read-write. But the configuration gives you the choice. A separate memory repo is valid and documented in [Getting Started](/docs/getting-started).
-
-## How much does it cost to run?
-
-It depends on the brain you pick, and on whether you self-host:
-
-- **Local-first (the default) — no hosting fee.** The client and kernel run on your machine, and memory is a local git repository. Nothing to pay Vercel or anyone else for.
-- **Bridge mode — zero API fees.** The kernel drives your existing local Claude / Codex / Kimi subscription through its own CLI. You need no API key at all, and Previously never touches one — the calls ride on the subscription you already pay for.
-- **BYOK mode — your own key, your own bill.** If you configure an API key instead, usage is billed by your provider at their rates. The architecture is cost-motivated: cheap steps handle housekeeping and recall scans, while the strong model is reserved for the conversation itself.
-- **Cloud self-hosting (advanced path)** — if you deploy on Vercel with a GitHub backend, hosting is whatever your Vercel plan costs; GitHub repo storage is effectively free.
-
-Previously itself charges no subscription, no per-seat fee, and no usage markup. You supply the machine and the brain; the project is the orchestration layer in between.
-
-## Is my data private?
-
-Yes, by design. Local-first means exactly that: memory lives in a git repository on your own machine, and your conversations never leave the box. There is no platform database, no Previously server, no third party storing your slices or strands. If you want an off-site backup, push the repo to GitHub as a *private* repository — that is your choice, not a requirement.
-
-The one external data path is the model itself. In bridge mode, prompts go to the local agent CLI you already subscribe to; in BYOK mode, your LLM provider sees the prompts you send it. Either way, that exposure is inherent to using any hosted model — nothing else leaves the machine.
-
-You own the data outright. Clone it, back it up, move it to another tool — it is just files in a git repo.
-
-## Is there a demo I can try?
-
-Yes — the in-site [playground](/playground). It runs the read-only demo dataset [`previously-lab/you`](https://github.com/previously-lab/you): 97 time slices spanning 2024-01 to 2026-08, generated by [`previously-lab/loom`](https://github.com/previously-lab/loom). No install, no key.
+Not yet — honestly not yet. Previously is in active early development: expect rough edges and breaking changes. But the core discipline — memory as files, an auditable write path, your data belonging to you — has been an architectural constraint since day one, not a roadmap item. It is a personal project, not a SaaS.
 
 ## Related
 
-- [Memory Model](/docs/memory-model) — how slices, strands, and the user card fit together
-- [Slices](/docs/slices) — the slice lifecycle and storage layout
-- [Architecture Overview](/docs/architecture)
+- [Your Memory Is a Folder](/docs/your-memory) — what memory actually looks like on disk
+- [Two Engines](/docs/two-engines) — the full bridge vs. BYOK comparison
+- [The Scribe](/docs/scribe) — how existing agent history becomes slices

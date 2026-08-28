@@ -1,123 +1,79 @@
 ---
 title: 配置
-description: 客户端 config.json 契约（brain 与 apiKeys）、环境变量、Web UI 设置页、钉死内核的版本策略，以及自部署云端内核的变量。
-order: 0
+description: Previously 的配置分两层：这台机器怎么跑写在本地，你的偏好写进记忆随你走——配置医生负责让它们永远不需要你操心。
 ---
 
 # 配置
 
-本地客户端的配置分三处，各管各的事：
+配置应该是一个产品里最无聊的部分。如果你得先研究配置才能把软件跑起来，那是软件的失职，不是你的。所以 Previously 对配置的态度是：**默认值负责正确，医生负责自愈，你的手是例外情况。**
 
-- **客户端主目录里的 `config.json`** —— 大脑（agent 靠什么思考）和手动录入的 API key。
-- **环境变量** —— 客户端主目录位置和 bridge 调节项。
-- **Web UI 设置页** —— 日常偏好：模型选择、思考开关、切分参数。大多数运行时配置在这里，不在文件里。
+## 两层配置，刻意的分离
+
+Previously 的配置分成两层，分界线不是技术上的，是所有权上的。
+
+**机器层**回答"这个产品在这台机器上怎么跑"：端口、监听地址、内核位置、大脑是订阅桥接还是自带 key。这些事实属于这台机器——换一台电脑，它们没有任何理由跟过去。它们写在 `~/.previously/config.json` 里（POSIX 系统上权限 0600，只有你自己能读）。
+
+**记忆层**回答"你这个人偏好什么"：用哪个模型、思考开不开、推理强度几档、时间切片切多长。这些偏好属于你，不属于这台机器，更不属于我们的数据库。所以它们不写进本地配置，而是写进记忆仓库里的 `memory/user/config.json` 和 `memory/user/profile.md`——**你的偏好是记忆的一部分**，记忆走到哪里，它们跟到哪里。这也解释了一个你可能注意到的细节：模型选择、思考强度这些设置持久化在服务端，而不是浏览器的 localStorage 里。换浏览器、换设备，你的偏好还在。
+
+`profile.md` 是其中最有人味儿的一个文件：名字、称谓、时区、语言，外加一段自由文本。它每次请求都会被实时读取——聊天标题里 "Previously on" 后面跟的那个名字，就来自这里。
+
+## 配置医生
+
+Previously 自带一个配置医生，每次 `previously init` 和 `previously start` 都会跑一遍。它做的事很朴素：审计配置里的非法值（storage、端口、后端、大脑形态），修掉它们；审计并修复记忆仓库本身；动手之前先写一份 `config.json.bak` 备份；整个过程幂等，跑一百遍和跑一遍结果一样。
+
+它有一条值得说出来的克制：如果你选了某个后端，它会替你推导出对应的 bridge 大脑；但如果你深思熟虑地选择了自带 key（BYOK），它永远不会"好心"地把 bridge 复活回来。医生修的是损坏，不是你的决定。
+
+这意味着手工编辑配置文件这件事，在正常路径上几乎不存在。文件就在那里，格式列在篇末，但你打开它应该是例外，不是日常。
+
+## 诚实的部分
+
+有两件事我们选择明说。第一，`apiKeys` 目前是**明文存储**——这是 MVP 阶段的取舍，文件权限 0600 是现阶段的防线，请据此对待这个文件。第二，存在一批环境变量调节项（迁移主目录、跳过自动打开浏览器、bridge 超时之类），它们列在篇末，但你大概永远用不上——它们是为反常环境准备的，不是为你准备的。
 
 <Callout variant="info">
-**要点：** 你几乎不需要手动编辑这些。`previously init` 只写最小默认值，且每次 `init`/`start` 都会审计并自动修复损坏的配置（修复前备份为 `config.json.bak`）。大脑也可以在 Web UI 设置页录入。
+**一句话**：Previously 希望你打开配置文件的理由只有一个——好奇，而不是求救。
 </Callout>
 
-## config.json
+## 参考：键清单
 
-位于客户端主目录（`PREVIOUSLY_HOME`，默认 `~/.previously`）。契约如下：
+机器层 `~/.previously/config.json`：
 
-```json
-{
-  "brain": { "type": "bridge", "agent": "claude" },
-  "apiKeys": { "DEEPSEEK_API_KEY": "sk-..." }
-}
-```
-
-### brain —— 两种形态
-
-大脑决定模型调用实际由谁执行。二选一：
-
-| 形态 | 含义 |
-|---|---|
-| `{ "type": "bridge", "agent": "claude" \| "codex" \| "kimi" }` | **订阅桥接。** 模型调用由该本机 agent CLI 通过你已有的订阅 OAuth 执行。零 API key、零 API 费用。在 `init` 中选择 bridge 后端会自动写入这项。 |
-| `{ "type": "api-key", "env": "<ENV_VAR_NAME>", "model"?: string }` | **BYOK。** 内核从指定名称的环境变量里读 API key；可选的 `model` 设定默认模型（内核自 0.9.0 起消费）。 |
-
-如果缺省 `brain`，内核回退到沿用环境变量里找到的提供商 key。
-
-### apiKeys
-
-`apiKeys?: Record<string, string>` 存放手动录入的 key。本地 MVP 阶段**明文存储**——请据此对待这个文件。`start` 时每个键值都会被注入内核的环境，所以典型的 BYOK 配置是在这里放 key、在 `brain` 里指名它：
-
-```json
-{
-  "brain": { "type": "api-key", "env": "DEEPSEEK_API_KEY", "model": "deepseek-v4-pro" },
-  "apiKeys": { "DEEPSEEK_API_KEY": "sk-..." }
-}
-```
-
-也可以不改文件，直接在 Web UI 设置页录入 key。
-
-### 其他字段
-
-| 字段 | 用途 |
-|---|---|
-| `executionBackend` | 调用未显式指定时使用的默认 bridge agent。由 `previously init --backend ...` 设置。 |
-| `kernelDir` | 显式覆盖内核目录。通常不需要——客户端通过版本指针解析已安装的内核。 |
-
-客户端写配置时会保留未知字段。
-
-## 环境变量
-
-客户端自身读取的变量：
-
-| 变量 | 默认值 | 作用 |
+| 键 | 默认值 | 作用 |
 |---|---|---|
-| `PREVIOUSLY_HOME` | `~/.previously` | 客户端主目录：`config.json`、已安装的内核版本、日志、scribe 游标都在这里。你的记忆仓库**不在**这里——它在你 init 时指定的位置（默认 `~/Documents/Previously`）。 |
-| `PREVIOUSLY_BRIDGE_TIMEOUT_MS` | 约 9.5 分钟 | 全局 bridge 调用超时（故意设得略低于内核 delegateTask 自身的超时，保证适配器先如实报错）。 |
-| `PREVIOUSLY_BRIDGE_<AGENT>_TIMEOUT_MS` | — | 按 agent 覆盖（`CLAUDE` / `CODEX` / `KIMI`）。 |
-| `PREVIOUSLY_BRIDGE_<AGENT>_CMD` | 各家 CLI 名 | 覆盖某个 bridge agent 使用的 CLI 命令；可带前导参数，如 `PREVIOUSLY_BRIDGE_KIMI_CMD="kimi --auto"`。 |
-| `PREVIOUSLY_BRIDGE_CLAUDE_MAX_TURNS` | `25` | 被桥接的 Claude 调用的最大轮数；设为 `none` 关闭上限。 |
+| `storage` | `"local"` | 存储后端。 |
+| `memoryRoot` | init 时指定 | 记忆仓库的位置。 |
+| `port` | `3210` | 内核监听端口。 |
+| `hostname` | `127.0.0.1` | 监听地址——默认只对本机。 |
+| `executionBackend` | — | 未显式指定时使用的默认 bridge agent。 |
+| `brain` | 由后端推导 | 大脑：`{ "type": "bridge", "agent": "claude" \| "codex" \| "kimi" }` 订阅桥接，或 `{ "type": "api-key", "env": "...", "model": "..." }` 自带 key。 |
+| `apiKeys` | — | 手动录入的 key，明文存储（MVP 现状）；`start` 时注入内核环境。 |
+| `agents` | — | 按 CLI 微调模型与推理强度；kimi 只支持调模型。 |
+| `byok` | — | 由内核 Web UI 设置页持有；客户端原样保留，绝不触碰。 |
+| `kernelDir` | — | 显式覆盖内核目录；正常路径不需要。 |
 
-以下变量**由 `previously start` 注入**，不用于手工设置：`PREVIOUSLY_HOME` 本身、`apiKeys` 的每个键值、bridge 大脑时的 `PREVIOUSLY_BRAIN=bridge` + `PREVIOUSLY_BRAIN_AGENT`、api-key 大脑时的 key 值与 `PREVIOUSLY_DEFAULT_MODEL`。内核另外认 `MEMORY_ROOT` 作为记忆位置的显式覆盖；但改记忆位置的正常途径是 `init --memory-root`。
+记忆层（记忆仓库内）：
 
-## 模型与切分：Web UI 设置页
-
-日常偏好——主模型、思考开关、推理强度、切分阈值——在内核 Web UI 的**设置页**维护，随你的记忆数据一起存储，而不是写在客户端配置里。bridge 模式下，每个探测到的 agent CLI 都会注册为一个可选模型，切换引擎只是设置页上的一个选择，不需要重启。
-
-## 内核版本策略
-
-内核以 npm 包 `previously-kernel` 分发，客户端对它做**精确钉死**——客户端 package.json 里的 `previously.kernelVersion`（当前为 `0.9.0`）必须与已安装的内核版本完全相等，patch 也不例外。
-
-- `previously kernel install` 从钉死的依赖安装预构建的 standalone 内核到 `~/.previously/kernel/versions/<version>/`，并原子切换 `current.json` 指针。你的机器上零构建，不需要 git 或 pnpm。
-- **升级 = 升级客户端包**（`npm i -g previously-client@latest`）。没有单独的内核升级或回滚命令；回滚就是装回旧版客户端。
-- `start` 和 `status` 经指针解析内核并校验版本一致。
-
-开发者逃逸通道（非日常使用）：`previously kernel install --from <dir> --version <x.y.z>` 把本地构建的 standalone 目录直接安装；`previously kernel install --repo [git-url]` 从 agent 仓库浅克隆钉死的 tag 并本机构建——这是唯一要求本机装有 git 和 pnpm 的路径。
-
-## 进阶：自部署云端内核
-
-如果你在 Vercel 上运行云端内核（见[部署](/docs/deployment)路径二），配置完全通过 Vercel 项目里的环境变量完成：
-
-| 变量 | 是否必需 | 作用 |
-|---|---|---|
-| `DEEPSEEK_API_KEY` | 是（默认配置） | 驱动默认主模型和 web 搜索工具。 |
-| `GITHUB_TOKEN` | 是 | 细粒度 PAT（Contents 读写，限定单个仓库）。它是否存在控制着整个 GitHub 记忆后端。 |
-| `GITHUB_REPO_OWNER` / `GITHUB_REPO_NAME` | 是 | 存放记忆数据的 GitHub 属主与仓库名。 |
-| `STORAGE` | 否 | 显式覆盖数据源：`github`、`local` 或 `demo`（只读的预置人格）。未设置时自动检测。 |
-| `ACCESS_SECRET` | 否 | 非浏览器调用方在写操作端点上必须以 `x-access-key` 请求头发送的 access key。仅在设置后生效。 |
-
-### BYOK 提供商密钥
-
-云端内核的模型目录按已配置的 API key 逐个激活提供商——设置以下任意变量，该提供商的模型即可在设置页选择，无需其他配置：
-
-| 变量 | 提供商 |
+| 位置 | 作用 |
 |---|---|
-| `DEEPSEEK_API_KEY` | DeepSeek（默认） |
-| `ANTHROPIC_API_KEY` | Anthropic |
-| `OPENAI_API_KEY` | OpenAI |
-| `MOONSHOT_API_KEY` | Moonshot AI |
-| `DASHSCOPE_API_KEY` | Alibaba（DashScope） |
-| `GOOGLE_API_KEY`、`GOOGLE_GENERATIVE_AI_API_KEY` 或 `GEMINI_API_KEY` | Google（取第一个已设置的） |
-| `MISTRAL_API_KEY` | Mistral |
-| `XAI_API_KEY` | xAI |
-| `GROQ_API_KEY` | Groq |
+| `memory/user/config.json` → `maxSliceMinutes` | 单个时间切片的最大时长，默认 30 分钟。 |
+| `memory/user/config.json` → `maxTurnsPerSlice` | 单片最大轮数，默认 50——纯粹的安全阀。 |
+| `memory/user/config.json` → 模型选择、思考开关与强度 | 服务端持久化，随记忆走。 |
+| `memory/user/profile.md` | frontmatter：name、pronouns、timezone、locale、address_as，外加自由文本；每次请求实时读取。 |
+
+环境变量（很少需要）：
+
+| 变量 | 作用 |
+|---|---|
+| `PREVIOUSLY_HOME` | 覆盖客户端主目录（默认 `~/.previously`）。 |
+| `PREVIOUSLY_NO_OPEN` | `start` 后不自动打开浏览器。 |
+| `PREVIOUSLY_HEALTH_TIMEOUT_MS` | 等待内核健康检查通过的超时。 |
+| `PREVIOUSLY_BRIDGE_<AGENT>_CMD` / `PREVIOUSLY_BRIDGE_<AGENT>_TIMEOUT_MS` | 覆盖某个 bridge agent 的 CLI 命令与调用超时。 |
+| `PREVIOUSLY_GIT_AUTHOR_NAME` / `PREVIOUSLY_GIT_AUTHOR_EMAIL` | 记忆仓库 git 提交的作者署名。 |
+| `PREVIOUSLY_READER_SCOPE` | 记忆读取范围。 |
 
 ## 相关文档
 
-- [快速开始](/docs/getting-started) —— 安装与首次运行向导
-- [部署](/docs/deployment) —— 本地客户端 vs 自部署云端内核
-- [记忆模型](/docs/memory-model) —— 这些配置所管辖的数据
+- [本地优先](/docs/local-first) —— 为什么配置和记忆都长在你的机器上
+- [记忆是一个文件夹](/docs/your-memory) —— 记忆层配置文件所在的地方
+- [双引擎](/docs/two-engines) —— bridge 与 BYOK 两种大脑的区别
+- [内核供应链](/docs/kernel-supply-chain) —— `kernelDir` 背后的版本纪律
+- [部署](/docs/deployment) —— 云端部署时配置去了哪里

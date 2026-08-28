@@ -1,12 +1,13 @@
 ---
 title: 快速开始
-description: 用一条 npm 命令安装 Previously 客户端，走一遍初始化向导，然后开始对话——你的记忆存放在本机的一个 git 仓库里。
-order: 0
+description: 用一条 npm 命令安装 Previously，让首次运行的向导完成初始化，然后开始你的第一段对话——它会变成你时间线上的第一个切片。
 ---
 
 # 快速开始
 
-Previously 现在是本地优先的形态：一个 npm CLI，在你自己的机器上运行 Previously 内核，把记忆存在本地 git 仓库里，还能直接复用你已有的 agent 订阅。你只需要记住一条命令。
+Previously 跑在你自己的机器上：一个 npm 包就是整个产品。你只需要记住一条命令。
+
+**要求**：Node.js ≥ 20。不需要 Docker，不需要装 git。
 
 ## 安装
 
@@ -15,89 +16,39 @@ npm i -g previously-client
 previously
 ```
 
-<Callout variant="info">
-请像上面一样从 npm registry 安装。git-URL 安装（`npm i -g github:...`）会触发 `prepare` 构建钩子，要求本机装有 pnpm 和 TypeScript——不推荐。
-</Callout>
+## 第一次运行：一个向导
 
-## 第一次运行：一条命令，一个向导
+裸 `previously` 是前门。第一次运行时，它会在终端里带你走一遍初始化向导，把一切都安顿好：
 
-裸 `previously` 是前门。它做什么取决于你是否已经初始化：
+1. **安顿运行区** —— 创建 `~/.previously`，放内核版本、日志和进程状态。
+2. **安顿记忆** —— 在 `~/Documents/Previously` 创建你的记忆仓库；如果那里已经有一个 Previously 仓库（比如从备份克隆回来的），它会直接领养，历史原样保留。
+3. **选一个引擎** —— 向导会探测你 PATH 上已有的 agent CLI（Claude Code、Codex、Kimi Code），并建议把探测到的订阅配置为 bridge 引擎：零 API key、零额外费用。没探测到，或者你更想自己带 key，它会问你要一个 API key（BYOK）。两条路的取舍见[双引擎](/docs/two-engines)。
+4. **转录已有历史** —— 把你本机其他 agent 的既有对话记录转录成时间线上的切片。这一步不消耗任何 token——转录是确定性的解析，不是模型调用。
 
-**未初始化 → 它就是初始化本身。** 在终端里它会带你走一个引导式向导：
+任何会消耗 token 的步骤，向导都会先给你估账，并默认不执行。没有任何一步是悄悄花你钱的。
 
-1. **记忆存放在哪** —— 一个本地 git 仓库，默认放在你的文档目录（`~/Documents/Previously`）。
-2. **执行后端** —— 向导会自动探测本机已有的 agent CLI（Claude Code、Codex、Kimi Code），并优先建议把探测到的订阅配置为 bridge（桥接）大脑：零 API key、零 API 费用。你也可以选择自备 API key（BYOK）。
-3. **是否转录已有历史** —— 可选地把本机其他 agent 的既有对话日志转录成时间片。
-4. **保留还是重建** —— 如果已有内容，选择保留或从零重建。
-
-每个会消耗 token 的步骤都会先给你估账，并且默认不执行。在非交互环境（CI、脚本、其他 agent 调用 CLI）里，同一条命令会自动走非交互模式，用默认值一次跑通并打印它做出的每个决策。脚本也可以显式驱动：`previously init --non-interactive --backend <claude|codex|kimi>`。
-
-**已初始化 → 它显示状态面板。** 内核和 scribe 是否在跑、Web UI 地址、如何停止、各来源的转录进度，以及常用命令速查。裸命令从不启动服务、从不打开浏览器——启动是 `previously start`，浏览器是 `previously open`。
-
-## 启动与打开
+## 启动，打开，开始聊
 
 ```bash
-previously start   # 后台启动内核和 scribe
+previously start   # 后台启动内核
 previously open    # 在浏览器里打开 Web UI
 ```
 
-日常命令面：
+Web UI 在 `127.0.0.1:3210`——只有你自己的机器能访问。打开它，输入你的第一条消息。这条消息会打开你时间线上的**第一个切片**：从这一刻起，记忆开始累积。
 
-| 命令 | 作用 |
-|---|---|
-| `previously` | 初始化向导；已初始化后显示状态面板 |
-| `previously start` | 后台启动内核（以及 scribe） |
-| `previously open` | 在浏览器里打开 Web UI |
-| `previously status` | 内核/scribe 健康状态、记忆仓库状态、后端探测结果 |
-| `previously stop` | 全部停止 |
-| `previously logs` | 内核与 scribe 日志 |
+没有账号注册，没有数据库配置，没有种子数据。
 
-如果在初始化之前运行 `previously start`，它会先替你走一遍 init 流程。
+## 仪表盘：`previously status`
 
-## 第一次对话
-
-打开 Web UI，抵达简报会告诉你上次聊到哪。输入一条消息——它开启你的第一个时间片，记忆从这一刻开始累积。没有账号注册、没有数据库配置、没有种子数据。
-
-你的消息由谁回答，取决于你选的大脑：
-
-- **Bridge（桥接）** —— 请求由本机的 agent CLI（Claude Code、Codex 或 Kimi Code）通过你已有的订阅执行。全程没有 API key，没有按 token 计费的账单。
-- **BYOK（自备 key）** —— 请求带着你自己的 API key 发往模型提供商，key 录入 `config.json` 或在 Web UI 设置页填写。见[配置](/docs/configuration)。
-
-## 你的记忆在哪里
-
-你的记忆是一个**本地 git 仓库**——默认在 `~/Documents/Previously`（没有 Documents 目录时为 `~/Previously`）。你不需要安装 git：客户端使用纯 JS 的 git 实现（isomorphic-git）。
-
-- 每次写入都按与云端一致的节奏提交——一次对话回合产生 housekeeping 和 agent response 两个 commit，scribe 转录按批次提交，`previously stop` 会兜底清扫未提交的变更。
-- 把客户端指向一个已有的 Previously 仓库（比如从 GitHub clone 回来的），它会直接领养——历史原样保留。指向一个非空且非 git 的目录会被拒绝，绝不覆盖。
-- 日志、scribe 游标和工作流状态都在仓库之外，所以你可以放心把这个仓库 push 成**私有 GitHub 仓库**，作为异地副本。
-
-## 让本机其他 agent 用上这份记忆
-
-Previously 的记忆不锁在它自己的 UI 里。两个机制把它连接到你机器上的其他 agent：
-
-**`previously install`** 为每个探测到的 agent 写入一份只读的「Previously 记忆」skill：
-
-| Agent | 安装内容 |
-|---|---|
-| Claude Code | `~/.claude/skills/previously/`（四个文件） |
-| Kimi Code | `~/.kimi/skills/previously/` |
-| Codex | 在 `~/.codex/AGENTS.md` 中追加哨兵注释包裹的 Previously 块（绝不覆盖已有内容） |
-
-安装是幂等的，首次修改前会自动备份，`previously uninstall` 对称移除。（旧的 MCP server 已退役——skill 包是它的替代。）
-
-**Scribe（抄录器）** 监听其他 agent 的会话日志——Claude Code、Codex、Kimi Code 和 Gemini CLI——把它们的对话转录成同一条时间线上的时间片，并带来源标签。它随 `previously start` 自动启动；`previously status` 会报告每个来源的进度。你的全部 AI 对话历史，无论由哪个 agent 产生，最终汇聚到同一条时间线。
+跑起来之后，裸 `previously`（或 `previously status`）就是你的仪表盘：内核是否在运行、Web UI 地址、记忆仓库状态、引擎探测结果、转录进度。日常的开、关、看日志都在[日常](/docs/everyday)里。
 
 ## 先在浏览器里试试
 
-想在安装之前感受一下产品？[站内 playground](/playground) 提供交互式的浏览器内体验，无需任何安装。
-
-## 项目状态
-
-**Previously 处于早期积极开发中，尚未准备好用于个人或生产环境**（状态：实验阶段）。本文档描述当前的客户端；命令面与默认行为仍可能演进。
+想在安装之前感受一下产品？[回忆](/docs/recall)这篇文档里有几个可以直接点的问题——Previously 就着一段真实记忆当场作答，带原文引用，无需任何安装。
 
 ## 相关文档
 
-- [部署](/docs/deployment) —— 本地客户端 vs 自部署云端内核
-- [配置](/docs/configuration) —— `config.json`、环境变量与内核版本策略
-- [时间线](/docs/timeline) —— 主要交互界面详解
-- [记忆模型](/docs/memory-model) —— 时间片、Strand 与上下文组装
+- [双引擎](/docs/two-engines) —— bridge 订阅与自备 key 怎么选
+- [转录](/docs/scribe) —— 已有 agent 历史如何变成切片
+- [日常](/docs/everyday) —— start、open、status、logs、stop
+- [本地优先](/docs/local-first) —— 为什么这一切都跑在你自己的机器上

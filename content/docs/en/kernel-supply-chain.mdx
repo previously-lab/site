@@ -1,0 +1,48 @@
+---
+title: The Kernel Supply Chain
+description: The memory format is bound to kernel behavior, so we treat the kernel as a supply chain — one exact version, provable provenance, zero silent drift.
+---
+
+# The Kernel Supply Chain
+
+Your memory format is bound to kernel behavior — what a slice looks like and how the ledger is kept are decided by the kernel's code. Which means "which kernel am I running" is not a detail; it's a premise. **So we don't treat the kernel like a download. We treat it like a supply chain: one exact version, provable provenance, zero silent drift.**
+
+## Pinned to the patch
+
+The kernel ships as [`previously-kernel`](https://www.npmjs.com/package/previously-kernel) on npm — a prebuilt standalone artifact of the agent repo (previously-lab/agent). The client pins it exactly: the same version string appears in both `dependencies` and `previously.kernelVersion` — no ranges, no "compatible with ^0.9", not even on the patch digit.
+
+That makes the version check in `start` and `status` an integrity self-check rather than a compatibility gate: it answers not "will this run?" but "is this what we think it is?"
+
+## Upgrading is upgrading the client
+
+There is exactly one upgrade path:
+
+```bash
+npm i -g previously-client
+```
+
+The kernel travels as the client's dependency. Rollback is equally simple: install an older client, and you get the older kernel. With no separate kernel upgrade command, the state "client and kernel versions disagree" cannot exist.
+
+Installs land versioned: each kernel goes into `~/.previously/kernel/versions/<version>/`, and switching is a single atomic flip of the `current.json` pointer. The old version stays where it was; the pointer doesn't move until the new one is in place.
+
+## Escape hatches
+
+Exact pinning is discipline, not a cage. Three doors stay open:
+
+- the `kernelDir` config key overrides the kernel directory explicitly;
+- `previously kernel install --from <dir>` installs a local standalone directory as if it were the built artifact;
+- `previously kernel install --repo` shallow-clones the pinned tag from the agent repo and builds on your machine — it needs git and pnpm, and it's meant for developers.
+
+## The release pipeline
+
+This is how the supply chain runs in CI: the agent repo is tagged, and CI **publishes the kernel first**; then the client is tagged, and CI verifies the pin matches, smoke-tests a real global install, and publishes with npm provenance — you can trace the package on npm all the way back to the CI run that built it. Artifacts are fully dereferenced (zero symlinks), a precondition for Windows support that also makes "what you downloaded" and "what CI built" byte-identical.
+
+<Callout variant="info">
+**In one line**: the version running on your machine and the version we verified in CI are the same version — provably, without drift.
+</Callout>
+
+## Related
+
+- [Local First](/docs/local-first) — why the kernel is an npm package at all
+- [Everyday Commands](/docs/everyday) — where `kernel install / list / current` sits in the command surface
+- [Architecture](/docs/architecture) — where the kernel fits in the whole

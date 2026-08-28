@@ -19,9 +19,10 @@
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
     "sections": {
-      "overview": "Overview",
-      "concepts": "Concepts",
-      "guides": "Guides",
+      "start": "Start Here",
+      "memory": "How Memory Forms",
+      "mind": "How It Remembers and Thinks",
+      "client": "On Your Machine",
       "reference": "Reference"
     }
   }

@@ -1,0 +1,52 @@
+---
+title: The Chat Interface
+description: One reply rendered in three phases, recall streaming live, and a timeline wheel you can scroll back into — the machine's work happens in plain sight, not behind a spinner.
+---
+
+# The Chat Interface
+
+Most AI products hide the machine's labor: you ask, you watch a spinner, an answer drops in. Previously does the opposite — **how it remembered, which parts of the past it opened, what it changed while you weren't looking, all of it is laid out in front of you.** Memory being used is the interface.
+
+## One reply, three phases
+
+Every message you send gets back a single animated block that renders three visually distinct phases, in stream order:
+
+1. **Thinking** — a collapsible card titled "Thinking · Ns" with a Brain icon. Expand it for the full reasoning in Markdown; fold it away and it takes no space.
+2. **Tool cards** — every tool call gets its own card, and the label is content-aware: a recall card carries the question it's answering, a slice card names the date it opened. Each card has five states — running, completed, error, interrupted, denied — and a click expands the full output through a smooth grid-rows transition.
+3. **The response** — the Markdown answer comes last.
+
+The order isn't a layout preference. It's the order of facts: think, then look, then answer.
+
+## Recall is broadcast live
+
+A recall card isn't just a result container. It streams its own steps as they happen — reading the timeline window, tracing a strand, opening a slice — and settles on an answer plus a confidence. You can watch which year it dug into, which slices it opened, and how sure it is at the end. "We don't remember this" shows up as-is instead of being dressed up as a vague reply.
+
+## Evolution gets a card too
+
+An evolution run takes its own position in the stream: a card titled "evolved: …" or "checked, no updates". Expand it for the fitness signals that fired, the direction verdict, and the mutations diff. The system changed itself while you weren't watching — and the next morning, the change is lying in the conversation with its evidence attached.
+
+## Housekeeping in the open
+
+The housekeeping before each turn — resolving the slice, checking evolution, keeping the books — is not a backstage black box. It shows up as a compact prep checklist card before the answer, items ticking off one by one. In bridge mode the whole phase collapses into one streaming card; if your subscription CLI can't emit structured events, the card honestly wears an amber degradation warning instead of pretending everything is fine.
+
+## The past is a place you can scroll to
+
+Down the left edge runs a full-height timeline wheel: a focal wheel of real slices. **Scrolling is pure preview** — an odometer-style rolling readout tells you which stretch of time you're hovering over. **Clicking is loading** — after a "time travel" transition you're standing in that day, with a relative-time readout at the top ("3 days ago").
+
+The historical view carries a "Previously On" bar (what this day follows from), the day's turn list, a CognitionPopover on every turn — the agent's own thoughts at that moment, from the slice's timeline/agent.md — and a footer of open loops and decisions. The past isn't an exported record. It's a place you can go back to.
+
+## Arriving and setting off
+
+Opening the interface doesn't greet you with an empty input box but with a title card: "PREVIOUSLY ON" plus your name, hot-starting from the active slice's focus and open loops, with suggestion chips attached. It remembers where you left off.
+
+The composer is a textarea: images paste or drag-drop in, the send button becomes a stop button while streaming, and the model selector persists server-side — switch devices, keep the model. The interface ships with an en/zh toggle, a dark theme, and is fully responsive on mobile.
+
+<Callout variant="info">
+**In one line**: the machine's work happens in plain sight — you can watch it remember.
+</Callout>
+
+## Related
+
+- [Recall](/docs/recall) — the colleague behind the recall card
+- [The Evolution Loop](/docs/evolution) — the mechanism behind the "evolved" card
+- [Time Slices](/docs/slices) — what the slices on the wheel actually are

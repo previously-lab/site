@@ -1,123 +1,79 @@
 ---
 title: Configuration
-description: The client config.json contract (brain and apiKeys), environment variables, Web UI settings, the pinned-kernel version policy, and the self-hosted cloud kernel's variables.
-order: 0
+description: Previously keeps configuration in two layers — how this machine runs lives locally, your preferences live in your memory and travel with it — and a config doctor keeps both self-healing.
 ---
 
 # Configuration
 
-The local client keeps configuration in three places, each with a clear job:
+Configuration should be the most boring part of a product. If you have to study configuration before the software runs, that's the software's failure, not yours. So Previously's attitude toward configuration is: **defaults are responsible for being correct, the doctor is responsible for self-healing, and your hands are the exception.**
 
-- **`config.json`** in the client home — the brain (how the agent thinks) and manually entered API keys.
-- **Environment variables** — client home location and bridge tuning knobs.
-- **The Web UI settings page** — day-to-day preferences: model choice, thinking, slicing. Most runtime configuration lives here, not in files.
+## Two layers, deliberately separate
+
+Previously splits configuration into two layers, and the dividing line isn't technical — it's ownership.
+
+**The machine layer** answers "how does the product run on this machine": port, hostname, kernel location, whether the brain is a subscription bridge or bring-your-own-key. These facts belong to this machine — on a new computer, they have no reason to follow you. They live in `~/.previously/config.json` (mode 0600 on POSIX systems — readable by you alone).
+
+**The memory layer** answers "what do you, the person, prefer": which model, whether thinking is on, what reasoning effort, how long a time slice may run. These preferences belong to you — not to this machine, and certainly not to our database. So they aren't written into the local config; they live inside the memory repo itself, in `memory/user/config.json` and `memory/user/profile.md` — **your preferences are part of your memory**, and wherever the memory goes, they go. This also explains a detail you may have noticed: model choice and thinking effort persist server-side, not in the browser's localStorage. Switch browsers, switch devices — your preferences are still there.
+
+`profile.md` is the most human file of the bunch: name, pronouns, timezone, locale, plus a stretch of free text. It's read live on every request — the name that follows "Previously on" in the chat title comes from here.
+
+## The config doctor
+
+Previously ships with a config doctor, and it runs on every `previously init` and every `previously start`. What it does is plain: audit the config for illegal values (storage, port, backend, brain shape) and repair them; audit and repair the memory repo itself; write a `config.json.bak` backup before touching anything; and stay idempotent — running it a hundred times produces the same result as running it once.
+
+It has one restraint worth stating out loud: if you picked a backend, it will derive the matching bridge brain for you; but if you deliberately chose to bring your own key (BYOK), it will never "helpfully" resurrect a bridge over that choice. The doctor repairs damage, not your decisions.
+
+Which means hand-editing a config file barely exists on the normal path. The file is right there, its format is listed at the end of this page — but opening it should be the exception, not the routine.
+
+## The honest part
+
+Two things we choose to say plainly. First, `apiKeys` is currently stored **in plaintext** — that's an MVP-stage trade-off, and the 0600 file permission is the current line of defense, so treat the file accordingly. Second, a batch of environment-variable knobs exists (relocating the home directory, skipping the automatic browser launch, bridge timeouts, and the like). They're listed at the end, but you'll likely never need them — they exist for unusual environments, not for you.
 
 <Callout variant="info">
-**Key takeaway:** you rarely edit any of this by hand. `previously init` writes minimal defaults, and every `init`/`start` audits and repairs a damaged config automatically (backing up to `config.json.bak` first). The brain can also be entered on the Web UI settings page.
+**In one line**: Previously wants there to be exactly one reason you ever open a config file — curiosity, not distress.
 </Callout>
 
-## config.json
+## Reference: the keys
 
-Lives in the client home (`PREVIOUSLY_HOME`, default `~/.previously`). The contract:
+Machine layer, `~/.previously/config.json`:
 
-```json
-{
-  "brain": { "type": "bridge", "agent": "claude" },
-  "apiKeys": { "DEEPSEEK_API_KEY": "sk-..." }
-}
-```
-
-### brain — two shapes
-
-The brain decides what actually executes model calls. Exactly one of:
-
-| Shape | Meaning |
-|---|---|
-| `{ "type": "bridge", "agent": "claude" \| "codex" \| "kimi" }` | **Subscription bridge.** Model calls are executed by that local agent CLI through your existing subscription OAuth. No API key, no API fees. Choosing the bridge backend in `init` writes this for you. |
-| `{ "type": "api-key", "env": "<ENV_VAR_NAME>", "model"?: string }` | **BYOK.** The kernel reads the API key from the named environment variable; the optional `model` sets the default model (consumed by the kernel since 0.9.0). |
-
-If `brain` is absent, the kernel falls back to whatever provider keys it finds in the environment.
-
-### apiKeys
-
-`apiKeys?: Record<string, string>` holds manually entered keys. In the local MVP they are stored **in plaintext** — treat the file accordingly. At `start`, every entry is injected into the kernel's environment, so a typical BYOK setup pairs a key here with a `brain` that names it:
-
-```json
-{
-  "brain": { "type": "api-key", "env": "DEEPSEEK_API_KEY", "model": "deepseek-v4-pro" },
-  "apiKeys": { "DEEPSEEK_API_KEY": "sk-..." }
-}
-```
-
-You can also enter the key on the Web UI settings page instead of editing the file.
-
-### Other fields
-
-| Field | Purpose |
-|---|---|
-| `executionBackend` | Default bridge agent used when a call doesn't specify one. Set by `previously init --backend ...`. |
-| `kernelDir` | Explicit override for the kernel directory. Normally unnecessary — the client resolves the installed kernel through its version pointer. |
-
-Unknown fields are preserved by the client's config writes.
-
-## Environment variables
-
-What the client itself reads:
-
-| Variable | Default | Effect |
+| Key | Default | Effect |
 |---|---|---|
-| `PREVIOUSLY_HOME` | `~/.previously` | The client home: `config.json`, installed kernel versions, logs, and scribe cursors all live here. Your memory repo does **not** — it's wherever you pointed init (default `~/Documents/Previously`). |
-| `PREVIOUSLY_BRIDGE_TIMEOUT_MS` | ~9.5 min | Global bridge call timeout (set just under the kernel's own delegateTask timeout so the adapter reports honestly first). |
-| `PREVIOUSLY_BRIDGE_<AGENT>_TIMEOUT_MS` | — | Per-agent override (`CLAUDE` / `CODEX` / `KIMI`). |
-| `PREVIOUSLY_BRIDGE_<AGENT>_CMD` | the agent's CLI name | Override the CLI command used for a bridge agent; may carry leading arguments, e.g. `PREVIOUSLY_BRIDGE_KIMI_CMD="kimi --auto"`. |
-| `PREVIOUSLY_BRIDGE_CLAUDE_MAX_TURNS` | `25` | Max turns for bridged Claude calls; set to `none` to disable the cap. |
+| `storage` | `"local"` | Storage backend. |
+| `memoryRoot` | set at init | Location of the memory repo. |
+| `port` | `3210` | Port the kernel listens on. |
+| `hostname` | `127.0.0.1` | Listen address — local-only by default. |
+| `executionBackend` | — | Default bridge agent when a call doesn't specify one. |
+| `brain` | derived from backend | The brain: `{ "type": "bridge", "agent": "claude" \| "codex" \| "kimi" }` for a subscription bridge, or `{ "type": "api-key", "env": "...", "model": "..." }` for bring-your-own-key. |
+| `apiKeys` | — | Manually entered keys, stored in plaintext (MVP status); injected into the kernel's environment at `start`. |
+| `agents` | — | Per-CLI model and effort tuning; kimi supports model only. |
+| `byok` | — | Owned by the kernel's Web UI settings page; the client preserves it untouched. |
+| `kernelDir` | — | Explicit override for the kernel directory; not needed on the normal path. |
 
-The following are **injected by `previously start`**, not meant to be set by hand: `PREVIOUSLY_HOME` itself, every `apiKeys` entry, `PREVIOUSLY_BRAIN=bridge` + `PREVIOUSLY_BRAIN_AGENT` for a bridge brain, and the key value + `PREVIOUSLY_DEFAULT_MODEL` for an api-key brain. The kernel additionally honors `MEMORY_ROOT` as an explicit memory-location override; normally you change the memory location through `init --memory-root` instead.
+Memory layer (inside the memory repo):
 
-## Models and slicing: the Web UI settings page
-
-Day-to-day preferences — the main model, thinking on/off, reasoning effort, and slicing thresholds — live in the kernel's Web UI **Settings** page, stored alongside your memory data rather than in the client config. In bridge mode each detected agent CLI registers as a selectable model, so switching engines is a settings-page choice, not a restart.
-
-## Kernel version policy
-
-The kernel is distributed as the npm package `previously-kernel`, and the client **pins it exactly** — `previously.kernelVersion` in the client's package.json (currently `0.9.0`) must match the installed kernel version precisely, patch included.
-
-- `previously kernel install` installs the prebuilt standalone kernel from the pinned dependency into `~/.previously/kernel/versions/<version>/` and flips an atomic `current.json` pointer. Zero build on your machine, no git or pnpm required.
-- **Upgrading = upgrading the client package** (`npm i -g previously-client@latest`). There is no separate kernel upgrade or rollback command; rolling back means reinstalling an older client.
-- `start` and `status` resolve the kernel through the pointer and verify the version matches.
-
-Developer escape hatches (not for normal use): `previously kernel install --from <dir> --version <x.y.z>` installs a locally built standalone directory; `previously kernel install --repo [git-url]` shallow-clones the agent repo at the pinned tag and builds locally — the only path that requires git and pnpm on your machine.
-
-## Advanced: the self-hosted cloud kernel
-
-If you run the cloud kernel on Vercel (see [Deployment](/docs/deployment), path 2), configuration is entirely environment variables set in the Vercel project:
-
-| Variable | Required | Effect |
-|---|---|---|
-| `DEEPSEEK_API_KEY` | Yes (default setup) | Powers the default main model and the web-search tool. |
-| `GITHUB_TOKEN` | Yes | Fine-grained PAT (Contents read/write, single repo). Its presence gates the entire GitHub memory backend. |
-| `GITHUB_REPO_OWNER` / `GITHUB_REPO_NAME` | Yes | The GitHub owner and repository holding memory data. |
-| `STORAGE` | No | Explicit data-source override: `github`, `local`, or `demo` (read-only seeded persona). Auto-detected when unset. |
-| `ACCESS_SECRET` | No | Access key non-browser callers must send as an `x-access-key` header on mutation endpoints. Only enforced when set. |
-
-### BYOK provider keys
-
-The cloud kernel's model catalog activates one provider per configured API key — setting any of these makes that provider's models selectable in Settings, no other configuration needed:
-
-| Variable | Provider |
+| Location | Effect |
 |---|---|
-| `DEEPSEEK_API_KEY` | DeepSeek (default) |
-| `ANTHROPIC_API_KEY` | Anthropic |
-| `OPENAI_API_KEY` | OpenAI |
-| `MOONSHOT_API_KEY` | Moonshot AI |
-| `DASHSCOPE_API_KEY` | Alibaba (DashScope) |
-| `GOOGLE_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY`, or `GEMINI_API_KEY` | Google (first set wins) |
-| `MISTRAL_API_KEY` | Mistral |
-| `XAI_API_KEY` | xAI |
-| `GROQ_API_KEY` | Groq |
+| `memory/user/config.json` → `maxSliceMinutes` | Maximum length of one time slice; default 30 minutes. |
+| `memory/user/config.json` → `maxTurnsPerSlice` | Maximum turns per slice; default 50 — purely a safety valve. |
+| `memory/user/config.json` → model choice, thinking on/off and effort | Persisted server-side, travels with the memory. |
+| `memory/user/profile.md` | Frontmatter: name, pronouns, timezone, locale, address_as, plus free text; read live on every request. |
 
-## Related
+Environment variables (rarely needed):
 
-- [Getting Started](/docs/getting-started) — install and the first-run wizard
-- [Deployment](/docs/deployment) — the local client vs. self-hosting the cloud kernel
-- [Memory Model](/docs/memory-model) — the data these settings govern
+| Variable | Effect |
+|---|---|
+| `PREVIOUSLY_HOME` | Override the client home (default `~/.previously`). |
+| `PREVIOUSLY_NO_OPEN` | Don't auto-open the browser after `start`. |
+| `PREVIOUSLY_HEALTH_TIMEOUT_MS` | Timeout for waiting on the kernel's health check. |
+| `PREVIOUSLY_BRIDGE_<AGENT>_CMD` / `PREVIOUSLY_BRIDGE_<AGENT>_TIMEOUT_MS` | Override the CLI command and call timeout for a bridge agent. |
+| `PREVIOUSLY_GIT_AUTHOR_NAME` / `PREVIOUSLY_GIT_AUTHOR_EMAIL` | Author identity for git commits in the memory repo. |
+| `PREVIOUSLY_READER_SCOPE` | Memory read scope. |
+
+## Related links
+
+- [Local First](/docs/local-first) — why configuration and memory both live on your machine
+- [Your Memory Is a Folder](/docs/your-memory) — where the memory-layer config files sit
+- [Two Engines](/docs/two-engines) — the difference between the bridge and BYOK brains
+- [The Kernel Supply Chain](/docs/kernel-supply-chain) — the version discipline behind `kernelDir`
+- [Deployment](/docs/deployment) — where configuration goes in a cloud deployment

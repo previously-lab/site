@@ -1,0 +1,40 @@
+---
+title: The Clean Room
+description: thinkDeep is a clean-room thinking pod — a think-only copy of the main agent reasoning in complete isolation: no tools, no memory, no live context; every fact it may use must be embedded in the question itself.
+---
+
+# The Clean Room
+
+A second opinion that has seen the same context as the first opinion is not a second opinion — it's an echo of the same bias. So when the main agent genuinely needs another mind, it sends the problem into a clean room.
+
+## Isolation is the feature
+
+`thinkDeep` is a **think-only copy of the main agent**, reasoning in complete isolation: no tools, no memory, no live view of this conversation. Every fact it is allowed to use must be embedded in the question itself, by the main agent's own hand.
+
+That sounds like a handicap. It's the entire point. Because there is nothing in the room, the judgment formed inside it cannot be contaminated by the conversation's positions, tone, or freshly-stated conclusions. What goes in is the main agent's decision; but inside the clean room, the copy sits alone with the question.
+
+## Thinking has a dial
+
+The `effort` parameter has three settings — `low`, `medium`, `high` — chosen to match the weight of the problem. A timeout is not a wasted run: the pod writes as it thinks, so the runner returns the accumulated **partial answer together with its reasoning**.
+
+## When the main agent knocks
+
+The clean room is **not** a default step of every turn. The main agent dispatches it deliberately, for reasons:
+
+- **An unbiased second pass** — the main agent already leans somewhere and wants a judgment its own context never touched.
+- **Questions where context would contaminate** — the conversation is too emotionally or positionally charged to trust an insider's read.
+- **Deep structural problems** — the kind worth spending real reasoning budget on, slowly.
+
+## It leaves a record, and it learns
+
+Every clean-room report is logged into the slice's `agent.md` cognition log — afterwards you can see what it thought and what it concluded. Like the other colleagues, it has its own fitness bucket and its own playbook: good and bad thinking gets scored, and the score drives its evolution (see [The Evolution Loop](/docs/evolution)).
+
+<Callout variant="info">
+**In one line**: the main agent gets a second opinion by building a mind that has never heard the conversation.
+</Callout>
+
+## Related links
+
+- [Colleagues, Not Tools](/docs/colleagues) — where the clean room sits in the colleague system
+- [The Web Researcher](/docs/web-search) — another colleague with its own budget and playbook
+- [The Evolution Loop](/docs/evolution) — how the fitness score drives playbook evolution

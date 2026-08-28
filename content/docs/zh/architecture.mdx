@@ -1,127 +1,67 @@
 ---
 title: 架构
-description: 本地优先的双层架构——previously-client CLI(git 账本、skill 投递、scribe)与 previously-kernel standalone 包(子 Agent 同事制、进化回路)。Vercel Workflow + GitHub 的云端自部署仍是进阶路径。
-order: 1
+description: 一颗内核，两个世界：本地是 npm 包加 git 账本，云端是 Vercel Workflow 加你的私有 GitHub 仓库。每一轮聊天都是一次耐久运行，提示词冻结在切片上。
 ---
 
 # 架构
 
-Previously 是**本地优先**的。你安装的产品是一个小 CLI:它在你自己的机器上运行同一套内核,把你的记忆保存为本地 git 仓库,并借用一颗你已经在付费的大脑。云端自部署——内核跑在 Vercel Workflow 上、以 GitHub 为存储后端——仍作为进阶路径保留:同一套内核,指向不同的后端。
+Previously 只有一颗内核，但它活在两个世界里：在你的机器上，它是 client 拉起的本地服务；在云端，它是 Vercel 上的 Next.js 应用，以你的私有 GitHub 仓库为存储。两个世界跑同一份代码、读写同一种记忆格式——区别只在文件系统的落点。
 
-## 两层:Client 与 Kernel
+## 两个世界，一颗内核
 
-| 层 | 是什么 | 做什么 |
-|-------|------------|--------------|
-| **Client** | `previously-client` npm CLI | 在本地拉起并守护内核、掌管记忆的 git 账本、把记忆 skill 投递给你的其他 agent、转录它们的会话(scribe) |
-| **Kernel** | `previously-kernel` npm 包 | 产品本体:预构建的 Next.js standalone 服务器,内含聊天 UI、Agent、情景记忆系统与进化回路 |
+**本地（默认路径）。** 内核以 npm 包的形式随 client 精确锁版分发，读写本地文件系统上的记忆目录——那是一个由纯 JS（isomorphic-git）维护的 git 账本，不需要 git 二进制。详见[本地优先](/docs/local-first)。
 
-供应链刻意保持无聊:client 精确**钉死**一个内核版本(patch 也不例外),把预构建的 standalone 产物安装到 `~/.previously/kernel/versions/<version>/`,再原子地翻动 `current.json` 指针。升级内核就是升级 client 包本身——没有原地升级或回滚内核的命令。你的机器不需要 git、不需要 pnpm、不需要构建步骤。
+**云端（进阶路径）。** 同一套代码部署到 Vercel，记忆读写改走 GitHub API，后端是你自己的私有仓库。没有数据库，没有常驻进程：状态全部活在文件里，只是文件换了个地方躺着。部署步骤见[部署](/docs/deployment)。
 
-### client CLI
+## 一回合就是一次耐久运行
 
-```bash
-npm i -g previously-client
-previously            # 唯一需要记住的命令
-```
+云端每一轮聊天都跑在**一次耐久的 Vercel Workflow 运行**里，从头到尾四步：
 
-裸 `previously` 是前门:未初始化时,它进入引导式向导(记忆存放位置 → 执行后端 → 是否把本机已有的 agent 历史转录成时间片 → 保留还是重建 → 可选的 token 消耗步骤,每一步都先估账、默认不执行);已初始化时,它显示状态面板——内核与 scribe 是否在跑、Web UI 地址、各来源的转录进度。它从不启动服务、从不打开浏览器:启动是 `previously start`,浏览器是 `previously open`。日常命令是 `start` / `stop` / `status` / `logs` / `open`;高级命令面(`init`、`kernel`、`install`、`watch`、`scribe`、`ingest`、`bridge-exec`)不挡路。
+1. **Housekeeping** —— 解析或恢复活跃切片、应用切片规则、追加本轮消息；fitness 计分与切片边界上的进化检查也在这里。
+2. **组装提示词** —— 这是整套架构里最刻意的一个决定，见下一节。
+3. **主 Agent 循环** —— 每一次 LLM 调用、每一次工具调用都是一个**独立耐久、自动重试**的步骤。瞬时失败原地重试；撞上平台超时或 token 上限时，有界续跑机制用已完成步骤重建上下文，从断点接着跑。
+4. **finalizeTurn** —— 本轮写进切片的共同记录，agent 的认知写进它自己的时间线，索引随之更新。
 
-client 有两个子系统在架构上重要:
+因为每一步都耐久，运行扛得住断线：刷新页面、网络闪断，客户端会重新挂上同一次运行，把错过的流补回来。你看到的"等待"，其实是一次可以在故障中存活的执行。
 
-- **Skill 投递。** 旧的 MCP server 已退役。取而代之的是,client 把一组「Previously」skill(`SKILL.md` + `memory.md` + `ingest.md` + `setup.md`)安装到每个检测到的 agent CLI——Claude Code、Codex、Kimi Code——让你的其他 agent 拿到一份严格只读的记忆协议。外部写入统一走 `previously ingest` 这个唯一写入口:它校验提交的切片,任何一项契约违反即整单拒绝。
-- **Scribe。** 一个 watcher(chokidar),把你其他 agent 的会话日志——Claude Code、Codex、Kimi Code、Gemini CLI——增量转录为与内核同构的时间片:字节级幂等、重启后从游标恢复。`previously start` 会把它作为独立进程与内核一并拉起。
+## 它学会自己收拾残局
 
-### 内核:本地与云端
+耐久不等于不会出岔子，所以写路径上有两层自愈：
 
-本地,内核就是 client 拉起的 standalone 服务器。云端,同一套代码部署到 Vercel,**每一轮聊天都跑在一次耐久的 Vercel Workflow 运行里**——每一次 LLM 调用、每一次工具调用都是单独耐久、自动重试的步骤——以 GitHub 仓库为存储后端。两个世界里都没有数据库、没有常驻服务器:状态完全活在文件里。
+- **写冲突自愈** —— 两个写入者对同一回合提交了不同版本时，系统按 turnId 做只追加的回合合并，而不是互相覆盖。历史只增不改。
+- **紧急落盘** —— 浏览器关闭或跳转前（beforeunload），客户端用 sendBeacon 把未保存的状态抢发回服务端。你关掉标签页的动作不会弄丢任何东西。
 
-### 大脑:BYOK 或 bridge
+## 冻结在切片上的提示词
 
-内核需要一个模型。本地有两个选项,都在 `config.json` 里配置:
-
-- **BYOK** —— 你自己的 API key(`brain: { type: "api-key", ... }` / `byok` 配置段);推荐路径。
-- **Bridge** —— 复用你已有的订阅:内核把执行委托给本机已安装的 agent CLI(`brain: { type: "bridge", agent: "claude" | "codex" | "kimi" }`),经 `previously bridge-exec` 走严格的 stdin/stdout 协议调度。这种模式下 client 不碰 API key——鉴权用的是你既有的 OAuth 订阅。
-
-## 记忆是一个 git 账本
-
-你的记忆目录是一个**本地 git 仓库**(纯 JS 的 isomorphic-git——不需要 git 二进制)。内核按与云端一致的节奏 commit:**一次 chat 回合 = 两个 commit**(`Turn <id> — housekeeping`,然后 `Turn <id> — agent response`);scribe 与 ingest 按批次提交;`stop` 兜底清扫未提交的变更。文件系统始终是事实来源——commit 失败从不阻断写入。
-
-默认位置贴着你的文档目录(`~/Documents/Previously`)。把 client 指向一个已有的 Previously 仓库——比如从 GitHub clone 回来的——会直接领养它,历史原样保留;指向非 git 的非空目录会被拒绝。游标、日志、序列化的 workflow 载荷都放在仓库之外,因此记忆仓库可以放心 push 成私有 GitHub 远端。
-
-## 耐久的回合 Workflow
-
-内核内部,Agent 是 `src/app/api/chat/turn-workflow.ts`——一个耐久 workflow 控制器。每个用户消息触发一次运行:
-
-1. **Housekeeping** —— 解析或恢复当前活跃切片,应用切片规则,追加本轮消息。回合分析器在这里给本轮的 fitness 信号打分;slice 边界上,进化检查也在此运行(见下文)。
-2. **组装 prompt** —— 系统 prompt 由身份、用户卡片、情景时间线上下文组装而成。顺序是一个缓存决策:稳定的块在前(身份宪法、用户卡片),可变的块在后(回合简报、时间线指针、Strand 菜单、演化通知),让供应商的 prompt 缓存跨回合复用这段长前缀。
-3. **主 Agent 循环** —— 主模型作为 `WorkflowAgent` 运行。每一次 LLM 调用、每一次工具调用都是自己的耐久步骤;瞬时失败自动重试。如果某一步被平台杀死或模型撞上 token 上限,一个有界的续跑机制用已完成步骤重建消息,从断点接着跑。
-4. **收尾** —— 本轮追加进切片的 `timeline/core.md`(共同的记录),Agent 的认知——思考、工具调用、子 Agent 报告——写入 `timeline/agent.md`(它自己的时间线),并更新时间线投影与 Strand。
-
-因为每一步都耐久,运行能扛住断线;客户端 transport 会重新挂到同一次运行上,回放错过的内容。每个切片存着产品三条时间线中的两条:`core.md` 是你们共同的记录,`agent.md` 是它当时的思考。第三条——你在聊天之外的生活——从不被存储。
-
-## 子 Agent 同事制
-
-子 Agent 不是主 Agent 的读写工具。它们是有独立判断的**同事**:各自领到任务,自己把活干完——包括自己读资料——再汇报回来。在它们的对话里,用户永远是第三方;证据锚定(任何情景断言必须挂原文引用或 slice 指针)对所有人生效。
-
-| 同事 | 角色 | 预算 |
-|-----------|------|--------|
-| `recall` | 情景回忆:用自然语言回答关于过去的问题,自己检索时间线(时间窗 → Strand → 摘要 → ≤5 片全文深读)。产出 `answer` + `references[]` + `searched[]` + `confidence`;「我们不记得聊过这个」是合法答案 | 20 步 · 240s · 温度 0.3 |
-| `webSearch` | 研究员:provider 执行的搜索,加上自己配额受限的页面深读(≤3 页),汇总出真实答案,并给出置信度与争议点评估 | 10 步 · 150s |
-| `thinkDeep` | 干净思考舱:无工具、单发、隔离上下文的推理。不再是默认的每回合拆解——只在主 Agent 需要无偏见的第二意见时调用 | 单发 |
-
-主 Agent 的工具面相应收窄:`readSliceSummary`、`readTimelineWindow`、`readAgentTimeline` 与 `webFetch` 下沉进了子 Agent。主 Agent 留下的是 `currentTime`、`readPreviously`、三个同事入口,以及 `readSlice`——只作为核验 recall 回答的通道保留。recall 之后的 `readSlice` 会被记为 verify/rework 的 fitness 信号:把同事的活重干一遍会被记住,并由 recall 桶买单。
-
-## 进化回路
-
-自进化是达尔文式的,它的状态活在记忆仓库里,而不是代码里:
+系统提示词是分层组装的，层的排序是一个缓存决策：
 
 ```
-direction.md ──► fitness 评分 ──► 两阶段进化 ──► mutations.md
-(筛选标准)      (选择压力,        (slice 边界上)     (append-only
-                 确定性聚合)                          档案)
+L0 身份宪法 → L1 用户卡片 → L2 静态规则
+    → 切片头快照 → 时间线简报 → strand 菜单
 ```
 
-- **Direction** —— `memory/evolution/direction.md` 是筛选标准:「什么是对你更好」,四个固定小节(Direction / Anti-goals / Evidence / Log)。抽象、跨片、Log append-only。
-- **Fitness** —— 回合分析器按桶给每个 slice 打分(`card` / `recall` / `search` / `thinkdeep` / `interaction`,−2…+1,非零分必须挂用户原话证据)。确定性代码做聚合:10 片滑动窗口净分 ≤ −3,或本 slice 一条挂证据的 −2,触发对应桶的进化。分数只决定*要不要*进化,不决定*改成什么*。
-- **两阶段,串行,在 housekeeping 内** —— Phase 1 评估方向(低频高门槛;「无变化」什么都不写);Phase 2 进化卡片与被触发桶的 playbook(`memory/agent-playbooks/{recall,search,thinkdeep}.md`,≤2,000 字符,注入子 Agent 的 user prompt)。
-- **档案** —— 每次被接受的变异都追加进 `memory/evolution/mutations.md`,带预期收益与证据;归档新变异时会先评估同 target 的上一条,若它的桶仍在扣分就标 `ineffective`。不回滚、不冷却、不设预算。
+这条分层前缀在一个切片的生命周期内**逐字节稳定**——供应商的前缀缓存因此可以跨回合复用它，便宜而且快。这也是架构里一个反直觉决定的由来：**精确时间不在提示词里**，因为注入时间会打破字节稳定。agent 需要"现在几点"时，它调用 `currentTime` 工具——像一个不看墙上挂钟、只看手表的人。
 
-只有一只手握笔:进化 Agent 是卡片、方向、playbook 与档案的唯一写入者。Recall、webSearch、thinkDeep 全部只读、只汇报。
+切片关闭、新切片开启时，快照随之更新：提示词的"冻结"以切片为单位。
 
-## 存储布局
+## 同事与进化
 
-```
-memory/
-  episodic/
-    slices/YYYY/MM/DD/HHMM/
-      timeline/core.md        -- 共同的记录(frontmatter + 轮次)
-      timeline/agent.md       -- agent 的认知日志
-      previously.md           -- 截至此 slice 的用户卡片快照
-    timeline/index.json       -- 权威切片目录(投影)
-    timeline.md               -- 目录的 Markdown 投影
-    strands.json              -- Strand → 切片路径索引
-    current-previously.md     -- 活着的用户卡片
-  evolution/
-    direction.md              -- 筛选标准(四个固定小节)
-    fitness.json              -- 有界的 fitness 事件 + 机械信号
-    mutations.md              -- append-only 变异档案
-  agent-playbooks/
-    recall.md / search.md / thinkdeep.md   -- 进化出的各同事简报
-```
-
-`memory/` 下的一切都是纯 Markdown/JSON——可移植、可 diff、可人肉编辑。切片是唯一事实来源;索引、卡片、playbook 都是派生产物。
+主 Agent 身边是三个有独立判断的同事（recall、webSearch、thinkDeep）和一个达尔文式的自进化回路。它们各自值得单独一篇：[同事制](/docs/colleagues)与[进化回路](/docs/evolution)。架构上只需记住一点：它们遵守同一条纪律——证据锚定、只追加档案——而这些纪律在哪里被强制执行，是下一节的事。
 
 ## 安全模型
 
-安全在 TypeScript 的工具边界强制执行,两种部署世界完全一致。
+安全在工具边界强制执行，两个世界同一套：
 
-- **路径白名单** —— agent 工具只能写 `memory/`、`tasks/`、`sessions/`(`src/lib/whitelist/`)。路径先规范化(URI 解码、反斜杠转正、解析 `./` 与 `../`),再拒绝空路径、绝对路径与盘符路径。
-- **`src/` 是 Agent 只读** —— 它根本不在白名单里;子 Agent 契约与工具 schema 放在那里,正因为它们是不可进化的那一面。
-- **同源守卫** —— 变更端点(`/api/chat`、`/api/episodic/flush`)接受同源浏览器请求;其他调用在设置了 `ACCESS_SECRET` 时需要带 `x-access-key`(云端部署自行选择启用)。
-- **凭证限域** —— 云端后端的 `GITHUB_TOKEN` 只授权单个仓库;本地,bridge 鉴权用你已有的 agent 订阅,BYOK key 留在你的本地配置里。
+- **路径白名单** —— agent 工具只能写记忆相关的目录；路径先规范化再校验，绝对路径、盘符路径、目录穿越一律拒绝。代码目录根本不在白名单里。
+- **服务端校验** —— 所有写入在服务端重新验证，不信任客户端传来的形状。
+- **同源守卫** —— 变更端点接受同源浏览器请求；浏览器之外的调用方在你设置了 `ACCESS_SECRET` 时需要带上它。这是云端单用户部署的可选防线。
 
-## 相关
+<Callout variant="info">
+**一句话**：一颗内核、一次耐久运行、一份冻结的提示词——架构的每个决定都在为"记忆可靠且便宜"服务。
+</Callout>
 
-- [记忆模型](/docs/memory-model) —— Slice、Strand、卡片与进化数据层
-- [回忆](/docs/recall) —— recall 同事的契约详解
-- [用户卡片](/docs/user-card) —— 从卡片一侧看的进化回路
+## 相关文档
+
+- [本地优先](/docs/local-first) —— 内核作为 npm 包的分发与运行
+- [部署](/docs/deployment) —— 云端自托管的实际步骤
+- [记忆模型](/docs/memory-model) —— 耐久运行读写的那份数据结构

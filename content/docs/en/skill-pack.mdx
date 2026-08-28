@@ -1,0 +1,47 @@
+---
+title: The Skill Pack
+description: Memory only one agent can read is another silo. The skill pack teaches the agents you already use to read your Previously memory before they answer.
+---
+
+# The Skill Pack
+
+Memory that only one agent can read is another silo. The project you discussed in Claude Code and the bug you fixed in Kimi Code shouldn't reset to zero the moment you switch tools. **The skill pack teaches the agents you already use to do one thing: read your Previously memory before they answer.** Your history follows you across tools.
+
+## Installed into the agents you already have
+
+`previously install` detects the agent CLIs on your machine and writes a skill group named "Previously" into each one's conventional location:
+
+- Claude Code → `~/.claude/skills/previously/`
+- Kimi Code → `~/.kimi/skills/previously/`
+- Codex → a sentinel-delimited block appended to the shared `~/.codex/AGENTS.md` — foreign content is never overwritten
+
+## Four documents
+
+The skill group is four Markdown files, each with its own job:
+
+- **`SKILL.md`** — overview and doc map: what this is, and where the details live.
+- **`memory.md`** — the read-only memory protocol: the layout of the memory directory, strict read-only rules (persistence is the kernel's and scribe's job, not the agent's), recall-before-answering guidance, and a verbatim output contract that keeps the final reply to just the answer.
+- **`ingest.md`** — the write contract: which door an agent uses to write a conversation into memory, and in what shape.
+- **`setup.md`** — an initialization walkthrough. You can literally tell your agent "帮我初始化 Previously" and it will walk you through the whole thing, with token costs disclosed at every step.
+
+## A polite installer
+
+The skill pack behaves like a guest: installs are idempotent, so running it twice produces no duplicates; the first time it touches any file it makes a one-time `.bak` backup; `uninstall` removes only the files and blocks it wrote, never anything else; `--dry-run` shows you the rehearsal before you commit.
+
+## Zero-config for the bridge
+
+The same documents travel a second route: before every bridge call, the memory protocol is materialized into a temporary workspace as the bridged agent's launch context, and cleaned up afterwards. A bridged agent gets the same recall ability with no manual configuration at all.
+
+## A short history
+
+An MCP server existed once, and was retired. Persistent connections and uncontrollable injection depth lost to a skill document that is zero-resident, idempotent, and backup-able — it occupies none of your context, holds no connections, and you can back it up with git and audit it with your eyes.
+
+<Callout variant="info">
+**In one line**: your memory should be no agent's private property — including our own.
+</Callout>
+
+## Related
+
+- [Two Engines](/docs/two-engines) — how the skill pack travels along on bridge calls
+- [Recall](/docs/recall) — what an agent taught to recall first actually reads
+- [The Only Way In](/docs/ingest) — the write contract behind `ingest.md`

@@ -1,12 +1,13 @@
 ---
 title: Getting Started
-description: Install the Previously client with one npm command, walk the first-run wizard, and start talking — your memory lives in a local git repo on your own machine.
-order: 0
+description: Install Previously with one npm command, let the first-run wizard set everything up, and start your first conversation — it becomes the first slice on your timeline.
 ---
 
 # Getting Started
 
-Previously is local-first: an npm CLI that runs the Previously kernel on your own machine, keeps your memory in a local git repo, and can reuse the agent subscriptions you already have. One command is all you need to remember.
+Previously runs on your own machine: one npm package is the whole product. There is only one command you need to remember.
+
+**Requirements**: Node.js ≥ 20. No Docker, no git installation needed.
 
 ## Install
 
@@ -15,89 +16,39 @@ npm i -g previously-client
 previously
 ```
 
-<Callout variant="info">
-Install from the npm registry as shown above. Git-URL installs (`npm i -g github:...`) trigger a `prepare` build hook that requires pnpm and TypeScript on your machine — not recommended.
-</Callout>
+## The first run: one wizard
 
-## The first run: one command, one wizard
+The bare `previously` command is the front door. On first run it walks you through an init wizard in the terminal and settles everything:
 
-The bare `previously` command is the front door. What it does depends on whether you're initialized:
+1. **Sets up the runtime** — creates `~/.previously` for kernel versions, logs, and process state.
+2. **Sets up your memory** — creates your memory repository at `~/Documents/Previously`; if a Previously repo already lives there (say, cloned back from a backup), it adopts it — history fully preserved.
+3. **Picks an engine** — the wizard detects agent CLIs already on your PATH (Claude Code, Codex, Kimi Code) and offers to configure a detected subscription as the bridge engine: zero API keys, zero extra cost. If nothing is detected, or you'd rather bring your own, it asks for an API key (BYOK). The trade-offs are in [Two Engines](/docs/two-engines).
+4. **Transcribes your existing history** — turns your other local agents' existing conversation logs into slices on the timeline. This step costs zero tokens: transcription is deterministic parsing, not a model call.
 
-**Not initialized yet → it *is* the initialization.** In a terminal it walks you through a guided wizard:
+Any step that would spend tokens shows you the estimate first and defaults to not running. Nothing quietly spends your money.
 
-1. **Where your memory lives** — a local git repo, defaulting to your documents folder (`~/Documents/Previously`).
-2. **Execution backend** — the wizard auto-detects agent CLIs already on your machine (Claude Code, Codex, Kimi Code) and offers to configure a detected subscription as the *bridge* brain: zero API keys, zero API fees. You can also bring your own API key (BYOK) instead.
-3. **Transcribe existing history** — optionally turn your local agents' existing conversation logs into time slices.
-4. **Keep or rebuild** — if there is existing content, choose to keep it or rebuild from scratch.
-
-Every step that would spend tokens shows you the estimated cost first and defaults to *not* running. In a non-interactive environment (CI, scripts, another agent calling the CLI) the same command runs non-interactively with safe defaults and prints every decision it made. Scripts can also drive it explicitly: `previously init --non-interactive --backend <claude|codex|kimi>`.
-
-**Already initialized → it shows a status panel.** Whether the kernel and scribe are running, the Web UI address, how to stop, per-source transcription progress, and a cheat sheet of next commands. The bare command never starts services and never opens a browser — starting is `previously start`, the browser is `previously open`.
-
-## Start and open
+## Start, open, talk
 
 ```bash
-previously start   # start the kernel and the scribe in the background
+previously start   # start the kernel in the background
 previously open    # open the Web UI in your browser
 ```
 
-The day-to-day command surface:
+The Web UI lives at `127.0.0.1:3210` — reachable only from your own machine. Open it and type your first message. That message opens the **first slice** on your timeline: from this moment on, memory accumulates.
 
-| Command | What it does |
-|---|---|
-| `previously` | Init wizard, or status panel once initialized |
-| `previously start` | Start the kernel (and the scribe) in the background |
-| `previously open` | Open the Web UI in your browser |
-| `previously status` | Kernel/scribe health, memory repo state, backend detection |
-| `previously stop` | Stop everything |
-| `previously logs` | Kernel and scribe logs |
+No account creation, no database setup, no seed data.
 
-If you run `previously start` before initializing, it walks the init flow for you first.
+## The dashboard: `previously status`
 
-## Your first conversation
-
-Open the Web UI and the arrival briefing tells you where you left off. Type a message — that opens your first slice, and memory starts accumulating from there. There is no account creation, no database setup, no seed data.
-
-How your messages get answered depends on the brain you picked:
-
-- **Bridge** — requests are executed by a local agent CLI (Claude Code, Codex, or Kimi Code) through your existing subscription. No API key anywhere, no per-token bill.
-- **BYOK** — requests go to a model provider with your own API key, recorded in `config.json` or on the Web UI settings page. See [Configuration](/docs/configuration).
-
-## Where your memory lives
-
-Your memory is a **local git repo** — by default `~/Documents/Previously` (`~/Previously` when there is no Documents folder). You don't need git installed: the client uses a pure-JS git implementation (isomorphic-git).
-
-- Every write is committed on the same rhythm as the cloud version — one chat turn produces its housekeeping and agent-response commits, scribe transcriptions commit per batch, and `previously stop` sweeps up anything uncommitted.
-- Point the client at an existing Previously repo (say, one you cloned back from GitHub) and it adopts it — history fully preserved. A non-empty directory that isn't a git repo is refused, never overwritten.
-- Logs, scribe cursors, and workflow state live outside the repo, so the repo is safe to push as a **private GitHub repository** if you want an off-machine copy.
-
-## Give your other local agents the memory
-
-Previously's memory isn't locked inside its own UI. Two mechanisms connect it to the other agents on your machine:
-
-**`previously install`** writes a read-only "Previously memory" skill into each detected agent's setup:
-
-| Agent | What gets installed |
-|---|---|
-| Claude Code | `~/.claude/skills/previously/` (four files) |
-| Kimi Code | `~/.kimi/skills/previously/` |
-| Codex | A sentinel-wrapped Previously block appended to `~/.codex/AGENTS.md` (existing content is never overwritten) |
-
-The install is idempotent, backs up before the first modification, and `previously uninstall` removes symmetrically. (The old MCP server was retired — the skill package replaces it.)
-
-**The scribe** watches your other agents' session logs — Claude Code, Codex, Kimi Code, and Gemini CLI — and transcribes their conversations into time slices on the same timeline, tagged with their source. It starts automatically with `previously start`; `previously status` reports per-source progress. Your whole AI conversation history, whichever agent produced it, converges onto one timeline.
+Once you're running, the bare `previously` (or `previously status`) is your dashboard: whether the kernel is up, the Web UI address, memory repo state, engine detection, transcription progress. The everyday rhythm of starting, stopping, and reading logs is in [Everyday Commands](/docs/everyday).
 
 ## Try it in the browser first
 
-Want a feel for the product before installing anything? The [playground](/playground) runs an interactive, in-browser experience — no setup required.
-
-## Project Status
-
-**Previously is in active early development and not yet ready for personal or production use** (status: experimental). This guide documents the current client; expect the command surface and defaults to evolve.
+Want a feel for the product before installing anything? The [Recall](/docs/recall) doc has questions you can click right on the page — answered from a real memory, with verbatim quotes, no setup required.
 
 ## Related
 
-- [Deployment](/docs/deployment) — the local client vs. self-hosting the cloud kernel
-- [Configuration](/docs/configuration) — `config.json`, environment variables, and the kernel version policy
-- [The Timeline](/docs/timeline) — the main interaction surface in detail
-- [Memory Model](/docs/memory-model) — slices, strands, and context assembly
+- [Two Engines](/docs/two-engines) — choosing between the subscription bridge and your own key
+- [The Scribe](/docs/scribe) — how existing agent history becomes slices
+- [Everyday Commands](/docs/everyday) — start, open, status, logs, stop
+- [Local First](/docs/local-first) — why all of this runs on your own machine

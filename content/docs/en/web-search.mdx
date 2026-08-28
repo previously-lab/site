@@ -1,0 +1,47 @@
+---
+title: The Web Researcher
+description: webSearch is an independent researcher colleague — the main agent hands it a research question in natural language, it searches and reads pages itself, and returns a cited answer with an explicit confidence and controversy assessment.
+---
+
+# The Web Researcher
+
+When the answer isn't in your memory, Previously doesn't make one up, and it doesn't dump a screen of blue links on you. It hands the question to the colleague who knows how to research — and passes back that colleague's answer, along with how sure they are.
+
+## A researcher, not a search box
+
+`webSearch` is not a wrapper around a search box. The main agent hands it a research question in natural language — "find out whether this medication actually conflicts with coffee" — the way you'd assign work to a colleague who knows their way around sources. What comes back isn't ten links; it's an answer written after reading the material. You didn't ask it to "search" — you asked it to figure something out.
+
+## How it researches
+
+Two steps, both in its own hands:
+
+1. **The search itself is provider-executed**, producing the candidate material.
+2. **It reads pages itself.** Its own `webFetch` opens the most promising pages for a real read — **at most 3 pages**, quota-bounded — because a search digest is often too thin to support a responsible answer.
+
+The budget is 10 steps and a 150-second wall clock. A timeout is not a wasted run: the researcher writes as it works, so the runner returns the accumulated partial instead of coming back empty-handed.
+
+## An answer with a confidence rating
+
+The report carries more than a conclusion:
+
+- **Named sources** — every claim hangs on a citation.
+- **An explicit confidence and controversy assessment** — what is solid, what is still disputed. "The field has no consensus on this" is part of the answer, not a defect.
+- **Suggested follow-up pages** — where to start if you want to dig yourself.
+
+What you get isn't just an answer; it's a researcher's professional judgment: what the answer is, how sure they are, and where people disagree.
+
+## It gets better at how you ask
+
+The researcher keeps its own playbook (`memory/agent-playbooks/search.md`) and its own fitness bucket. Good and bad research gets scored, and enough score triggers an evolution of that playbook (see [The Evolution Loop](/docs/evolution)). Over time it gets better at researching **the way you ask questions**.
+
+## Setup
+
+<Callout variant="warning">
+**`DEEPSEEK_API_KEY` is required.** The web-search infrastructure call always goes through DeepSeek, regardless of which model you chat with. Without that key, `webSearch` fails with an explicit error instead of silently degrading into a guess.
+</Callout>
+
+## Related links
+
+- [Recall](/docs/recall) — ask recall about the past; ask the researcher about the world
+- [Colleagues, Not Tools](/docs/colleagues) — why the main agent outsources research to a colleague
+- [The Evolution Loop](/docs/evolution) — how the fitness score drives playbook evolution

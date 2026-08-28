@@ -1,0 +1,57 @@
+---
+title: 双引擎
+description: 驱动本地内核的两种方式：自带 API key，或者桥接你已经在付费的 agent 订阅——选哪颗引擎，随时可以反悔。
+---
+
+# 双引擎
+
+你很可能已经在为 Claude Code、Codex 或 Kimi Code 付订阅费了。你的记忆不该让你为同一批模型再付一次。所以 Previously 的本地内核有两颗引擎可选——**选哪颗，是一个经济决定，也是一个哲学决定，而且随时可以反悔。**
+
+## 引擎一：自带钥匙（BYOK）
+
+把你自己的 provider API key 交给内核——写进 config 的 `apiKeys`，或者在 Web UI 设置页的 byok 区录入——内核就直接与模型对话。
+
+这是能力最完整的一条路：完整的流式输出，全部特性都在。想要最饱满的体验，我们推荐它。
+
+## 引擎二：桥接你已有的订阅
+
+Bridge 模式换一个思路：内核自己不碰模型，而是把模型工作委托给你机器上已登录的 agent CLI：
+
+```bash
+claude -p --output-format stream-json
+codex exec --json
+kimi -p --output-format stream-json
+```
+
+鉴权搭你既有订阅的 OAuth 便车——client 从头到尾不接触任何 API key。边际成本是零：你已经付过的订阅，就是全部的费用。
+
+## 诚实的取舍
+
+桥接不是免费的午餐，我们把代价摆出来：
+
+- **每次调用要付一次 CLI 冷启动。** 进程拉起是有几秒开销的。
+- **流式更受限制。** protocol-2 的事件和 delta 只能流出 CLI 给得出来的东西：Claude Code 给到 token 级，Codex 和 Kimi Code 则是从它们的输出里推导出的旁白。
+- 已在本机真实验证的适配器：Claude Code 2.1.204、Kimi Code 0.34.0；Codex 的形状由 fixture CLI 测试覆盖，我们如实标注。
+
+如果这些代价你在意，选 BYOK——它是通往最完整体验的推荐路径。如果你更在意"不为记忆再付一次钱"，桥接就是为你做的。
+
+## 随时可以换
+
+引擎选择只是 config 里的一段：
+
+```json
+{ "brain": { "type": "api-key", "env": "...", "model": "..." } }
+{ "brain": { "type": "bridge", "agent": "claude" } }
+```
+
+`agent` 可以换成 `codex` 或 `kimi`。换引擎不改记忆格式，不动一片切片——昨天记下的东西，明天换个引擎照样读。
+
+<Callout variant="info">
+**一句话**：引擎是你的选择，不是你的捆绑——你为记忆付过什么、不付什么，主动权一直在你手里。
+</Callout>
+
+## 相关文档
+
+- [本地优先](/docs/local-first) —— 为什么内核跑在你的机器上
+- [技能包](/docs/skill-pack) —— 让被桥接的 agent 读懂你的记忆
+- [配置](/docs/configuration) —— `brain`、`apiKeys` 与其余键的完整契约

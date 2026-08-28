@@ -1,0 +1,59 @@
+---
+title: 日常
+description: Previously 的一天应该长这样：早上 previously start，然后忘掉它的存在。常见情形不需要任何 flag。
+---
+
+# 日常
+
+和一个工具相处的理想状态，是你忘记它的存在。Previously 的一天应该长这样：**早上 `previously start`，然后没有然后了。** CLI 的命令面被刻意做成两层——日常层只有五个命令，常见情形不需要任何 flag。
+
+## 前门是裸命令
+
+裸 `previously` 是前门，它会根据你是谁而变成两样东西：
+
+- **第一次运行**，它就是初始化向导：一步步问记忆放哪、用哪颗引擎、要不要转录已有的 agent 历史。
+- **之后每次运行**，它是一块状态面板：kernel 和 scribe 是否在跑、Web UI 地址、每个来源的转录进度、以及一条下一步建议。
+
+它从不启动任何服务，从不打开浏览器。裸命令是给人看的，不是给进程用的。
+
+## 一天的五个命令
+
+- **`previously start`** 守护化地拉起 kernel 和 scribe，等端口真正健康后才返回。没初始化会先自动走一遍 init；每次启动前还会跑一遍自愈的配置体检——损坏的 config 会被审计和修复，而不是炸给你看。端口被占了，它会如实拒绝，而不是硬抢。
+- **`previously open`** 打开 Web UI：`http://127.0.0.1:3210`。
+- **`previously status`** 汇报每个子系统的状态。退出码反映最差的那个子系统——内核健康但 scribe 死了，也是非零。脚本可以依赖它。
+- **`previously logs`** 看日志：`-n` 控制行数，`-s kernel|scribe` 只看一个来源。
+- **`previously stop`** 停掉两个进程，顺手把未提交的记忆变更清扫进 git——这是一张安全网，不是一个仪式。
+
+就这样。装完一周后，你大概率只记得 `start`。
+
+## 第一次：init 向导
+
+值得单独说说，因为它做的远不止建目录。它会：
+
+- 创建 `~/.previously` 运行区布局；
+- 创建或领养记忆 git 仓库——指向一个陌生的非空目录会被如实拒绝，你的文件永远不会被覆盖；
+- 探测 PATH 上的 bridge CLI，把找到的原样报给你；
+- 把你机器上已有的 agent 历史转录成时间切片——纯本地解析，零 token 成本；
+- 在任何要花 token 的步骤之前，先给你看账单估计，默认不执行。
+
+给脚本和 agent 用的形态是 `previously init --non-interactive --backend ... --memory-root ... --json`；`--rebuild` 则从原始日志重新转录全部历史。
+
+## 进阶在别处
+
+高级命令各有自己的篇章，这里只留一句话：
+
+- `previously kernel install / list / current` —— 内核版本管理，见[内核供应链](/docs/kernel-supply-chain)。
+- `previously install` / `uninstall` —— 技能包的装卸，见[技能包](/docs/skill-pack)。
+- `previously ingest` —— 外部写入记忆的唯一一扇门，见[写入记忆的唯一一扇门](/docs/ingest)。
+- `previously card` —— 用户卡片的冷启动与查看，见[用户卡片](/docs/user-card)。
+- `previously watch` / `scribe once` —— 转录器的前台运行与一次性回填，见[转录](/docs/scribe)。
+
+<Callout variant="info">
+**一句话**：好的日常工具，应该让你忘掉它还有另外二十个命令。
+</Callout>
+
+## 相关文档
+
+- [快速开始](/docs/getting-started) —— 从 npm 安装到第一次对话
+- [内核供应链](/docs/kernel-supply-chain) —— `kernel` 子命令背后的版本纪律
+- [技能包](/docs/skill-pack) —— `install` 究竟往你的 agent 里写了什么

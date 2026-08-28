@@ -1,0 +1,57 @@
+---
+title: Two Engines
+description: Two ways to power the local kernel — bring your own API key, or bridge the agent subscriptions you already pay for. Switch any time.
+---
+
+# Two Engines
+
+You are probably already paying for a Claude Code, Codex, or Kimi Code subscription. Your memory shouldn't bill you a second time for the same models. So Previously's local kernel offers two engines — **choosing one is an economic decision and a philosophical one, and you can change your mind at any time.**
+
+## Engine one: bring your own key (BYOK)
+
+Hand the kernel your own provider API key — in the config's `apiKeys`, or in the `byok` section of the Web UI settings page — and the kernel talks to the models directly.
+
+This is the fullest path: complete streaming, every capability present. If you want the richest experience, this is the one we recommend.
+
+## Engine two: bridge the subscription you already have
+
+Bridge mode thinks differently: the kernel never touches a model itself. It delegates model work to an agent CLI already logged in on your machine:
+
+```bash
+claude -p --output-format stream-json
+codex exec --json
+kimi -p --output-format stream-json
+```
+
+Authentication rides on your existing subscription's OAuth — the client never touches an API key, start to finish. The marginal cost is zero: the subscription you already pay is the entire bill.
+
+## Honest trade-offs
+
+Bridging is not a free lunch, and we put the costs on the table:
+
+- **Every call pays a CLI cold start.** Spinning up the process costs a few seconds.
+- **Streaming is more limited.** Protocol-2 events and deltas can only stream what the CLI gives out: Claude Code streams at token level, while Codex and Kimi Code get narration derived from their output.
+- Adapters verified against real prompts on a real machine: Claude Code 2.1.204 and Kimi Code 0.34.0. Codex's shape is covered by fixture-CLI tests, and we say so honestly.
+
+If those costs bother you, choose BYOK — it's the recommended path to the fullest experience. If you'd rather never pay twice for memory, the bridge was built for you.
+
+## Switch any time
+
+The engine choice is one block of config:
+
+```json
+{ "brain": { "type": "api-key", "env": "...", "model": "..." } }
+{ "brain": { "type": "bridge", "agent": "claude" } }
+```
+
+`agent` can be `codex` or `kimi` instead. Switching engines changes nothing about the memory format — not one slice moves, and everything recorded yesterday reads fine on tomorrow's engine.
+
+<Callout variant="info">
+**In one line**: the engine is your choice, not your lock-in — what you pay for memory, or don't, stays in your hands.
+</Callout>
+
+## Related
+
+- [Local First](/docs/local-first) — why the kernel runs on your machine
+- [The Skill Pack](/docs/skill-pack) — teaching bridged agents to read your memory
+- [Configuration](/docs/configuration) — the full contract for `brain`, `apiKeys`, and the rest

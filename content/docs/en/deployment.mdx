@@ -1,86 +1,54 @@
 ---
 title: Deployment
-description: Two ways to run Previously — the recommended local-first client (one command), or self-hosting the cloud kernel on Vercel with a GitHub backend.
-order: 1
+description: Most people shouldn't deploy anything — installing the client locally is the whole story. Cloud self-hosting (Vercel + your private GitHub repo) is the advanced path for those who want a tab reachable from anywhere.
 ---
 
 # Deployment
 
-There are two ways to run Previously. Pick by where you want your memory to live and how you want to pay for the model:
+The honest truth first: **most people should not deploy anything.** Previously's default form is the local client — one npm command, and your memory stays on your own machine. Cloud self-hosting is the advanced option, meant for exactly one kind of person: you want a browser tab reachable from anywhere (including your phone), and you're willing to maintain a Vercel project and a GitHub token yourself.
 
-| | Path 1: Local client (recommended) | Path 2: Self-hosted cloud kernel (advanced) |
-|---|---|---|
-| **Who it's for** | Most people. Your memory stays on your own machine; reuse an existing Claude/Codex/Kimi subscription and pay zero API fees. | You want a browser tab reachable from anywhere (including your phone), and you're comfortable managing a Vercel deployment and a GitHub token. |
-| **Where memory lives** | A local git repo on your machine (optionally pushed to a private GitHub repo). | A GitHub repository, read and written through the GitHub API. |
-| **Model cost** | Bridge mode: your existing subscription, zero API spend. BYOK also supported. | BYOK: your own provider API key. |
-| **Setup** | One npm command. | GitHub template repo + token + Vercel deploy (~10 minutes). |
-
-## Path 1: Local client (recommended)
+## The default path: don't deploy
 
 ```bash
 npm i -g previously-client
-previously        # first run: guided init wizard
-previously start  # start the kernel in the background
-previously open   # open the Web UI
+previously
 ```
 
-That's the whole deployment. The kernel ships as a prebuilt npm package pinned to the client — no build tools, no git, no database required on your machine. To upgrade later, upgrade the client package itself; the matching kernel version comes with it.
+That is the entire "deployment". The kernel ships pinned to the client, runs on your machine, and memory is a local git repository. The full walkthrough is in [Getting Started](/docs/getting-started); the thinking behind it is in [Local First](/docs/local-first).
 
-The full walkthrough is in [Getting Started](/docs/getting-started); the knobs are in [Configuration](/docs/configuration).
+## The advanced path: cloud self-hosting
 
-## Path 2: Self-hosted cloud kernel (advanced)
-
-The cloud kernel — the same Next.js agent, deployed to Vercel with a GitHub repository as its memory backend — remains fully supported as the advanced option.
+The cloud form is the same kernel deployed to Vercel, with the memory backend swapped for **your own private GitHub repository** — no database, same files, just lying in your repo instead.
 
 <Callout variant="warning">
-⚠️ **Important: single-user, no login system.** The cloud kernel has no user accounts or authentication — it is designed as a single-user, privately-deployed product. Anyone with your deployment URL can use your instance — and access or modify your memory data. Keep your deployment URL private, and limit your Vercel deployment's visibility if possible.
+**Single-user product, no login system.** The cloud kernel has no accounts: anyone with your deployment URL can use your instance and read your memory. Guard the URL, and set `ACCESS_SECRET` if needed.
 </Callout>
 
-### 1. Create your private copy
+### Steps
 
-Previously is a GitHub template repository. Click **Use this template** on the [Previously repo page](https://github.com/previously-lab/agent) and choose **Create a new repository**. **Make the new repository private** — it holds your agent's memory data (episodic slices, tasks, session state).
-
-### 2. Create a GitHub token
-
-The cloud kernel reads and writes memory through the GitHub API. Create a **fine-grained personal access token** (GitHub Settings → Developer settings → Personal access tokens → Fine-grained tokens) scoped to **Only select repositories** → your private repo, with **Contents: Read and write**. Copy the token immediately — you won't see it again.
-
-### 3. Deploy to Vercel
-
-1. Go to [vercel.com](https://vercel.com), sign in with GitHub, and click **Add New → Project**.
-2. Import your private repo (grant the Vercel GitHub App access if it isn't visible).
-3. Add the environment variables:
+1. **Create the private repo.** On [previously-lab/agent](https://github.com/previously-lab/agent), click **Use this template** to create your copy, and **make it private** — it will hold your memory data.
+2. **Create a token.** A GitHub fine-grained personal access token, scoped to only this repository, with Contents: Read and write.
+3. **Deploy to Vercel.** Import the repo, set the environment variables, hit Deploy.
 
 ```bash
-DEEPSEEK_API_KEY=sk-...            # powers the default models
 GITHUB_TOKEN=github_pat_...        # the token from step 2
 GITHUB_REPO_OWNER=your-username
-GITHUB_REPO_NAME=your-repo-name
-# ACCESS_SECRET=                   # optional: access key for non-browser API callers
+GITHUB_REPO_NAME=your-private-repo
+DEEPSEEK_API_KEY=sk-...            # powers the web-search colleague's retrieval
+# plus one provider API key for the main model (OPENAI_API_KEY / ANTHROPIC_API_KEY / …)
+# ACCESS_SECRET=                   # optional: access key for non-browser callers
 ```
 
-4. Click **Deploy**. Vercel detects Next.js, builds, and gives you a URL.
+`DEEPSEEK_API_KEY` is reserved for the search colleague (webSearch's provider retrieval); the main model runs on whatever provider key you set — setting a provider's key makes its models appear in Settings.
 
-`DEEPSEEK_API_KEY` powers the default setup, but any supported provider key works — setting a provider's key makes its models selectable in Settings. See the [BYOK provider keys](/docs/configuration) reference for the full list.
+### Defenses and upgrades
 
-### Syncing upstream updates
+Mutation endpoints sit behind a same-origin guard: calls from your own browser pass automatically; non-browser callers like curl or scripts need an `x-access-key` header once `ACCESS_SECRET` is set. If you only ever use your own browser, you can leave it unset.
 
-When a new version is released, open your instance's **Settings → Version & Updates** and click **Sync from upstream**. The latest code is merged into your repository as a proper merge commit and Vercel redeploys automatically. Only code directories are synced — your personal data (`memory/`, `tasks/`, `sessions/`) is never overwritten.
-
-If the button is unavailable, merge manually:
-
-```bash
-git remote add upstream https://github.com/previously-lab/agent.git
-git fetch upstream
-git merge upstream/main --allow-unrelated-histories
-git push origin main
-```
-
-### Access key for API callers
-
-The cloud kernel's mutation endpoints (`POST /api/chat`, `/api/loops`, `/api/episodic/flush`) sit behind a same-origin guard: browser calls from your own deployment pass automatically. Non-browser callers (curl, scripts, cron) need `ACCESS_SECRET` set and sent as an `x-access-key` header — otherwise they're allowed too, keeping a private deployment frictionless. Set it only if you expose the URL beyond your own browser.
+Upgrades ride on GitHub: **Sync from upstream** in your instance's Settings merges upstream changes into your repo as a proper merge commit, and Vercel redeploys right after. The sync touches code only — it never overwrites what's in `memory/`.
 
 ## Related
 
-- [Getting Started](/docs/getting-started) — the local client walkthrough
-- [Configuration](/docs/configuration) — `config.json`, environment variables, and the kernel version policy
-- [Architecture](/docs/architecture) — three-layer separation and data model
+- [Getting Started](/docs/getting-started) — the full walkthrough of the default path
+- [Local First](/docs/local-first) — why local is the default
+- [Architecture](/docs/architecture) — how the cloud form's durable runs work

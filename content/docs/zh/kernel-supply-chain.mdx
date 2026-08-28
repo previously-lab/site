@@ -1,0 +1,48 @@
+---
+title: 内核供应链
+description: 记忆格式与内核行为绑定，所以我们把内核当成一条供应链来管：一个精确版本、可证明的来源、零静默漂移。
+---
+
+# 内核供应链
+
+你的记忆格式和内核行为是绑定的——切片长什么样、账本怎么记，都由内核的代码决定。这意味着"我机器上跑的是哪个内核"不是细节，而是前提。**所以我们不像对待一次下载那样对待内核；我们把它当成一条供应链：一个精确版本，可证明的来源，零静默漂移。**
+
+## 精确到 patch
+
+内核以 [`previously-kernel`](https://www.npmjs.com/package/previously-kernel) 发布在 npm——它是 agent 仓库（previously-lab/agent）的预构建 standalone 产物。client 把它钉死：同一个版本字符串同时出现在 `dependencies` 和 `previously.kernelVersion` 里——没有范围号，没有"兼容 ^0.9"，patch 位也不例外。
+
+`start` 和 `status` 时的版本检查因此不是兼容性门槛，而是完整性自检：它回答的不是"能不能跑"，而是"跑的是不是我们以为的那个"。
+
+## 升级就是升级 client
+
+升级路径只有一条：
+
+```bash
+npm i -g previously-client
+```
+
+内核作为 client 的依赖随行而来。回滚同样简单：装回旧版 client，就装回旧版内核。没有独立的内核升级命令，也就没有"client 和内核版本错位"这种状态。
+
+安装落盘是版本化的：每个内核装进 `~/.previously/kernel/versions/<version>/`，切换靠 `current.json` 指针的一次原子翻转。旧版本原地保留，新版本没起来之前，指针不会动。
+
+## 逃逸舱门
+
+精确锁定是纪律，不是牢笼。留了三扇门：
+
+- config 里的 `kernelDir` 可以显式覆盖内核目录；
+- `previously kernel install --from <dir>` 把一个本地 standalone 目录直接当作已构建产物安装；
+- `previously kernel install --repo` 从 agent 仓库浅克隆钉死的 tag 并本机构建——需要 git 和 pnpm，是给开发者的通道。
+
+## 发布管线
+
+这条供应链在 CI 里是这样走的：agent 仓库打 tag，CI **先发布内核**；client 打 tag，CI 校验钉锁是否一致、冒烟测试一次真实的全局安装，然后带 npm provenance 发布——你可以从 npm 页面一路追溯回构建它的那次 CI 运行。产物完全解引用（零符号链接），这是 Windows 支持的前置条件，也顺带让"你下载到的东西"和"CI 构建的东西"逐字节相同。
+
+<Callout variant="info">
+**一句话**：你机器上跑的那个版本，和我们在 CI 里验证的那个版本，是同一个版本——可证明，不可漂移。
+</Callout>
+
+## 相关文档
+
+- [本地优先](/docs/local-first) —— 内核为什么是一个 npm 包
+- [日常](/docs/everyday) —— `kernel install / list / current` 在命令面里的位置
+- [架构](/docs/architecture) —— 内核在整体架构中的位置

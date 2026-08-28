@@ -1,0 +1,48 @@
+---
+title: The Evolution Loop
+description: The system learns how to treat you better at slice boundaries — but every step is evidence-anchored, append-only, and auditable: no trigger means no evolution, and a scoreless claim is force-zeroed.
+---
+
+# The Evolution Loop
+
+Previously learns how to treat you better — but it cannot quietly rewrite itself. Every change starts from evidence and lands in an append-only archive you can audit line by line afterwards. The loop runs at **slice boundaries**, in two phases — and most of the time, it doesn't run at all.
+
+## No trigger, no evolution
+
+Evolution is not a routine. The triggers are deterministic code (`src/lib/evolution/triggers.ts`), not vibes:
+
+- a fitness bucket's net score over the last 10 slices falls to **−3 or worse**;
+- or a single **evidence-anchored −2** lands this slice;
+- plus the analyzer's `evolve_card.worth` gate, a legacy-card force, and your explicit requests or corrections — "remember this...", "stop doing X" fires a **card-only** run mid-slice, without waiting for a boundary.
+
+With no trigger, no evolution sub-agent runs at all. It never "takes a look around to see what could improve."
+
+## Phase one: direction
+
+The Direction Agent evaluates `memory/evolution/direction.md` — the loop's **learned reward model**. It is propose-only; it holds no write tools.
+
+direction.md has four fixed sections: Direction / Anti-goals / Evidence / Log. Its content discipline is **conditional mappings** — "when the situation is X, prefer Y" — never states; states belong in the user card's Now section. "No change" is the common case, and it writes nothing. A bootstrap gate covers the first-ever direction, with a lowered bar.
+
+## Phase two: the single writer
+
+The Previously Agent is the **single writer** of the user card and the colleagues' playbooks. It edits through validated per-entry mutation tools — always entry-level edits, never whole-file rewrites. Over-limit writes are rejected with compression instructions, and a loop brake force-lands repeated identical rejections instead of spinning forever.
+
+## Scorekeeping, no empty claims
+
+The fitness store has five buckets: `card` / `recall` / `search` / `thinkdeep` / `interaction`, with single deltas from −2 to +1. One structural rule: **any delta without evidence is force-zeroed**. Scores may be wrong, but they may not be sourceless — the same discipline as recall's evidence anchoring.
+
+## The acceptance archive is append-only
+
+Every accepted mutation is appended to `memory/evolution/mutations.md` with its expected benefit and evidence. The archive is append-only and self-auditing: **archiving a new mutation evaluates the previous one on the same target**. A change that keeps losing points earns an `**Evaluation: ineffective**` line — which is never deleted. No rollback, no cooldown: just an ever-longer, honest record.
+
+Two engineering details worth knowing: playbooks are injected into the colleague's **user prompt**, never the static system prompt — prefix-cache stability forbids it. And the whole run streams live into the chat; a skipped run is reported too, together with its reason.
+
+<Callout variant="info">
+**In one line**: it is learning how to treat you better, and it leaves footprints on every step.
+</Callout>
+
+## Related links
+
+- [The User Card](/docs/user-card) — the evolution loop's main product
+- [Colleagues, Not Tools](/docs/colleagues) — where the fitness buckets come from
+- [Recall](/docs/recall) — the rework signal: the most reliable implicit scoring source

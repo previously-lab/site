@@ -1,0 +1,65 @@
+---
+title: 记忆是一个文件夹
+description: Previously 的记忆不是某个数据库里的行——它是你磁盘上的一个普通文件夹，外加一个本地 git 账本。
+---
+
+# 记忆是一个文件夹
+
+很多产品对你说"你的数据属于你"，然后把数据锁在只有他们读得懂的格式里。我们不觉得承诺算数——**所有权不是一句承诺，而是一种格式。** Previously 的记忆是 `~/Documents/Previously` 下的一个普通文件夹：纯 Markdown，任何编辑器都能打开。你可以读它、grep 它、备份它、把它喂给另一个工具——不需要我们同意，甚至不需要我们在场。
+
+## 它住在哪
+
+默认位置贴着系统的用户文档目录：`~/Documents/Previously`（机器上没有 Documents 目录时退回 `~/Previously`）。初始化时你可以换位置，也可以指向一个已有的 Previously 仓库——比如从 GitHub clone 回来的那份——client 会领养它，历史原样保留。
+
+## 文件夹里有什么
+
+打开它，你看到的不是数据库转储，而是一棵按时间生长的树：
+
+```
+~/Documents/Previously/
+├── episodic/
+│   ├── slices/YYYY/MM/DD/HHMM/    # 每个时间切片一个文件夹
+│   │   ├── timeline/core.md       # 对话原文
+│   │   ├── timeline/agent.md      # agent 自己的认知记录
+│   │   ├── timeline/appendix.md   # 没解析出来的原始行
+│   │   └── previously.md          # 那一刻的用户卡片快照
+│   ├── timeline/index.json        # 时间线索引 + 月度 _index.json
+│   ├── timeline.md
+│   ├── strands.json
+│   └── current-previously.md      # 活着的用户卡片
+├── evolution/
+│   ├── direction.md
+│   ├── fitness.json
+│   └── mutations.md               # 只追加，从不改写
+├── agent-playbooks/*.md
+└── user/
+    ├── config.json
+    └── profile.md                 # 名字、时区、称呼
+```
+
+每一份都值得说清楚：
+
+- **`timeline/core.md`** 是逐字的对话。回合按 `## Turn N — ISO 时间 (role)` 分隔——你说过什么就是什么，一字不改。
+- **`timeline/agent.md`** 是 agent 自己的认知日志：抽取出的推理和工具调用。你不只看到它说了什么，还看到它"想"了什么。
+- **`timeline/appendix.md`** 是最诚实的一份：格式漂移、解析失败的原始行全部落在这里。**没有一行会被静默丢弃。**
+- 切片的 frontmatter 带着结构化字段：`slice_id`、`focus`、`summary`、`tags`、`status`、`start`/`end`、`open_loops`、`decisions`、`emotional_tone`，外加每片一份的 `previously.md` 卡片快照。
+- 索引层（`strands.json`、`timeline/index.json` 与 `timeline.md`、月度 `_index.json`）是给人和机器一起看的目录。
+- `user/profile.md` 里的名字和称呼，驱动那个标题——`Previously on <你的名字>`。
+
+## git 是账本，不是锁
+
+这个文件夹同时是一个普通的本地 git 仓库，由 isomorphic-git 维护——纯 JavaScript 实现，你的机器上不需要装 git。
+
+但分工要说清楚：**文件系统是事实之源，git 只是一本尽力而为的账本。** commit 失败永远不会阻断一次写入——先保证记忆落盘，账本随后补上。commit 的节奏与云端完全一致：一次对话回合记两笔（housekeeping + agent response），scribe 和 ingest 按批次提交，`previously stop` 兜底清扫所有漏网的未提交变更。
+
+想备份？把它推到你自己的私有 GitHub 仓库就行。运行期的杂项——`.workflow-data/`、日志、转录游标——都放在 `~/.previously` 而不在仓库里，所以仓库内容可以放心 push。备份是你的主动推送，不是我们默认的保管。
+
+<Callout variant="info">
+**一句话**：你的记忆归你，不是因为我们承诺不碰它，而是因为它从第一天起就是一种你完全拥有的格式。
+</Callout>
+
+## 相关文档
+
+- [时间切片](/docs/slices) —— 单个切片里每一句话的去向
+- [时间线](/docs/timeline) —— 切片如何串成一条可浏览的时间轴
+- [本地优先](/docs/local-first) —— 为什么记忆从一开始就躺在你的硬件上

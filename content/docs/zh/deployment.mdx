@@ -1,86 +1,54 @@
 ---
 title: 部署
-description: 运行 Previously 的两条路径——推荐的本地优先客户端（一条命令），或在 Vercel 上自部署以 GitHub 为后端的云端内核。
-order: 1
+description: 大多数人不需要部署任何东西——本地装上 client 就是全部。云端自托管（Vercel + 你的私有 GitHub 仓库）是给想要随处可达标签页的人的进阶路径。
 ---
 
 # 部署
 
-运行 Previously 有两条路径。按「你希望记忆存在哪」和「你希望怎么为模型付费」来选：
+先说实话：**大多数人不应该部署任何东西。** Previously 的默认形态是本地客户端：一条 npm 命令，记忆留在你自己的机器上。云端自托管是进阶选项，只为一类人准备——想要一个随时随地（包括手机浏览器）都能打开的标签页，并且愿意自己维护一个 Vercel 项目和一个 GitHub token。
 
-| | 路径一：本地客户端（推荐） | 路径二：自部署云端内核（进阶） |
-|---|---|---|
-| **适合谁** | 大多数人。记忆留在你自己的机器上；复用已有的 Claude/Codex/Kimi 订阅，零 API 费用。 | 想要一个随时随地（包括手机上）都能打开的浏览器标签页，并且愿意自己维护 Vercel 部署和 GitHub token。 |
-| **记忆存在哪** | 本机的 git 仓库（可选地 push 成私有 GitHub 仓库）。 | 一个 GitHub 仓库，通过 GitHub API 读写。 |
-| **模型成本** | Bridge 模式：走你已有的订阅，零 API 开销。也支持 BYOK。 | BYOK：你自己的提供商 API key。 |
-| **搭建方式** | 一条 npm 命令。 | GitHub 模板仓库 + token + Vercel 部署（约 10 分钟）。 |
-
-## 路径一：本地客户端（推荐）
+## 默认路径：不部署
 
 ```bash
 npm i -g previously-client
-previously        # 首次运行：引导式初始化向导
-previously start  # 后台启动内核
-previously open   # 打开 Web UI
+previously
 ```
 
-这就是全部部署过程。内核以预构建 npm 包的形式随客户端钉死分发——你的机器上不需要构建工具、不需要 git、不需要数据库。之后要升级，升级客户端包本身即可，匹配的内核版本会随之一起来。
+这就是全部的"部署"。内核随 client 精确锁版分发，跑在你的机器上，记忆是本地 git 仓库。完整走查见[快速开始](/docs/getting-started)，背后的理念见[本地优先](/docs/local-first)。
 
-完整走查见[快速开始](/docs/getting-started)；可调项见[配置](/docs/configuration)。
+## 进阶路径：云端自托管
 
-## 路径二：自部署云端内核（进阶）
-
-云端内核——同一个 Next.js agent，部署到 Vercel、以一个 GitHub 仓库作为记忆后端——仍作为进阶选项完整支持。
+云端形态是同一颗内核部署到 Vercel，记忆后端换成**你自己的私有 GitHub 仓库**——没有数据库，文件还是那些文件，只是躺在你的仓库里。
 
 <Callout variant="warning">
-⚠️ **重要：单用户产品，没有登录系统。** 云端内核没有用户账号或身份验证——它被设计为单用户、私有部署的产品。任何持有你部署链接的人都可以使用你的实例，并访问或修改你的记忆数据。请妥善保管部署链接，并尽可能限制 Vercel 部署的可见范围。
+**单用户产品，没有登录系统。** 云端内核没有账号体系：任何拿到你部署链接的人都能使用你的实例、读到你的记忆。保管好链接，必要时设置 `ACCESS_SECRET`。
 </Callout>
 
-### 1. 创建你的私有副本
+### 步骤
 
-Previously 是一个 GitHub 模板仓库。在 [Previously 仓库页面](https://github.com/previously-lab/agent) 点击 **Use this template**，选择 **Create a new repository**。**请将新仓库设为私有**——它存储着 agent 的记忆数据（时间片、任务、会话状态）。
-
-### 2. 创建 GitHub token
-
-云端内核通过 GitHub API 读写记忆。创建一个**细粒度个人访问 token**（GitHub Settings → Developer settings → Personal access tokens → Fine-grained tokens），范围选 **Only select repositories** → 你的私有仓库，权限给 **Contents: Read and write**。生成后立即复制——之后无法再次查看。
-
-### 3. 部署到 Vercel
-
-1. 前往 [vercel.com](https://vercel.com)，用 GitHub 登录，点击 **Add New → Project**。
-2. 导入你的私有仓库（如果看不到，给 Vercel GitHub App 授权访问）。
-3. 添加环境变量：
+1. **建私有仓库。** 在 [previously-lab/agent](https://github.com/previously-lab/agent) 点 **Use this template** 创建副本，**务必设为私有**——它将存储你的记忆数据。
+2. **建 token。** 创建 GitHub 细粒度个人访问 token，范围只选这个仓库，权限给 Contents: Read and write。
+3. **部署到 Vercel。** 导入仓库，配好环境变量，点 Deploy。
 
 ```bash
-DEEPSEEK_API_KEY=sk-...            # 驱动默认模型
-GITHUB_TOKEN=github_pat_...        # 第 2 步创建的 token
+GITHUB_TOKEN=github_pat_...        # 第 2 步的 token
 GITHUB_REPO_OWNER=your-username
-GITHUB_REPO_NAME=your-repo-name
-# ACCESS_SECRET=                   # 可选：供非浏览器 API 调用方使用的 access key
+GITHUB_REPO_NAME=your-private-repo
+DEEPSEEK_API_KEY=sk-...            # 驱动搜索同事的 web 检索
+# 再加一个主模型的提供商 key（OPENAI_API_KEY / ANTHROPIC_API_KEY / …任选一家）
+# ACCESS_SECRET=                   # 可选：非浏览器调用方的 access key
 ```
 
-4. 点击 **Deploy**。Vercel 会检测 Next.js、构建并分配一个 URL。
+`DEEPSEEK_API_KEY` 专门给搜索同事（webSearch 的 provider 检索）使用；主模型由你设置的提供商 key 驱动——设了哪家的 key，哪家的模型就会出现在设置页。
 
-`DEEPSEEK_API_KEY` 驱动默认配置，但任何受支持的提供商 key 都可以——设置了某家的 key，其模型即可在设置页选择。完整清单见 [BYOK 提供商密钥](/docs/configuration)。
+### 防线与升级
 
-### 同步上游更新
+变更端点有同源守卫：你自己浏览器里的调用自动放行；curl、脚本这类非浏览器调用方在设置了 `ACCESS_SECRET` 后需要带 `x-access-key` 头。只在自己浏览器里用的话可以不设。
 
-新版本发布时，打开你实例的 **Settings → Version & Updates**，点击 **Sync from upstream**。最新代码会以一个正式的合并提交并入你的仓库，Vercel 随即自动重新部署。只有代码目录会被同步——你的个人数据（`memory/`、`tasks/`、`sessions/`）永远不会被覆盖。
-
-如果按钮不可用，可以手动合并：
-
-```bash
-git remote add upstream https://github.com/previously-lab/agent.git
-git fetch upstream
-git merge upstream/main --allow-unrelated-histories
-git push origin main
-```
-
-### API 调用方的 access key
-
-云端内核的写操作端点（`POST /api/chat`、`/api/loops`、`/api/episodic/flush`）由同源守卫保护：来自你自己部署的浏览器调用自动放行。非浏览器调用方（curl、脚本、定时任务）需要设置 `ACCESS_SECRET` 并以 `x-access-key` 请求头发送——未设置时它们同样放行，保持私有部署零摩擦。只有当你要把链接暴露给浏览器之外的调用方时才设置它。
+升级跟着 GitHub 走：实例设置页里的 **Sync from upstream** 会把上游更新作为一次正式合并并入你的仓库，Vercel 随即重新部署。同步只碰代码，永远不覆盖 `memory/` 里的数据。
 
 ## 相关文档
 
-- [快速开始](/docs/getting-started) —— 本地客户端走查
-- [配置](/docs/configuration) —— `config.json`、环境变量与内核版本策略
-- [架构](/docs/architecture) —— 三层分离与数据模型
+- [快速开始](/docs/getting-started) —— 默认路径的完整走查
+- [本地优先](/docs/local-first) —— 为什么本地是默认
+- [架构](/docs/architecture) —— 云端形态的耐久运行原理

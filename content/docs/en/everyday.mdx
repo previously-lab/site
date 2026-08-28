@@ -1,0 +1,59 @@
+---
+title: Everyday Commands
+description: A day with Previously should look like this — previously start in the morning, then nothing. The common case has no flags.
+---
+
+# Everyday Commands
+
+The ideal relationship with a tool is forgetting it exists. A day with Previously should look like this: **`previously start` in the morning, and nothing after.** The command surface is deliberately two-tiered — the everyday tier has five commands, and the common case takes no flags.
+
+## The front door is the bare command
+
+Bare `previously` is the front door, and it becomes one of two things depending on who you are:
+
+- **On first run**, it is the init wizard: it walks you through where memory lives, which engine to use, and whether to transcribe your existing agent history.
+- **Every run after that**, it is a status dashboard: whether kernel and scribe are alive, the Web UI URL, per-source transcription progress, and a next-step hint.
+
+It never starts a service and never opens a browser. The bare command is for people, not for processes.
+
+## The five commands of a day
+
+- **`previously start`** daemonizes the kernel and the scribe, and only returns once the port is actually healthy. If you haven't initialized, it runs init first; before every launch it also runs a self-repairing config checkup — a damaged config gets audited and fixed, not exploded at you. If the port is taken, it refuses honestly instead of fighting for it.
+- **`previously open`** opens the Web UI at `http://127.0.0.1:3210`.
+- **`previously status`** reports every subsystem. Its exit code reflects the worst one — kernel healthy but scribe dead is still non-zero. Scripts can rely on it.
+- **`previously logs`** tails logs: `-n` caps the line count, `-s kernel|scribe` narrows to one source.
+- **`previously stop`** stops both processes and sweeps any uncommitted memory changes into git — a safety net, not a ceremony.
+
+That's all. A week after installing, you will probably only remember `start`.
+
+## The first time: the init wizard
+
+Worth its own section, because it does far more than make directories. It:
+
+- creates the `~/.previously` runtime layout;
+- creates or adopts the memory git repository — pointing it at a foreign non-empty directory is refused honestly, and your files are never overwritten;
+- detects bridge CLIs on your PATH and reports exactly what it found;
+- transcribes the agent history already on your machine into time slices — pure local parsing, zero token cost;
+- shows a cost estimate before any token-spending step, which defaults to not running.
+
+For scripts and agents, the shape is `previously init --non-interactive --backend ... --memory-root ... --json`; `--rebuild` re-transcribes all history from the raw logs.
+
+## The advanced lives elsewhere
+
+Each advanced command has its own chapter; one line each here:
+
+- `previously kernel install / list / current` — kernel version management, see [The Kernel Supply Chain](/docs/kernel-supply-chain).
+- `previously install` / `uninstall` — loading and removing the skill pack, see [The Skill Pack](/docs/skill-pack).
+- `previously ingest` — the only door for writing memory from outside, see [The Only Way In](/docs/ingest).
+- `previously card` — bootstrapping and viewing the user card, see [The User Card](/docs/user-card).
+- `previously watch` / `scribe once` — running the scribe in the foreground and one-shot backfills, see [The Scribe](/docs/scribe).
+
+<Callout variant="info">
+**In one line**: a good everyday tool makes you forget it has twenty other commands.
+</Callout>
+
+## Related
+
+- [Getting Started](/docs/getting-started) — from npm install to your first conversation
+- [The Kernel Supply Chain](/docs/kernel-supply-chain) — the version discipline behind the `kernel` subcommands
+- [The Skill Pack](/docs/skill-pack) — what `install` actually writes into your agents

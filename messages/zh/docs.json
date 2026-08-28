@@ -19,9 +19,10 @@
     "openMenu": "打开菜单",
     "closeMenu": "关闭菜单",
     "sections": {
-      "overview": "概览",
-      "concepts": "概念",
-      "guides": "指南",
+      "start": "起点",
+      "memory": "记忆如何成形",
+      "mind": "它如何回忆与思考",
+      "client": "跑在你机器上",
       "reference": "参考"
     }
   }

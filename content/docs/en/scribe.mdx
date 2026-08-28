@@ -1,0 +1,55 @@
+---
+title: The Scribe
+description: The scribe is a read-only observer of your other agents' session logs, transcribing years of conversations locked in vendor formats onto one timeline — zero tokens, originals untouched.
+---
+
+# The Scribe
+
+Your conversations with AI probably didn't happen in one place: late-night debugging in Claude Code, refactors in Codex, brainstorms in Kimi Code. Those conversations sit locked in each vendor's private format, unreadable to anyone else. Previously believes they belong on a single timeline — your whole AI life should be rememberable together. So we wrote a copyist: **the scribe reads your other agents' session logs and rebuilds those conversations as Previously time slices, on exactly the same timeline as your own.**
+
+## Transcribe, don't hijack
+
+The first rule is in the name: it is a scribe, not a driver. It holds read-only access to your other agents' session logs — no injection, no write-backs, no decisions on their behalf. The originals are never touched, not one byte.
+
+Which also means transcription involves no model at all: line-by-line parsing, rule-based reconstruction, deterministic writes. Zero token cost; your subscription quota is never spent.
+
+## It watches four directories
+
+- **Claude Code** — `~/.claude/projects/**/*.jsonl`, verified against real session logs.
+- **Codex** — `~/.codex/sessions/**/rollout-*.jsonl`, covered by fixture tests.
+- **Kimi Code** — `~/.kimi-code/sessions/**/wire.jsonl`, verified against real wire files, sub-agent wires included.
+- **Gemini CLI** — `~/.gemini/tmp/*/chats/*.json`, whole-file checkpoints, re-derived from scratch on every change.
+
+Each format lives behind its own parser plugin, so format drift in one cannot infect the others. Every transcribed slice carries `source` and `session_id` provenance labels — you can always see where a memory came from.
+
+## A boring pipeline
+
+A file watcher (waits for writes to settle for 200ms) → one serialized queue per file → incremental versioned parsers → events grouped into question-and-answer exchanges → a deterministic slice writer → batched git commits (`Scribe: N slice(s) from …`).
+
+The writer produces the byte-identical layout the kernel itself uses: `episodic/slices/YYYY/MM/DD/HHMM/timeline/core.md`, with the monthly `_index.json` updated alongside. To the timeline, a transcribed slice and a kernel-written slice are indistinguishable — which is the point.
+
+"Boring" is a compliment here. Deterministic means the same input always yields the same bytes, and re-transcription never churns the files.
+
+## The cursor remembers where it stopped
+
+For every file the scribe keeps a cursor: byte offset + line count + a chained sha256, persisted atomically. After a restart it resumes exactly there; a file that shrank (truncated or rotated) is re-read cleanly from byte 0; a parser version upgrade invalidates the old cursor and forces the same clean re-read. Byte-level idempotency guarantees a re-read never duplicates content.
+
+Even a corrupt cursor file has a plan: it is quarantined as `cursors.json.corrupt` and reported honestly in status — never silently discarded.
+
+## The format tax
+
+Log formats drift; that is unavoidable. The scribe's answer is to pay the tax honestly: lines that don't parse never break the pipeline — they degrade into the slice's `timeline/appendix.md` as a raw appendix and are counted in status as parse errors. What you see is "3 lines we couldn't read", not a silent system pretending everything is fine.
+
+## Day to day
+
+After install you mostly never think about it: `previously start` brings the scribe up as a detached process alongside the kernel. `previously status` shows per-source progress — files seen and processed, events, parse errors, the time of the last event. To watch it work, `previously watch` runs it in the foreground; to backfill history in one shot, `previously scribe once` does a full scan.
+
+<Callout variant="info">
+**In one line**: the scribe moves your past with other agents onto one timeline — read-only, zero tokens, originals untouched.
+</Callout>
+
+## Related
+
+- [Slices](/docs/slices) — what a transcribed slice looks like
+- [The Timeline](/docs/timeline) — where every conversation converges
+- [The Only Way In](/docs/ingest) — the channel for writing on purpose
