@@ -18,7 +18,7 @@ Previously has one kernel and two ways to run it. In the local form, the kernel 
 Installing the whole product takes:
 
 ```bash
-npm i -g @previously-lab/client
+npm i -g @previously-lab/client@preview
 previously
 ```
 
@@ -40,7 +40,7 @@ The kernel version is pinned exactly by the client — not "compatible with ^0.9
 So an upgrade is always one sentence:
 
 ```bash
-npm i -g @previously-lab/client@latest
+npm i -g @previously-lab/client@preview
 ```
 
 The new kernel arrives as a dependency, installs into `~/.previously/kernel/versions/<version>/`, and the pointer flips atomically. The old version stays where it was. No in-place migration scripts, no "do not power off".

@@ -289,7 +289,7 @@
         {
           "icon": "github",
           "title": "One command. Local-first.",
-          "body": "npm i -g @previously-lab/client, then run previously — a guided setup builds your memory as a plain local git repo (default ~/Documents/Previously), committed as you talk. Push it to any private remote; it's yours either way.",
+          "body": "npm i -g @previously-lab/client@preview, then run previously — a guided setup builds your memory as a plain local git repo (default ~/Documents/Previously), committed as you talk. Push it to any private remote; it's yours either way.",
           "cta": "View on GitHub"
         },
         {
@@ -354,7 +354,7 @@
         "resumedLabel": "resumed where you left off"
       },
       "oss": {
-        "command": "npm i -g @previously-lab/client",
+        "command": "npm i -g @previously-lab/client@preview",
         "badges": [
           "MIT",
           "Local-first",
@@ -377,7 +377,7 @@
         "title": "Local · npm",
         "body": "One command to install, then run previously and the setup wizard takes over. Your memory is a plain git repo on your disk — no third party in the loop.",
         "commands": [
-          "npm i -g @previously-lab/client",
+          "npm i -g @previously-lab/client@preview",
           "previously"
         ],
         "comment": "# the wizard walks you through setup",

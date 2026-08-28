@@ -18,7 +18,7 @@ That makes the version check in `start` and `status` an integrity self-check rat
 There is exactly one upgrade path:
 
 ```bash
-npm i -g @previously-lab/client
+npm i -g @previously-lab/client@preview
 ```
 
 The kernel travels as the client's dependency. Rollback is equally simple: install an older client, and you get the older kernel. With no separate kernel upgrade command, the state "client and kernel versions disagree" cannot exist.

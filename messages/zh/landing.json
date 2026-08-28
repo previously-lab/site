@@ -289,7 +289,7 @@
         {
           "icon": "github",
           "title": "一条命令,本地优先。",
-          "body": "npm i -g @previously-lab/client,然后裸跑 previously——向导会帮你把记忆初始化为一个普通的本地 git 仓库(默认 ~/Documents/Previously),边聊边 commit。想备份就 push 成私有 repo;不 push,它也是你的。",
+          "body": "npm i -g @previously-lab/client@preview,然后裸跑 previously——向导会帮你把记忆初始化为一个普通的本地 git 仓库(默认 ~/Documents/Previously),边聊边 commit。想备份就 push 成私有 repo;不 push,它也是你的。",
           "cta": "在 GitHub 查看"
         },
         {
@@ -354,7 +354,7 @@
         "resumedLabel": "从你离开的地方继续"
       },
       "oss": {
-        "command": "npm i -g @previously-lab/client",
+        "command": "npm i -g @previously-lab/client@preview",
         "badges": [
           "MIT",
           "本地优先",
@@ -377,7 +377,7 @@
         "title": "本地 · npm",
         "body": "一条命令装好,裸跑 previously,向导接手剩下的。记忆是你磁盘上的普通 git 仓库,不经过任何第三方。",
         "commands": [
-          "npm i -g @previously-lab/client",
+          "npm i -g @previously-lab/client@preview",
           "previously"
         ],
         "comment": "# 向导会带你完成初始化",
