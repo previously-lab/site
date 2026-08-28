@@ -72,7 +72,7 @@ Previously 项目当前 demo 体验存在三个主要障碍：
 
 - 数据：**运行时实时读取线上 `you` 仓库**（GitHub raw，`previously-lab/you/main/user`）——这个仓库就是 demo 用户的记忆本体，playground 的访问方式与真实内核一致。`src/lib/playground/snapshot.ts` 的 `getSnapshot()` 远程优先，模块级缓存 5 分钟；GitHub 不可达时回退到 vendored 兜底快照（`src/lib/playground/data/snapshot.json`，由 `pnpm playground:sync` 刷新，见 `scripts/sync-playground-data.mjs`），兜底状态下 1 分钟后重试远程。快照带内容哈希 `version`。
 - API：`POST /api/playground`（`src/app/api/playground/route.ts`）。
-- UI：`src/components/playground/`（仿真聊天窗口），页面 `src/app/[locale]/playground/page.tsx`，MDX 可用 `<Playground preset="recall-worldcup" />`。
+- UI：`src/components/playground/`（片段化对话组件：按能力划分 recall/evolution/anatomy，打开即有 2-3 轮预录对话历史（静态文案，基于数据集真实切片，不走 API），底部无输入框只有 prompt 选项，点击走真实 API 追加进对话流），MDX 用 `<Playground capability="recall" />` 嵌在对应能力的文档里。**2026-08-28 修订：Playground 是组件不是页面**——`/playground` 独立页面及其所有入口（落地页 CTA、footer、sitemap、llms.txt、文档内链接）已全部撤除，入口改为指向 /docs/recall。详见下文「设计修订」。
 - preset 白名单：`src/lib/playground/presets.ts`，前后端共用。
 
 ### API 契约
@@ -136,3 +136,14 @@ recall prompt 复刻内核 recall 同事纪律：先给全量 timeline 索引 + 
 
 - 设 `DEEPSEEK_API_KEY` 后对 5 个 preset × 2 locale 各跑一次，确认模型输出过 zod 校验（尤其是 evolution 的 `cardAfter` 完整卡片与 anatomy 的 `sliceId`）。
 - 文档挂载（`content/docs/`）由维护者后续进行。
+
+---
+
+## 设计修订（2026-08-28，维护者明确拍板）
+
+Playground 的定位与形态以本节为准，覆盖上文任何冲突描述：
+
+1. **是组件，不是页面。** 撤掉 `/playground` 独立页面及所有入口（落地页 CTA、footer、sitemap、`why.mdx`/`faq.mdx` 链接）。组件只通过 MDX 穿插在文档里。
+2. **按能力划分，不按"场景"划分。** 每个 Playground 组件对应一种能力，嵌在讲该能力的文档里：回忆文档 → 回忆 playground；用户卡片文档 → 进化 playground；切片文档 → 解剖 playground。
+3. **组件形态 = 一段正在进行中的真实对话。** 打开即有 2-3 轮预录对话历史（静态文案，基于数据集事实，不走 API——零加载、零成本、不受缺 key/限流影响）；底部无自由输入框，只给若干 prompt 选项，点击后走真实 API 实时作答并追加进对话流。
+4. **禁止 meta/演示腔文案。** 界面与引导语不得出现"演示数据集""demo 会代你发问""演示规则"这类出戏表述；组件看起来就是产品本身的聊天面板。

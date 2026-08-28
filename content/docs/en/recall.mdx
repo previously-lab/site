@@ -1,7 +1,6 @@
 ---
 title: Recall
 description: The episodic-recall colleague — you ask in natural language, it searches the timeline itself (timeline windows, strands, summaries, then quota-bounded full reads) and answers with evidence-anchored references, a searched trail, and a confidence score.
-order: 4
 ---
 
 # Recall
@@ -55,23 +54,17 @@ That verification channel is instrumented. When the main agent calls recall and 
 **One recall, then trust it.** If recall searched and found nothing, that is a definitive answer — the main agent does not re-ask the same question, and answering from the current conversation is correct. Re-searching what a colleague already searched reads as distrust, and the system now keeps score of exactly that.
 </Callout>
 
-Try a real recall run against the demo dataset ([`you`](https://github.com/previously-lab/you), 97 slices) — preset questions only, answered live with quotes and the searched trail:
+Late one night, your mom's scare from last summer crosses your mind. You ask Previously:
 
-<Playground preset="recall-mom" />
+<Playground capability="recall" />
 
 ## Three-Phase Chat Rendering
 
 A single assistant message renders in three visually distinct phases, split by part type in `ChatMessage`:
 
-```
-Reasoning (Brain icon, expandable card, inside bubble)
-    |
-    v
-Recall / tools (History / tool icons, inline cards)
-    |
-    v
-Response (text + inline tool calls in a Bubble)
-```
+1. **Reasoning** — Brain icon, expandable card, inside the bubble
+2. **Recall / tools** — History / tool icons, inline cards
+3. **Response** — text + inline tool calls, inside the bubble
 
 ### 1. Reasoning Phase
 

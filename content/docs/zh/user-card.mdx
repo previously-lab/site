@@ -1,7 +1,6 @@
 ---
 title: 用户卡片
 description: 用户卡片与驱动它的达尔文式进化回路——direction.md 是筛选标准,fitness 是选择压力,append-only 的变异档案,卡片与子 Agent playbook 只是产物。
-order: 4
 ---
 
 # 用户卡片
@@ -177,9 +176,9 @@ Previously 的自进化是达尔文式的,不是堆积式的。四个角色,一�
 
 进展会实时流式推送给客户端;当卡片发生变化时,演化指示器会展示一句话的变化说明和逐行 diff。被跳过的运行也会连同原因一起上报——静默的跳过读起来就像「它从没运行过」。
 
-看一次基于演示数据集的真实进化运行——触发原因、direction 判定和卡片 diff，实时计算、绝不落盘：
+你有点好奇：最近的这些对话，会让它把「你」改成什么样？
 
-<Playground preset="evolution-card" />
+<Playground capability="evolution" />
 
 <Callout variant="warning">
 **实验阶段:** 进化自上而下都是模型判断——记录什么、提升什么、playbook 改成什么。护栏(上限、refs、结构性证据锚定、确定性触发)保证它格式良好,而非保证它正确。因为一切都是 git 中的纯 Markdown,你随时可以查看 diff、手工编辑卡片或方向文档,或回滚它们。

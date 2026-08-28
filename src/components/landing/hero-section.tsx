@@ -163,7 +163,7 @@ export function HeroSection({
         transition={{ duration: 0.6, delay: 1.1, ease: EASE }}
       >
         <Link
-          href="/playground"
+          href="/docs/recall"
           className={cn(buttonVariants({ size: "lg" }), "w-full sm:w-auto")}
         >
           {ctaDemo}

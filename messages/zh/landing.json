@@ -10,8 +10,14 @@
       "briefingTitle": "arrival briefing",
       "recapLabel": "回顾",
       "briefingEntries": [
-        { "time": "08/07", "text": "伴郎致辞第五稿——写了删,删了写。锚点,是决赛夜的那场观赛派对。" },
-        { "time": "07/16", "text": "半程马拉松,完赛。Alex 就在终点线上,说好了的。" }
+        {
+          "time": "08/07",
+          "text": "伴郎致辞第五稿——写了删,删了写。锚点,是决赛夜的那场观赛派对。"
+        },
+        {
+          "time": "07/16",
+          "text": "半程马拉松,完赛。Alex 就在终点线上,说好了的。"
+        }
       ],
       "focusLabel": "焦点",
       "focusText": "周三 Marcus 的婚礼——致辞、西装、深呼吸。",
@@ -19,7 +25,7 @@
       "threadsText": "3 条——致辞定稿、半马之后做什么、那次滑雪旅行。",
       "earlierLabel": "← 更早",
       "nowLabel": "NOW",
-      "ctaDemo": "体验 Playground",
+      "ctaDemo": "亲手试一试",
       "ctaGithub": "在 GitHub 查看",
       "ctaDocs": "阅读文档"
     },
@@ -27,13 +33,34 @@
       "caption": "这就是产品的全部——一条时间线,和一场记得它的对话。",
       "windowTitle": "previously",
       "slices": [
-        { "date": "24年10月", "label": "在 Priya 家认识了 Alex" },
-        { "date": "25年4月", "label": "五公里破 35" },
-        { "date": "25年7月", "label": "膝盖受伤,被迫休息" },
-        { "date": "25年10月", "label": "一起买了露营装备" },
-        { "date": "26年3月", "label": "小工具长大了" },
-        { "date": "26年7月", "label": "半马完赛" },
-        { "date": "26年8月", "label": "致辞第五稿" }
+        {
+          "date": "24年10月",
+          "label": "在 Priya 家认识了 Alex"
+        },
+        {
+          "date": "25年4月",
+          "label": "五公里破 35"
+        },
+        {
+          "date": "25年7月",
+          "label": "膝盖受伤,被迫休息"
+        },
+        {
+          "date": "25年10月",
+          "label": "一起买了露营装备"
+        },
+        {
+          "date": "26年3月",
+          "label": "小工具长大了"
+        },
+        {
+          "date": "26年7月",
+          "label": "半马完赛"
+        },
+        {
+          "date": "26年8月",
+          "label": "致辞第五稿"
+        }
       ],
       "nowLabel": "NOW",
       "userMsg": "婚礼就在周三。致辞,帮我想想?",
@@ -41,9 +68,21 @@
       "agentMsg": "简短、真诚,一个真实的瞬间就够了——决赛那晚,在 Marcus 的观赛派对上,你看着他们俩接彼此的话茬,那一刻你就知道,他们能成。这就是你的开场。想加一点幽默的话:他是第一个跟你说实话的人——说你的 MVP 像「变魔术」。短一点,讲人话,就这样。",
       "turn2User": "行——给我三个开场方案。",
       "picks": [
-        { "name": "决赛那晚", "price": "真诚", "reason": "他们互相接话的那一瞬间——你当时就看出来了" },
-        { "name": "「变魔术」", "price": "带点小幽默", "reason": "他对你 MVP 的那句毒舌点评——永远跟你说真话的朋友" },
-        { "name": "九十秒", "price": "克制", "reason": "要求就是短——一个瞬间,一次举杯,结束" }
+        {
+          "name": "决赛那晚",
+          "price": "真诚",
+          "reason": "他们互相接话的那一瞬间——你当时就看出来了"
+        },
+        {
+          "name": "「变魔术」",
+          "price": "带点小幽默",
+          "reason": "他对你 MVP 的那句毒舌点评——永远跟你说真话的朋友"
+        },
+        {
+          "name": "九十秒",
+          "price": "克制",
+          "reason": "要求就是短——一个瞬间,一次举杯,结束"
+        }
       ],
       "picksNote": "每个开场都能对回一个真实的切片——选了,就不会假。",
       "turn3User": "就第一个。短一点,别煽情。对了,关于接下来……"
@@ -101,9 +140,21 @@
         "question": "我半马冲线那天，到底发生了什么？",
         "answer": "你跑完了。Alex 举着一块傻乎乎的牌子在终点等你，你攥着奖牌在那儿站了十分钟。五天前你的脑子还在停不下来地反复过那条路线。四天后你写下：这场比赛从来不关乎成绩——它证明了你能把一件事坚持到底。",
         "refs": [
-          { "date": "2026/07/11", "note": "赛前紧张；和 Alex 的最后一次长跑", "strand": "running" },
-          { "date": "2026/07/16", "note": "终点线——牌子、奖牌、十分钟", "strand": "alex" },
-          { "date": "2026/07/20", "note": "那篇帖子：「从来不关乎成绩」", "strand": "running" }
+          {
+            "date": "2026/07/11",
+            "note": "赛前紧张；和 Alex 的最后一次长跑",
+            "strand": "running"
+          },
+          {
+            "date": "2026/07/16",
+            "note": "终点线——牌子、奖牌、十分钟",
+            "strand": "alex"
+          },
+          {
+            "date": "2026/07/20",
+            "note": "那篇帖子：「从来不关乎成绩」",
+            "strand": "running"
+          }
         ],
         "meta": "一个问题 → 3 个切片 · 跑步 × Alex",
         "liveCta": "真跑一次"
@@ -121,20 +172,50 @@
       "lifeLabel": "你的生活",
       "lifeFile": "— 只有你知道",
       "agentNodes": [
-        { "time": "22:05", "text": "回忆 agent · 扫到决赛夜的观赛派对、「变魔术」那句点评" },
-        { "time": "22:06", "text": "思考 agent · medium — 用真话丈量的友情;从决赛切入" },
-        { "time": "22:07", "text": "结论 — 一个瞬间,诚实地讲" }
+        {
+          "time": "22:05",
+          "text": "回忆 agent · 扫到决赛夜的观赛派对、「变魔术」那句点评"
+        },
+        {
+          "time": "22:06",
+          "text": "思考 agent · medium — 用真话丈量的友情;从决赛切入"
+        },
+        {
+          "time": "22:07",
+          "text": "结论 — 一个瞬间,诚实地讲"
+        }
       ],
       "coreEvents": [
-        { "time": "22:05", "text": "你:婚礼就在周三——帮我理理致辞的思路" },
-        { "time": "22:07", "text": "它:别铺陈。一个真实的瞬间——决赛那晚,他们俩互相接话的样子。" }
+        {
+          "time": "22:05",
+          "text": "你:婚礼就在周三——帮我理理致辞的思路"
+        },
+        {
+          "time": "22:07",
+          "text": "它:别铺陈。一个真实的瞬间——决赛那晚,他们俩互相接话的样子。"
+        }
       ],
       "lifeNodes": [
-        { "time": "09:20", "text": "晨会被夸了一句,开心了一上午" },
-        { "time": "14:00", "text": "试西装——十六周训练之后,居然还合身" },
-        { "time": "18:40", "text": "又把致辞稿删了。第五次" },
-        { "time": "21:30", "text": "看了十分钟决赛回放,美其名曰「调研」" },
-        { "time": "22:05", "text": "你:婚礼就在周三——帮我理理致辞的思路" }
+        {
+          "time": "09:20",
+          "text": "晨会被夸了一句,开心了一上午"
+        },
+        {
+          "time": "14:00",
+          "text": "试西装——十六周训练之后,居然还合身"
+        },
+        {
+          "time": "18:40",
+          "text": "又把致辞稿删了。第五次"
+        },
+        {
+          "time": "21:30",
+          "text": "看了十分钟决赛回放,美其名曰「调研」"
+        },
+        {
+          "time": "22:05",
+          "text": "你:婚礼就在周三——帮我理理致辞的思路"
+        }
       ]
     },
     "Act3": {
@@ -227,15 +308,37 @@
       "repo": {
         "root": "~/Documents/Previously",
         "rows": [
-          { "text": "└─ episodic/" },
-          { "text": "   ├─ slices/2026/08/07/1808/" },
-          { "text": "   │  ├─ previously.md", "note": "← 你说了什么" },
-          { "text": "   │  └─ timeline/" },
-          { "text": "   ├─ evolution/" },
-          { "text": "   │  ├─ direction.md", "note": "← 「更好」的标准" },
-          { "text": "   │  └─ mutations.md", "note": "← 只增不改的档案" },
-          { "text": "   ├─ current-previously.md", "note": "← 筛选留下的产物" },
-          { "text": "   └─ strands.json" }
+          {
+            "text": "└─ episodic/"
+          },
+          {
+            "text": "   ├─ slices/2026/08/07/1808/"
+          },
+          {
+            "text": "   │  ├─ previously.md",
+            "note": "← 你说了什么"
+          },
+          {
+            "text": "   │  └─ timeline/"
+          },
+          {
+            "text": "   ├─ evolution/"
+          },
+          {
+            "text": "   │  ├─ direction.md",
+            "note": "← 「更好」的标准"
+          },
+          {
+            "text": "   │  └─ mutations.md",
+            "note": "← 只增不改的档案"
+          },
+          {
+            "text": "   ├─ current-previously.md",
+            "note": "← 筛选留下的产物"
+          },
+          {
+            "text": "   └─ strands.json"
+          }
         ],
         "file": "previously.md",
         "lines": [
@@ -252,13 +355,17 @@
       },
       "oss": {
         "command": "npm i -g previously-client",
-        "badges": ["MIT", "本地优先", "BYOK 或 bridge"]
+        "badges": [
+          "MIT",
+          "本地优先",
+          "BYOK 或 bridge"
+        ]
       }
     },
     "Finale": {
       "title": "Previously on you.",
       "subtitle": "开源。本地优先。永远属于你。",
-      "ctaDemo": "体验 Playground",
+      "ctaDemo": "亲手试一试",
       "ctaGithub": "在 GitHub 查看"
     }
   }

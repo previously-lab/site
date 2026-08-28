@@ -10,8 +10,14 @@
       "briefingTitle": "arrival briefing",
       "recapLabel": "Recap",
       "briefingEntries": [
-        { "time": "Aug 07", "text": "Best-man speech, draft #5 — everything keeps getting deleted. The anchor: that watch party during the final." },
-        { "time": "Jul 16", "text": "Half-marathon, finished. Alex was at the finish line, exactly like they promised." }
+        {
+          "time": "Aug 07",
+          "text": "Best-man speech, draft #5 — everything keeps getting deleted. The anchor: that watch party during the final."
+        },
+        {
+          "time": "Jul 16",
+          "text": "Half-marathon, finished. Alex was at the finish line, exactly like they promised."
+        }
       ],
       "focusLabel": "Focus",
       "focusText": "Marcus's wedding Wednesday — speech, suit, breathe.",
@@ -19,7 +25,7 @@
       "threadsText": "3 — the speech draft, what comes after the half-marathon, that ski trip.",
       "earlierLabel": "← earlier",
       "nowLabel": "NOW",
-      "ctaDemo": "Try the playground",
+      "ctaDemo": "Try it yourself",
       "ctaGithub": "View on GitHub",
       "ctaDocs": "Read the docs"
     },
@@ -27,13 +33,34 @@
       "caption": "This is the whole product — one timeline, and a conversation that remembers it.",
       "windowTitle": "previously",
       "slices": [
-        { "date": "Oct '24", "label": "Met Alex at Priya's dinner" },
-        { "date": "Apr '25", "label": "5K under 35" },
-        { "date": "Jul '25", "label": "Knee injury, forced rest" },
-        { "date": "Oct '25", "label": "First camping gear, together" },
-        { "date": "Mar '26", "label": "The little tool grows up" },
-        { "date": "Jul '26", "label": "Half-marathon, finished" },
-        { "date": "Aug '26", "label": "The speech draft" }
+        {
+          "date": "Oct '24",
+          "label": "Met Alex at Priya's dinner"
+        },
+        {
+          "date": "Apr '25",
+          "label": "5K under 35"
+        },
+        {
+          "date": "Jul '25",
+          "label": "Knee injury, forced rest"
+        },
+        {
+          "date": "Oct '25",
+          "label": "First camping gear, together"
+        },
+        {
+          "date": "Mar '26",
+          "label": "The little tool grows up"
+        },
+        {
+          "date": "Jul '26",
+          "label": "Half-marathon, finished"
+        },
+        {
+          "date": "Aug '26",
+          "label": "The speech draft"
+        }
       ],
       "nowLabel": "NOW",
       "userMsg": "The wedding's Wednesday. Help me with the speech?",
@@ -41,9 +68,21 @@
       "agentMsg": "Keep it short and honest — one real moment is enough. During the final, at Marcus's watch party, you saw the two of them finish each other's sentences, and you just knew. That's your opening. And if you want one beat of humor: he was the first person to tell you the truth about your MVP — 'a magic trick'. Short, personal, done.",
       "turn2User": "Okay — give me three ways to open it.",
       "picks": [
-        { "name": "The night of the final", "price": "heartfelt", "reason": "them finishing each other's sentences — you knew right then" },
-        { "name": "'A magic trick'", "price": "wry", "reason": "his blunt MVP review — the friend who always tells you the truth" },
-        { "name": "Ninety seconds", "price": "understated", "reason": "the brief was short — one moment, one toast, done" }
+        {
+          "name": "The night of the final",
+          "price": "heartfelt",
+          "reason": "them finishing each other's sentences — you knew right then"
+        },
+        {
+          "name": "'A magic trick'",
+          "price": "wry",
+          "reason": "his blunt MVP review — the friend who always tells you the truth"
+        },
+        {
+          "name": "Ninety seconds",
+          "price": "understated",
+          "reason": "the brief was short — one moment, one toast, done"
+        }
       ],
       "picksNote": "Every opening traces back to a real slice — pick one and it stays honest.",
       "turn3User": "The first one. Short — and no sap. Also, about what's next…"
@@ -101,9 +140,21 @@
         "question": "What actually happened the day I finished the half-marathon?",
         "answer": "You finished it. Alex was at the finish line with a ridiculous sign, and you stood there ten minutes just holding the medal. Five days earlier your brain wouldn't stop replaying the route. Four days later you wrote it down: the race was never about the time — it was proof you can stick with something.",
         "refs": [
-          { "date": "2026/07/11", "note": "pre-race nerves; Friday's long run with Alex", "strand": "running" },
-          { "date": "2026/07/16", "note": "the finish line — the sign, the medal, ten minutes", "strand": "alex" },
-          { "date": "2026/07/20", "note": "the post: \"never about the time\"", "strand": "running" }
+          {
+            "date": "2026/07/11",
+            "note": "pre-race nerves; Friday's long run with Alex",
+            "strand": "running"
+          },
+          {
+            "date": "2026/07/16",
+            "note": "the finish line — the sign, the medal, ten minutes",
+            "strand": "alex"
+          },
+          {
+            "date": "2026/07/20",
+            "note": "the post: \"never about the time\"",
+            "strand": "running"
+          }
         ],
         "meta": "one question → 3 slices · running × Alex",
         "liveCta": "Run it live"
@@ -121,20 +172,50 @@
       "lifeLabel": "your life",
       "lifeFile": "— only you know",
       "agentNodes": [
-        { "time": "22:05", "text": "recall agent · caught the watch-party night, the 'magic trick' review" },
-        { "time": "22:06", "text": "think agent · medium — a friendship measured in blunt truths; enter through the final" },
-        { "time": "22:07", "text": "conclusion — one moment, honestly told" }
+        {
+          "time": "22:05",
+          "text": "recall agent · caught the watch-party night, the 'magic trick' review"
+        },
+        {
+          "time": "22:06",
+          "text": "think agent · medium — a friendship measured in blunt truths; enter through the final"
+        },
+        {
+          "time": "22:07",
+          "text": "conclusion — one moment, honestly told"
+        }
       ],
       "coreEvents": [
-        { "time": "22:05", "text": "you: the wedding's Wednesday — help me structure the speech" },
-        { "time": "22:07", "text": "it: skip the broad sweep. One real moment — the final, the two of them finishing each other's sentences." }
+        {
+          "time": "22:05",
+          "text": "you: the wedding's Wednesday — help me structure the speech"
+        },
+        {
+          "time": "22:07",
+          "text": "it: skip the broad sweep. One real moment — the final, the two of them finishing each other's sentences."
+        }
       ],
       "lifeNodes": [
-        { "time": "09:20", "text": "a compliment in standup — floated all morning" },
-        { "time": "14:00", "text": "suit fitting — still fits after sixteen weeks of training" },
-        { "time": "18:40", "text": "deleted the speech draft. again." },
-        { "time": "21:30", "text": "watched ten minutes of the final replay — 'research'" },
-        { "time": "22:05", "text": "you: the wedding's Wednesday — help me structure the speech" }
+        {
+          "time": "09:20",
+          "text": "a compliment in standup — floated all morning"
+        },
+        {
+          "time": "14:00",
+          "text": "suit fitting — still fits after sixteen weeks of training"
+        },
+        {
+          "time": "18:40",
+          "text": "deleted the speech draft. again."
+        },
+        {
+          "time": "21:30",
+          "text": "watched ten minutes of the final replay — 'research'"
+        },
+        {
+          "time": "22:05",
+          "text": "you: the wedding's Wednesday — help me structure the speech"
+        }
       ]
     },
     "Act3": {
@@ -227,15 +308,37 @@
       "repo": {
         "root": "~/Documents/Previously",
         "rows": [
-          { "text": "└─ episodic/" },
-          { "text": "   ├─ slices/2026/08/07/1808/" },
-          { "text": "   │  ├─ previously.md", "note": "← what you said" },
-          { "text": "   │  └─ timeline/" },
-          { "text": "   ├─ evolution/" },
-          { "text": "   │  ├─ direction.md", "note": "← what \"better\" means" },
-          { "text": "   │  └─ mutations.md", "note": "← append-only archive" },
-          { "text": "   ├─ current-previously.md", "note": "← what selection kept" },
-          { "text": "   └─ strands.json" }
+          {
+            "text": "└─ episodic/"
+          },
+          {
+            "text": "   ├─ slices/2026/08/07/1808/"
+          },
+          {
+            "text": "   │  ├─ previously.md",
+            "note": "← what you said"
+          },
+          {
+            "text": "   │  └─ timeline/"
+          },
+          {
+            "text": "   ├─ evolution/"
+          },
+          {
+            "text": "   │  ├─ direction.md",
+            "note": "← what \"better\" means"
+          },
+          {
+            "text": "   │  └─ mutations.md",
+            "note": "← append-only archive"
+          },
+          {
+            "text": "   ├─ current-previously.md",
+            "note": "← what selection kept"
+          },
+          {
+            "text": "   └─ strands.json"
+          }
         ],
         "file": "previously.md",
         "lines": [
@@ -252,13 +355,17 @@
       },
       "oss": {
         "command": "npm i -g previously-client",
-        "badges": ["MIT", "Local-first", "BYOK or bridge"]
+        "badges": [
+          "MIT",
+          "Local-first",
+          "BYOK or bridge"
+        ]
       }
     },
     "Finale": {
       "title": "Previously on you.",
       "subtitle": "Open source. Local-first. Always yours.",
-      "ctaDemo": "Try the playground",
+      "ctaDemo": "Try it yourself",
       "ctaGithub": "View on GitHub"
     }
   }

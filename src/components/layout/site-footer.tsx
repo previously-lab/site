@@ -42,7 +42,7 @@ export async function SiteFooter({
               </li>
               <li>
                 <Link
-                  href="/playground"
+                  href="/docs/recall"
                   className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >
                   {t("demo")}

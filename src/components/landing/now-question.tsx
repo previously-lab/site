@@ -76,7 +76,7 @@ export function NowQuestion({
             {meta}
           </p>
           <Link
-            href="/playground"
+            href="/docs/recall"
             className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-foreground/80 transition-colors hover:text-foreground"
           >
             {liveCta}

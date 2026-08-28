@@ -54,7 +54,6 @@ export async function GET(_request: NextRequest): Promise<Response> {
   sections.push("## Links");
   sections.push("");
   sections.push(`- GitHub: ${siteConfig.githubUrl}`);
-  sections.push(`- Playground: ${baseUrl}/en/playground`);
   sections.push(`- Dev.to Article: ${siteConfig.devtoUrl}`);
   sections.push("");
 

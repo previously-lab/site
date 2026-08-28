@@ -1,235 +1,102 @@
 ---
-title: Slices
-description: 对话片段如何成为时间切片——生命周期、目录结构、YAML 前置元数据与存储后端。
-order: 1
+title: 时间切片
+description: 一次对话爆发如何成为一个时间切片——纯时间驱动的开合、四个文件的目录结构、关闭时的标记与确定性兜底。
 ---
 
-# Slices(时间切片)
+# 时间切片
 
-每一次对话都是一条由 Slice 组成的时间线——一段连续的来回交流,一个纯 Markdown 文件目录。
+大多数 AI 产品按「对话线程」整理你：你决定什么时候开新对话、给对话起名字、事后翻找该回哪一条。Previously 不做这个假设。它只认一个自然单位——**时间**。你开口，一个时间切片就打开；时间到了，它就合上。没有「新对话」按钮，因为你的生活本来就没有这个按钮。
 
-## 什么是 Slice
+**时间切片（slice）**是 Previously 记忆的最小完整单位：一段连续的对话爆发，原样保存在一个小目录里——纯 Markdown 加 YAML，没有数据库，没有二进制格式。
 
-**Slice(切片)**是情景记忆(episodic memory)的存储单元:一次独立的对话会话,以一个小型 Markdown 文件目录的形式保存,对话本身存放在带 YAML 前置元数据的 `core.md` 中。它是 L2 记忆层——L0 和 L1 在构建时打包,L2(Slice)在运行时按需获取。没有数据库,没有二进制格式,只有纯 Markdown 存放在你的仓库中。
+## 一段时间切片里有什么
 
-每个 Slice 保存一段连续的对话轮次——你和 Previously 在一次交互中交换的消息——以及由 **worker 模型**(廉价的维护调用,每轮运行一次,并在 Slice 关闭时写入标记)维护的元数据。
+你问 Previously：我的一段对话，是怎么被你记住的？
 
-## 生命周期
+<Playground capability="anatomy" />
 
-一个 Slice 有两种状态:**active(活跃)**和 **closed(关闭)**。
-
-| 阶段 | 发生什么 |
-|-------|-------------|
-| **打开(Open)** | 聊天路由在你发送消息且没有活跃 Slice 时调用 `createSlice()`。根据当前 UTC 时间推导出 `slice_id`,并初始化第一条用户轮次。 |
-| **扩展(Extend)** | 后续每条消息追加一个轮次。每一轮开始时都会从存储中恢复 Slice(serverless 调用之间不共享内存),追加新轮次后将更新后的 `core.md` 作为持久快照写回——一轮内的所有写入都合入一次批量提交。 |
-| **关闭(Close)** | 当切片信号触发时,worker 模型先写入关闭标记(`focus`、`summary`、精炼后的 `tags`、`emotional_tone`),然后 `closeSlice()` 设置 `status: "closed"`,盖上 `end` 和 `closed_by`,写入 `core.md`,更新月度索引(`_index.json`),将 Slice 的标签编织进 Strand 索引(`strands.json`),并协调时间线目录。下一条消息将打开一个新的 Slice。 |
-
-有三种信号可以关闭一个 Slice,全部记录在 `closed_by` 前置元数据字段中:
-
-- **时间静默(time_silence)**——超过可配置的阈值没有活动(默认 15 分钟,可在设置中调整,范围 5–120 分钟)。关闭是惰性的:静默在你的*下一条*消息到达时才被检测,`end` 盖上的是最后一轮的真实时间戳,而不是检测时刻。
-- **轮次上限(capacity)**——安全兜底,强制关闭超长会话(默认 20 轮,可调整范围 5–100)。
-- **上下文丢失(context_lost)**——客户端历史中没有 agent 回复,但存储中的 Slice 有(页面刷新或切换设备),无法继续该 Slice。
-
-> 两个阈值都在请求时从你的用户配置读取,因此在设置中修改后立即生效——无需重新部署。
-
-页面刷新时,`tryLoadTodaySlice()` 扫描今天的目录——以及昨天的目录,避免跨越 UTC 日界的对话成为孤儿——找到最近一个仍标记为 `active` 的 Slice 并重新加载。你可以从中断的地方继续。
-
-## 目录结构
-
-Slice 不再是单个文件:它是一个**目录**,内含对话本体、agent 认知日志和用户卡快照。Slice 存放在 `memory/episodic/slices/` 下,采用日历层级:
+每个切片是 `memory/episodic/slices/YYYY/MM/DD/HHMM/` 下的一个目录——路径本身就是它发生的时刻。`HHMM` 是 UTC，取自第一条消息的时间戳；你的本地时区单独存在 frontmatter 的 `timezone` 字段里，所以路径跨时区、跨夏令时都稳定。目录里的文件各有分工：
 
 ```
-memory/
-  user/
-    profile.md               -- 你是谁,跨切片持久
-  evolution/                 -- 达尔文式自进化(v1.0)
-    direction.md             -- 当前进化方向、anti-goals 与证据日志
-    fitness.json             -- 证据锚定的评分,按能力分桶
-    mutations.md             -- 已接受变异的 append-only 档案
-  agent-playbooks/           -- 各子 Agent 的短行为指引
-    recall.md
-    search.md
-    thinkdeep.md
-  episodic/
-    current-previously.md    -- 当前生效的用户卡
-    slices/
-      2026/
-        07/
-          28/
-            0658/            -- 一个 Slice 目录
-              timeline/
-                core.md      -- 对话本体:YAML 前置元数据 + 轮次
-                agent.md     -- agent 认知日志(机械提取)
-              previously.md  -- 该 Slice 携带的用户卡快照
-            1024/            -- 同一天的另一个 Slice
-          _index.json        -- 2026 年 7 月的月度索引
-        08/
-        ...
-    strands.json             -- 全局关键词到 Slice 的索引
-    timeline/
-      index.json             -- 所有 Slice 的规范化结构目录
-    timeline.md              -- 目录的 Markdown 投影
+memory/episodic/slices/2026/08/10/2130/
+  timeline/
+    core.md       -- 共同的记录：YAML 前置元数据 + 逐字对话轮次
+    agent.md      -- 它的思考：提取的推理、工具调用（ok/error）、thinkDeep 报告
+    appendix.md   -- 没能解析进轮次的原始行，原样保留
+  previously.md   -- 这个切片冻结时的用户卡快照
 ```
 
-`evolution/` 与 `agent-playbooks/` 属于 v1.0 自进化回路——方向、评分与变异档案存放在情景记录之外,playbook 指导各子 Agent 的行为。
+- **`timeline/core.md`** 是共享的对话记录，也是唯一事实来源：你和 Previously 实际说过的话，一字不少。
+- **`timeline/agent.md`** 是 agent 自己的那条线——它每一轮背后的认知，机械提取，绝不作为对话上下文注入。
+- **`timeline/appendix.md`** 是诚实兜底：解析器吃不下的行不丢，进附录。
+- **`previously.md`** 是切片关闭那一刻冻结的用户卡快照——它当时「认识的你」。
 
-一个日历日是一个目录;一个 Slice 是其中以 `HHMM` 命名的目录。三个文件各有分工:
+## 切片只认时间
 
-- **`timeline/core.md`**——共享的对话记录,也是唯一事实来源:YAML 前置元数据加上全部轮次。
-- **`timeline/agent.md`**——agent 每一轮的内部认知(思考轨迹、工具调用),机械提取。用作自我模型的证据,绝不作为对话上下文注入。
-- **`previously.md`**——该 Slice 所知的用户卡快照,从前一个 Slice 继承,并在 Slice 关闭时由卡片演化流程覆盖写入。
+切片的生命周期里没有任何「话题检测」。这是刻意的：判断「你们换没换话题」是模型会犯错的地方，而时间从不说谎。
 
-旧式的扁平 `HHMM.md` 文件(目录化之前的格式)仍然可读——加载器先检查 Slice 目录,再回退到旧格式文件。
+一个切片有三种结束方式，全部记录在 frontmatter 的 `closed_by` 字段里：
 
-> 路径和 `slice_id` 中的 `HHMM` 是 **UTC 时间**——从第一条用户消息的 UTC 日期时间推导而来。你当地的挂钟时间单独存储在 `timezone` 前置元数据字段中。这使得路径在不同时区和夏令时切换下保持稳定。
+- **片龄上限（`time_cap`）**——从切片**开始**算起 `maxSliceMinutes` 分钟（默认 30，可在设置里调）后强制关闭。注意是从开始算，不是从最后一次活动算：切片是一段有起有止的时间，而不是一串沉默检测的结果。
+- **上下文丢失（`context_lost`）**——你刷新了页面或换了设备，客户端历史里没有了 agent 的回复、而磁盘上的切片有，这段切片无法诚实地接续，于是合上。
+- **轮次上限（`capacity`）**——`maxTurnsPerSlice`（默认 50）只是安全阀，防止异常会话无限增长。正常生活里你几乎碰不到它。
 
-## YAML 前置元数据
+关闭是惰性的：信号在你的**下一条**消息到达时才被检查，切片的 `end` 盖上的是最后一轮的真实时间戳，而不是检测时刻。下一条消息会打开一个新切片——聊天界面的历史窗口因此也是切片对齐的：服务器把客户端历史裁到当前切片，而不是固定的「最近 N 条」。
 
-每个 `core.md` 以 `---` 分隔的 YAML 开头。标签每轮刷新;`focus`、`summary` 和 `emotional_tone` 由 worker 模型在关闭时写入(带确定性兜底,Slice 绝不会空着关闭);其余字段均为机械写入:
+## 关闭的那一刻
 
-| 字段 | 类型 | 必需 | 描述 |
-|-------|------|----------|-------------|
-| `slice_id` | string | 是 | `YYYY-MM-DD-HHMM`,第一条消息的 UTC 日期时间 |
-| `focus` | string | 是 | 核心主题,一句话(关闭时写入;为空时会被去除) |
-| `status` | `"active"` 或 `"closed"` | 是 | 生命周期阶段 |
-| `start` | string | 是 | 第一轮对话的 UTC ISO 8601 时间戳 |
-| `end` | string | 否 | 最后一轮对话的 UTC ISO 8601 时间戳(活跃时不存在) |
-| `timezone` | string | 是 | 交互时用户的 IANA 时区,例如 `"Asia/Shanghai"` |
-| `summary` | string | 是 | worker 生成的摘要,最多 100 个字符(关闭时写入) |
-| `open_loops` | string[] | 是 | 悬而未决的问题——保留在 schema 中,当前序列化为空 |
-| `decisions` | string[] | 是 | 结论或行动项——保留在 schema 中,当前序列化为空 |
-| `tags` | string[] | 是 | 语义关键词(会编织进 Strand 索引) |
-| `related_slices` | string[] | 是 | 相关 Slice 的相对路径——可以为空 |
-| `loops` | string[] | 是 | 从该 Slice 派生的持久后台循环 ID——可以为空 |
-| `emotional_tone` | string | 否 | `"positive"`、`"neutral"`、`"negative"` 或 `"mixed"`——由 worker 模型在关闭时评估 |
-| `closed_by` | string | 否 | 关闭该 Slice 的信号:`"time_silence"`、`"user_explicit"`、`"capacity"` 或 `"context_lost"`。旧的已关闭 Slice 没有该字段,读取时回退为 `"user_explicit"` |
+切片合上前，**turn analyzer**（每轮跑一次的分析同事）会为它写下标记：`focus`（一句话主题）、`summary`（百字内摘要）、精炼后的 `tags`、`emotional_tone`。
 
-空字符串和 `undefined` 字段会从 YAML 中去除(因此活跃的 Slice 没有 `focus`/`summary`)。空数组(`open_loops: []`)按原样序列化。
+这里有一条硬纪律：**切片绝不空着关闭。** 如果模型这次没能给出标记，系统会从切片本身确定性地造一份——首轮话题加上标签——而不是留下空字段。模型负责提质，代码负责兜底。
 
-## 对话轮次正文
+更老的「干切片」（早于这套机制、没有 focus/summary 的切片）也不会永远匿名：每逢切片关闭的边界，一次顺手而为的回填最多为 3 个干切片补上标记。关闭边界是唯一允许回填的时机——它绝不在对话进行中打扰你。
 
-在前置元数据之后,每条消息成为一个二级标题:
+## 前置元数据
+
+每个 `core.md` 以 `---` 分隔的 YAML 开头。`focus`、`summary` 和 `emotional_tone` 在关闭时写入（带确定性兜底）；其余字段都是机械写入：
+
+| 字段 | 含义 |
+|-------|------|
+| `slice_id` | `YYYY-MM-DD-HHMM`，第一条消息的 UTC 日期时间 |
+| `status` | `"active"` 或 `"closed"` |
+| `start` / `end` | 第一轮与最后一轮的 UTC ISO 8601 时间戳（活跃时没有 `end`） |
+| `timezone` | 交互时你的 IANA 时区，例如 `"Asia/Shanghai"` |
+| `focus` | 核心主题，一句话（关闭时写入） |
+| `summary` | 摘要，最多 100 个字符（关闭时写入） |
+| `tags` | 语义关键词——切片关闭时被织进 Strand 索引 |
+| `open_loops` | 悬而未决的问题 |
+| `decisions` | 这段对话里达成的结论 |
+| `related_slices` | 相关切片的相对路径，可为空 |
+| `loops` | 从该切片派生的后台循环 id，可为空 |
+| `emotional_tone` | `"positive"`、`"neutral"`、`"negative"` 或 `"mixed"`，关闭时评估 |
+| `closed_by` | 关闭信号：`"time_cap"`、`"context_lost"`、`"capacity"` 或 `"user_explicit"`；更老的切片可能带着遗留值 `"time_silence"` |
+| `evolution_summary` | 切片开始时那次卡片进化的一句话摘要——逐字重放进系统提示词，让提示词在切片整个生命周期内逐字节不变 |
+
+空字符串和未定义的字段会从 YAML 中去除（所以活跃的切片没有 `focus`/`summary`）；空数组按原样序列化。
+
+## 轮次正文
+
+前置元数据之后，每条消息成为一个二级标题：
 
 ```
-## Turn mVhV2g — 2026-07-28T06:58:22.811Z (user)
+## Turn mVhV2g — 2026-08-10T21:30:22.811Z (user)
 
-你的消息正文...
+你的消息正文……
 
-## Turn mVhV2g — 2026-07-28T06:58:43.641Z (agent)
+## Turn mVhV2g — 2026-08-10T21:30:43.641Z (agent)
 
-Previously 的回复...
-
-## Turn J4oA9g — 2026-07-28T07:09:52.409Z (user)
-
-你的后续消息...
+Previously 的回复……
 ```
 
-格式始终为 `## Turn <ID> — <ISO_TIMESTAMP> (<role>)`,以 em dash 分隔。ID 是一个 6 字符的 base64url `turnId`,由同一轮的用户和 agent 轮次共享,因此每次交互都可寻址(工具按它读取单个轮次)。旧的 Slice 使用简单的数字 ID(`1`、`2`……);解析器两种都接受。`parseTurns()` 根据这些标题重建数组。
+同一轮的用户消息和 agent 回复共享一个 6 字符的 `turnId`，因此每一次交互都可寻址——工具可以按它精确读取单个轮次。
 
-## 一个真实的 Slice 文件
+## 为什么是纯 Markdown
 
-以下是一个已关闭 Slice 的 `core.md` 在磁盘上的样子——位于 `memory/episodic/slices/2023/04/21/0610/timeline/core.md`:
-
-```markdown
----
-slice_id: 2023-04-21-0610
-status: closed
-start: "2023-04-21T06:10:00.000Z"
-end: "2023-04-21T07:18:00.000Z"
-timezone: America/Chicago
-open_loops: []
-decisions: []
-related_slices: []
-loops: []
-focus: Housing project delays and trust crisis management
-summary: Contractor qualification and property deed mismatches stalled
-  multiple household files, triggering a community trust crisis...
-tags:
-  - work-pressure
-  - housing-project
-  - trust-crisis
-  - community-communication
-emotional_tone: mixed
-closed_by: time_silence
----
-
-## Turn k3Fx92 — 2023-04-21T06:10:00.000Z (user)
-
-The housing rehab files that were supposed to close this month are
-stalled again. At the public meeting last night residents were angry...
-
-## Turn k3Fx92 — 2023-04-21T06:13:00.000Z (agent)
-
-That sounds rough. What specifically broke down — contractor
-qualification, property deeds, or something else?
-```
-
-这个文件的每一部分都是人类可读、git-diff 友好且能被任何处理 Markdown 和 YAML 的工具解析的。Gray-matter 在 TypeScript 端完成解析。
-
-## Strands:基于 Slice 的语义索引
-
-每个 Slice 带有 `tags`。当一个 Slice 关闭时,`updateStrands()` 将每个标签编织到 `memory/episodic/strands.json` 中——一个将关键词映射到 Slice 路径的单一文件:
-
-```json
-{
-  "work-pressure": [
-    "2023/04/21/0610",
-    "2023/04/22/0915"
-  ],
-  "housing-project": [
-    "2023/04/21/0610"
-  ],
-  "trust-crisis": [
-    "2023/04/21/0610"
-  ]
-}
-```
-
-**Strand(主题)**就是某个关键词的条目——"某件事情的完整历史"在时间上的贯穿。它是在情景切片之上构建的轻量、无损的语义记忆层。条目经过去重,同一 Slice 不会在同一标签下出现两次。
-
-索引还会在关闭时被整合:只用过一次的陈旧 Strand 会被确定性地剪除;当索引规模足够大时,worker 模型会给出合并建议,收敛语义重复(拼写错误、同一概念两个名字)。Strand 在回忆时会被自动追踪;每个 Strand 的富摘要属于未来的里程碑。
-
-## Slice 如何与 worker 和主模型协同工作
-
-**worker/主模型分工**管控元数据和回忆:
-
-- **轮次分析(turn analyze)**(worker 模型,关闭思考)在 housekeeping 中每轮运行一次。它提取消息标签(优先复用已有标签,使同一概念跨语言合并)、指向已有 Strand 的语义提示和用户意图——并在 Slice 关闭时给出其 `focus`/`summary`/精炼后的 `tags`/`emotional_tone`。如果调用失败,会从 Slice 本身构建确定性的兜底标记,因此关闭的 Slice 总是带有真实的描述。早于这套机制的旧 Slice 进入 `needs_marking` 队列,在后续的关闭边界上每次回填几个。
-- **主模型深度读取**(主模型)通过粒度化工具检索:`readSliceSummary` 做相关性判断,`readTimelineWindow` 做时间定位,`readStrand` 追踪主题,`readSlice` 以 turn/head/tail/range/grep 模式做定点读取——完整读取整个 Slice 是显式的最后手段。
-
-当一个 Slice 关闭时,worker 冻结元数据,Slice 在磁盘上密封。
-
-## 存储后端
-
-所有 Slice I/O 通过三个封装函数(`fsReadFile`/`fsWriteFile`/`fsListFiles`),由 `STORAGE` 环境变量决定委派到哪个后端:
-
-| 模式 | 后端 | 选择条件 |
-|------|---------|-----------|
-| `local` | 本地文件系统 | 开发环境,完整读写 |
-| `github` | GitHub REST API(Octokit) | 生产环境,完整读写 |
-| `demo` | 远程演示数据集(`previously-lab/you`) | 只读 persona 数据 |
-
-当 `STORAGE` 未设置时自动检测:存在 `GITHUB_TOKEN` → `github`;`NODE_ENV=development` → `local`;否则 → `demo`。相同的代码路径在所有模式下均可工作——无需手动切换。
-
-一轮之内的所有写入都进入显式的 `WriteBatch` 对象,并作为**一次 git 提交**(GitHub 模式)或一轮磁盘写入(本地模式)落盘。由于 batch 是每轮一个的对象而非模块全局变量,两个并发的轮次绝不会互相提交对方的写入;提交失败时队列会保留以便重试。
-
-## 关闭时维护的索引
-
-当一个 Slice 关闭时,三个辅助结构会更新:
-
-1. **月度索引**(`memory/episodic/slices/YYYY/MM/_index.json`)——由精简条目(`SliceIndexEntry`:id、focus、summary、tags、status、start、open_loops、decisions)组成的 JSON 数组。使时间线 UI 无需读取每个文件即可浏览标题。
-2. **Strand 索引**(`strands.json`)——上述的关键词到 Slice 的映射。
-3. **时间线目录**(`memory/episodic/timeline/index.json` 及其 `timeline.md` 投影)——覆盖*所有* Slice 的派生、可重建索引,由 `weaveTimeline` 协调:磁盘上的 Slice 是事实,目录只是投影。缺失的 Slice 会从其前置元数据补入,幽灵条目会被移除,`focus`/`summary` 为空的 Slice 会被标记为 `needs_marking` 等待回填。本轮新创建的 Slice 会在同一次提交中直接插入目录。
-
-## 设计原理
-
-- **以时间驱动的切片,配安全兜底。** 主要触发因素是静默;轮次上限确保超长会话不会无限增长;上下文丢失检测避免刷新和换设备损坏 Slice。阈值存放在用户配置中,而不是代码里。
-- **每轮持久快照,一次批量提交。** serverless 调用之间不共享内存,因此 Slice 每轮都从存储中恢复并在同一轮写回——你的消息在任何内容回流之前就已安全落盘。批处理把 GitHub API 写入压缩到每轮一次提交。
-- **YAML 前置元数据 + Markdown 正文**是所有文档生态系统的原始素材。它在任何 Markdown 查看器中都能渲染,在 git 中差异清晰可见,解析器存在于每种语言中。Gray-matter 处理 TypeScript 端。
-- **情景与语义分离**呼应了 Endel Tulving 1972 年的理论。Slice 是情景性的(按*何时*组织)。Strand 和用户卡是语义性的(按*什么*组织)。回忆先扫描*何时*,再检索*什么*。
+每一个切片都是带 YAML frontmatter 的 Markdown 文件，这个选择是深思熟虑的：在任何编辑器里可读，在 git 里每次变化都有清晰的 diff，任何懂 Markdown 的工具都能解析它。一轮之内的所有写入会合入**一次提交**落盘——你的消息在任何内容回流之前就已安全写进你的记忆文件夹。它在磁盘上的完整样子，见[记忆是一个文件夹](/docs/your-memory)。
 
 ## 相关文档
 
-- [时间线(Timeline)](/docs/timeline) —— 按日期浏览 Slice 的水平日期点条
-- [主题索引(Strands)](/docs/strands) —— Slice 档案的语义标签索引
-- [回忆(Recall)](/docs/recall) —— worker 扫描与主模型检索
-- [记忆模型(Memory Model)](/docs/memory-model) —— 三层架构
+- [时间线](/docs/timeline) —— 所有切片之上的目录：投影，而不是第二份真相
+- [Strands](/docs/strands) —— 切片标签织成的语义索引
+- [回忆](/docs/recall) —— 替你检索这些切片的那位同事
+- [记忆模型](/docs/memory-model) —— 切片在整套记忆架构中的位置

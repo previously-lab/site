@@ -1,235 +1,102 @@
 ---
-title: Slices
-description: How conversation bursts become time slices — the lifecycle, directory layout, YAML frontmatter, and storage backends.
-order: 1
+title: Time Slices
+description: How one conversation burst becomes a time slice — purely time-based open and close, a four-file directory, and close-time marking with a deterministic fallback.
 ---
 
-# Slices
+# Time Slices
 
-Every conversation is a timeline of slices — one burst of back-and-forth, one directory of plain Markdown.
+Most AI products organize you by conversation thread: you decide when to start a new chat, what to name it, and which one to dig back into later. Previously makes no such assumption. It recognizes exactly one natural unit — **time**. You start talking, and a time slice opens; time passes, and it closes. There is no "new chat" button, because your life doesn't have one either.
 
-## What a slice is
+A **time slice** is the smallest complete unit of Previously's memory: one contiguous burst of conversation, kept verbatim in a small directory — plain Markdown with YAML, no database, no binary format.
 
-A **slice** is the storage unit of episodic memory: a single conversation session captured as a small directory of Markdown files, the conversation itself held in a `core.md` with YAML frontmatter. It is the L2 memory layer — L0 and L1 are baked into the build, L2 (slices) is fetched on demand at runtime. No database, no binary format. Plain Markdown in your repo.
+## What's inside a time slice
 
-Each slice holds a contiguous burst of turns — the messages you and Previously exchanged in one sitting — alongside metadata maintained by the **worker model** (the cheap housekeeping call that runs once per turn and marks the slice when it closes).
+Ask Previously: how does one of my conversations actually get remembered?
 
-## Lifecycle
+<Playground capability="anatomy" />
 
-A slice has two states: **active** and **closed**.
-
-| Phase | What happens |
-|-------|-------------|
-| **Open** | The chat route calls `createSlice()` when you send a message and no slice is active. It derives the `slice_id` from the current UTC time and seeds the first user turn. |
-| **Extend** | Each subsequent message appends a turn. The slice is recovered from storage at the start of every turn (serverless invocations share no memory), the new turn is appended, and the updated `core.md` is written back as a durable snapshot — all of a turn's writes land in a single batched commit. |
-| **Close** | When a slicing signal fires, the worker model first writes the close-marking (`focus`, `summary`, refined `tags`, `emotional_tone`), then `closeSlice()` sets `status: "closed"`, stamps `end` and `closed_by`, writes `core.md`, updates the monthly index (`_index.json`), weaves the slice's tags into the strand index (`strands.json`), and reconciles the timeline catalog. The next message opens a fresh slice. |
-
-Three signals can close a slice, and all of them are recorded in the `closed_by` frontmatter field:
-
-- **Time silence** — no activity for a configurable threshold (default 15 minutes, adjustable in Settings from 5 to 120). Closes are lazy: the silence is detected when your *next* message arrives, and `end` is stamped with the last turn's real timestamp, never the detection time.
-- **Turn cap** — a safety net that force-closes a marathon session (default 20 turns, adjustable from 5 to 100).
-- **Context loss** — the client history came back without any agent replies while the stored slice has them (a page refresh or device switch), so continuing it is impossible.
-
-> Both thresholds are read from your user config at request time, so changing them in Settings takes effect immediately — no redeploy.
-
-On page refresh, `tryLoadTodaySlice()` scans today's directory — and yesterday's, so a conversation crossing the UTC day boundary is not orphaned — finds the most recent slice still marked `active`, and re-hydrates it. You pick up where you left off.
-
-## Directory layout
-
-A slice is no longer a single file: it is a **directory** holding the conversation, the agent's cognition log, and a user-card snapshot. Slices live under `memory/episodic/slices/` in a calendar hierarchy:
+Every slice is a directory under `memory/episodic/slices/YYYY/MM/DD/HHMM/` — the path itself is the moment it happened. The `HHMM` is UTC, taken from the first message's timestamp; your local timezone lives separately in the `timezone` frontmatter field, so paths stay stable across time zones and daylight-saving shifts. The files inside have distinct jobs:
 
 ```
-memory/
-  user/
-    profile.md               -- who you are, durable across slices
-  evolution/                 -- Darwinian self-evolution (v1.0)
-    direction.md             -- current direction, anti-goals, evidence log
-    fitness.json             -- evidence-anchored scoring, bucketed per capability
-    mutations.md             -- append-only archive of accepted mutations
-  agent-playbooks/           -- short behavioral guidance per sub-agent
-    recall.md
-    search.md
-    thinkdeep.md
-  episodic/
-    current-previously.md    -- the live user card
-    slices/
-      2026/
-        07/
-          28/
-            0658/            -- one slice directory
-              timeline/
-                core.md      -- the conversation: YAML frontmatter + turns
-                agent.md     -- agent cognition log (mechanical extraction)
-              previously.md  -- user-card snapshot carried by this slice
-            1024/            -- another slice, same day
-          _index.json        -- monthly index for July 2026
-        08/
-        ...
-    strands.json             -- global keyword-to-slice index
-    timeline/
-      index.json             -- canonical structured catalog of all slices
-    timeline.md              -- Markdown projection of the catalog
+memory/episodic/slices/2026/08/10/2130/
+  timeline/
+    core.md       -- the shared record: YAML frontmatter + verbatim conversation turns
+    agent.md      -- its thinking: extracted reasoning, tool calls (ok/error), thinkDeep reports
+    appendix.md   -- raw lines that didn't parse into turns, kept as-is
+  previously.md   -- a snapshot of the user card, frozen as this slice closed
 ```
 
-The `evolution/` and `agent-playbooks/` directories belong to the v1.0 self-evolution loop — direction, scoring, and the mutation archive live outside the episodic record, and the playbooks steer each sub-agent's behavior.
+- **`timeline/core.md`** is the shared conversation record and the single source of truth: what you and Previously actually said, word for word.
+- **`timeline/agent.md`** is the agent's own line — the cognition behind each of its turns, mechanically extracted, never injected back as conversation context.
+- **`timeline/appendix.md`** is the honest fallback: lines the parser couldn't digest are not dropped, they go to the appendix.
+- **`previously.md`** is a snapshot of the user card frozen at the moment the slice closed — the "you" it knew at the time.
 
-A calendar day is a directory; a slice is a directory inside it named `HHMM`. The three files have distinct roles:
+## Slicing answers to time alone
 
-- **`timeline/core.md`** — the shared conversation record and the single source of truth: YAML frontmatter plus every turn.
-- **`timeline/agent.md`** — the agent's internal cognition for each turn (thinking traces, tool calls), extracted mechanically. Used for self-model evidence, never injected as conversation context.
-- **`previously.md`** — a snapshot of the user card as this slice knew it, seeded from the previous slice and overwritten by the card-evolution pass when the slice closes.
+There is no "topic detection" anywhere in a slice's lifecycle. That is deliberate: deciding "did the topic just change" is exactly where a model makes mistakes, and time never lies.
 
-Older flat `HHMM.md` files (pre-directory format) are still readable — the loader checks for slice directories first, then falls back to legacy files.
+A slice can end three ways, and all of them are recorded in the `closed_by` frontmatter field:
 
-> The `HHMM` in the path and in `slice_id` is **UTC** — derived from the first user message's UTC date+time. Your local wall-clock time is stored separately in the `timezone` frontmatter field. This keeps paths stable across time zones and DST shifts.
+- **Slice age cap (`time_cap`)** — the slice force-closes `maxSliceMinutes` (default 30, adjustable in Settings) after its **start**. Note: from the start, not from the last activity — a slice is a span of time with a beginning and an end, not the outcome of a silence detector.
+- **Context loss (`context_lost`)** — you refreshed the page or switched devices; the client history came back without the agent's replies while the slice on disk has them. The slice cannot be honestly continued, so it closes.
+- **Turn cap (`capacity`)** — `maxTurnsPerSlice` (default 50) is a pure safety valve against a runaway session. In normal life you will never touch it.
 
-## YAML frontmatter
+Closes are lazy: the signal is checked when your **next** message arrives, and the slice's `end` is stamped with the last turn's real timestamp, never the detection time. That next message opens a fresh slice — which is why the chat history window is slice-aligned too: the server trims client history to the current slice instead of a fixed "recent N".
 
-Every `core.md` opens with `---` delimited YAML. Tags are refreshed every turn; `focus`, `summary`, and `emotional_tone` are written by the worker model at close (with a deterministic fallback so a slice never closes empty); the rest are mechanical:
+## The moment a slice closes
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `slice_id` | string | yes | `YYYY-MM-DD-HHMM`, UTC datetime of first message |
-| `focus` | string | yes | Core topic, one sentence (written at close; stripped while empty) |
-| `status` | `"active"` or `"closed"` | yes | Lifecycle phase |
-| `start` | string | yes | UTC ISO 8601 timestamp of first turn |
-| `end` | string | no | UTC ISO 8601 timestamp of last turn (absent while active) |
-| `timezone` | string | yes | User's IANA timezone at time of interaction, e.g. `"Asia/Shanghai"` |
-| `summary` | string | yes | Worker-generated recap, 100 characters at most (written at close) |
-| `open_loops` | string[] | yes | Unresolved questions carried forward — retained in the schema, currently serialized empty |
-| `decisions` | string[] | yes | Conclusions or action items — retained in the schema, currently serialized empty |
-| `tags` | string[] | yes | Semantic keywords (these weave into the strand index) |
-| `related_slices` | string[] | yes | Relative paths of related slices — may be empty |
-| `loops` | string[] | yes | IDs of durable background loops spawned from this slice — may be empty |
-| `emotional_tone` | string | no | `"positive"`, `"neutral"`, `"negative"`, or `"mixed"` — assessed by the worker model at close |
-| `closed_by` | string | no | The signal that closed the slice: `"time_silence"`, `"user_explicit"`, `"capacity"`, or `"context_lost"`. Legacy closed slices lack it and read back as `"user_explicit"` |
+Before a slice seals, the **turn analyzer** (the analysis colleague that runs once per turn) writes its marking: `focus` (a one-sentence topic), `summary` (a recap of at most 100 characters), refined `tags`, and an `emotional_tone`.
 
-Empty strings and `undefined` fields are stripped from the YAML (which is why an active slice has no `focus`/`summary`). Empty arrays (`open_loops: []`) are serialized as-is.
+One hard rule applies here: **a slice never closes dry.** If the model fails to produce a marking this time, the system builds one deterministically from the slice itself — first-turn topic plus tags — rather than leaving empty fields. The model adds quality; the code guarantees the floor.
 
-## Turn body
+Older "dry" slices (ones that predate this discipline and have no focus/summary) don't stay anonymous forever either: on slice-close boundaries, an opportunistic backfill pass marks up to 3 dry slices at a time. Close boundaries are the only moment backfill is allowed to run — it never interrupts a conversation in progress.
+
+## The frontmatter
+
+Every `core.md` opens with `---` delimited YAML. `focus`, `summary`, and `emotional_tone` are written at close (with the deterministic fallback); everything else is mechanical:
+
+| Field | What it carries |
+|-------|-----------------|
+| `slice_id` | `YYYY-MM-DD-HHMM`, the UTC datetime of the first message |
+| `status` | `"active"` or `"closed"` |
+| `start` / `end` | UTC ISO 8601 timestamps of the first and last turn (no `end` while active) |
+| `timezone` | Your IANA timezone at the time of interaction, e.g. `"Asia/Shanghai"` |
+| `focus` | The core topic, one sentence (written at close) |
+| `summary` | A recap, at most 100 characters (written at close) |
+| `tags` | Semantic keywords — woven into the strand index when the slice closes |
+| `open_loops` | Questions left unresolved |
+| `decisions` | Conclusions reached during this slice |
+| `related_slices` | Relative paths of related slices — may be empty |
+| `loops` | IDs of background loops spawned from this slice — may be empty |
+| `emotional_tone` | `"positive"`, `"neutral"`, `"negative"`, or `"mixed"`, assessed at close |
+| `closed_by` | The closing signal: `"time_cap"`, `"context_lost"`, `"capacity"`, or `"user_explicit"`; older slices may carry the legacy value `"time_silence"` |
+| `evolution_summary` | A one-sentence summary of the card evolution that ran as this slice began — replayed verbatim into the system prompt, so the prompt stays byte-identical for the slice's whole life |
+
+Empty strings and undefined fields are stripped from the YAML (which is why an active slice has no `focus`/`summary`); empty arrays are serialized as-is.
+
+## The turn body
 
 After the frontmatter, each message becomes a level-2 heading:
 
 ```
-## Turn mVhV2g — 2026-07-28T06:58:22.811Z (user)
+## Turn mVhV2g — 2026-08-10T21:30:22.811Z (user)
 
-Your message text here...
+Your message text…
 
-## Turn mVhV2g — 2026-07-28T06:58:43.641Z (agent)
+## Turn mVhV2g — 2026-08-10T21:30:43.641Z (agent)
 
-Previously's response...
-
-## Turn J4oA9g — 2026-07-28T07:09:52.409Z (user)
-
-Your follow-up...
+Previously's reply…
 ```
 
-The format is always `## Turn <ID> — <ISO_TIMESTAMP> (<role>)` with an em dash separator. The ID is a 6-character base64url `turnId` shared by the user and agent turns of the same round, so every exchange is addressable (tools read individual turns by it). Legacy slices use simple numeric IDs (`1`, `2`, …); the parser accepts both. `parseTurns()` reconstructs the array from these headers.
+The user message and the agent reply of the same round share one 6-character `turnId`, so every exchange is addressable — tools can read an individual turn by it.
 
-## A real slice file
+## Why plain Markdown
 
-Here is what a closed slice's `core.md` looks like on disk — at `memory/episodic/slices/2023/04/21/0610/timeline/core.md`:
-
-```markdown
----
-slice_id: 2023-04-21-0610
-status: closed
-start: "2023-04-21T06:10:00.000Z"
-end: "2023-04-21T07:18:00.000Z"
-timezone: America/Chicago
-open_loops: []
-decisions: []
-related_slices: []
-loops: []
-focus: Housing project delays and trust crisis management
-summary: Contractor qualification and property deed mismatches stalled
-  multiple household files, triggering a community trust crisis...
-tags:
-  - work-pressure
-  - housing-project
-  - trust-crisis
-  - community-communication
-emotional_tone: mixed
-closed_by: time_silence
----
-
-## Turn k3Fx92 — 2023-04-21T06:10:00.000Z (user)
-
-The housing rehab files that were supposed to close this month are
-stalled again. At the public meeting last night residents were angry...
-
-## Turn k3Fx92 — 2023-04-21T06:13:00.000Z (agent)
-
-That sounds rough. What specifically broke down — contractor
-qualification, property deeds, or something else?
-```
-
-Every part of this file is human-readable, git-diffable, and parseable by any tool that handles Markdown and YAML. Gray-matter does the parsing on the TypeScript side.
-
-## Strands: the semantic index over slices
-
-Each slice carries `tags`. When a slice closes, `updateStrands()` weaves every tag into `memory/episodic/strands.json` — a single file that maps keywords to slice paths:
-
-```json
-{
-  "work-pressure": [
-    "2023/04/21/0610",
-    "2023/04/22/0915"
-  ],
-  "housing-project": [
-    "2023/04/21/0610"
-  ],
-  "trust-crisis": [
-    "2023/04/21/0610"
-  ]
-}
-```
-
-A **strand** is one keyword's entry — "the whole history of that thing" across time. It is the thin, lossless semantic-memory layer over episodic slices. Entries are deduplicated, so the same slice never appears twice under the same tag.
-
-The index is also consolidated at close: single-use stale strands are pruned deterministically, and — once the index grows large enough — the worker model suggests merges for semantic duplicates (typos, the same concept under two names). Strands are traced automatically during recall; rich per-strand summaries are a future milestone.
-
-## How slicing works with the worker and main models
-
-The **worker/main split** governs metadata and recall:
-
-- **Turn analyze** (the worker model, thinking disabled) runs once per turn in housekeeping. It extracts message tags (preferring existing ones, so the same concept merges across languages), a semantic hint toward existing strands, and the user's intent — and, when a slice is closing, its `focus` / `summary` / refined `tags` / `emotional_tone`. If the call fails, a deterministic fallback mark is built from the slice itself, so a closed slice always carries real descriptions. Older slices that predate this discipline sit in a `needs_marking` queue and are backfilled a few at a time on later close boundaries.
-- **Main deep read** (the main model) retrieves through granular tools: `readSliceSummary` for a relevance check, `readTimelineWindow` for time orientation, `readStrand` to trace a topic, and `readSlice` with turn/head/tail/range/grep modes for targeted reads — a full-slice read is the explicit last resort.
-
-When a slice closes, the worker freezes the metadata and the slice is sealed on disk.
-
-## Storage backend
-
-All slice I/O goes through three wrappers (`fsReadFile`/`fsWriteFile`/`fsListFiles`), which delegate to the backend selected by the `STORAGE` environment variable:
-
-| Mode | Backend | Selection |
-|------|---------|-----------|
-| `local` | Local filesystem | Development, full read/write |
-| `github` | GitHub REST API (Octokit) | Production, full read/write |
-| `demo` | Remote demo dataset (`previously-lab/you`) | Read-only persona data |
-
-When `STORAGE` is unset, the source auto-detects: `GITHUB_TOKEN` present → `github`, `NODE_ENV=development` → `local`, otherwise `demo`. The same code path works in every mode — no manual switching.
-
-Writes within one turn are queued into an explicit `WriteBatch` object and flushed as a **single git commit** (GitHub mode) or a single disk pass (local). Because the batch is a per-turn object rather than a module global, two concurrent turns can never flush each other's writes; a failed flush keeps the queue for retry.
-
-## Indexes maintained at close
-
-When a slice closes, three auxiliary structures update:
-
-1. **Monthly index** (`memory/episodic/slices/YYYY/MM/_index.json`) — a JSON array of slim entries (`SliceIndexEntry`: id, focus, summary, tags, status, start, open_loops, decisions). Enables the timeline UI to browse titles without reading every file.
-2. **Strand index** (`strands.json`) — the keyword-to-slice mapping described above.
-3. **Timeline catalog** (`memory/episodic/timeline/index.json` + the `timeline.md` projection) — a derived, rebuildable index over *all* slices, reconciled by `weaveTimeline`: slices on disk are the truth, the catalog is a projection. Missing slices are added from their frontmatter, phantom entries are dropped, and slices with empty `focus`/`summary` are flagged `needs_marking` for backfill. A slice created mid-turn is upserted into the catalog in the same commit.
-
-## Design rationale
-
-- **Time-driven slicing with safety nets.** The primary trigger is silence; the turn cap exists so a marathon session cannot grow unbounded, and context-loss detection keeps refreshes and device switches from corrupting a slice. Thresholds live in user config, not code.
-- **Durable per-turn snapshots in one batched commit.** Serverless invocations share no memory, so the slice is recovered from storage every turn and written back the same turn — your message is safely on disk before anything streams back. Batching keeps GitHub API writes to one commit per turn.
-- **YAML frontmatter + Markdown body** is the raw material of every documentation ecosystem. It renders in any Markdown viewer, diffs cleanly in git, and parsers exist in every language. Gray-matter handles the TypeScript side.
-- **Episodic vs. semantic separation** mirrors Endel Tulving's 1972 theory. Slices are episodic (organized by *when*). Strands and the user card are semantic (organized by *what*). Recall scans *when* first, then retrieves *what*.
+Every slice is a Markdown file with YAML frontmatter, and that choice is deliberate: readable in any editor, cleanly diffed in git, parseable by any tool that understands Markdown. All of a turn's writes land in **one commit** — your message is safely in your memory folder before anything streams back. For what the whole thing looks like on disk, see [Your Memory Is a Folder](/docs/your-memory).
 
 ## Related
 
-- [Timeline](/docs/timeline) — the horizontal date-dot strip that browses slices by date
-- [Strands](/docs/strands) — semantic tag index over the slice archive
-- [Recall](/docs/recall) — how the worker scans and the main model retrieves
-- [Memory Model](/docs/memory-model) — the three-tier architecture
+- [The Timeline](/docs/timeline) — the catalog over all slices: a projection, never a second truth
+- [Strands](/docs/strands) — the semantic index woven from slice tags
+- [Recall](/docs/recall) — the colleague who searches these slices for you
+- [The Memory Model](/docs/memory-model) — where slices sit in the full memory architecture

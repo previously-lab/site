@@ -1,46 +1,90 @@
 {
   "Playground": {
-    "Meta": {
-      "title": "Playground — 在真实记忆上体验 Previously",
-      "description": "Previously 的在线只读演示：跑在一份真实的两年半记忆数据集上——情景回忆、卡片进化、切片解剖，无需注册、无需 API key。"
-    },
-    "Intro": {
-      "eyebrow": "Playground",
-      "title": "在一份真实的记忆上试试",
-      "body": "这里的 Previously 跑在一份真实数据集上：一个人从 2024 年 1 月到 2026 年 8 月、共 97 片对话切片的记忆。点下面的预设——demo 会代你发问，agent 从真实记忆里作答，而不是念稿子。",
-      "rules": "演示规则：只有预设选项，没有自由输入。所有演示都是只读的——进化演示会实时算出「会发生什么变化」，但不落盘；刷新即重置。",
-      "recallHeading": "回忆 —— 向记忆提问",
-      "evolutionHeading": "进化 —— 看卡片怎么长",
-      "anatomyHeading": "解剖 —— 一个切片怎么被记住"
+    "capabilities": {
+      "recall": {
+        "history": [
+          {
+            "question": "我人生第一个半马，赛前是不是特别紧张？",
+            "answer": "紧张到几乎没睡。7 月 11 日那次对话里，你说你盯着天花板躺了一整夜，心跳得厉害，凌晨两点忍不住给 Alex 发了消息——对方回了一条语音，说无论怎样都会在终点等你。",
+            "references": [
+              {
+                "sliceId": "20260711-1108",
+                "quote": "I barely slept last night. Just lay there staring at the ceiling, heart racing. Ended up texting Alex at 2am and they sent a voice memo saying they'll be at the finish no matter what."
+              }
+            ]
+          },
+          {
+            "question": "后来呢？完赛那天怎么样？",
+            "answer": "7 月 16 日晚上，你还站在终点线那儿，手里捏着奖牌，有点没缓过神来。Alex 举了个傻乎乎的牌子。你就那么站了十分钟，一句话也没说。",
+            "references": [
+              {
+                "sliceId": "20260716-1913",
+                "quote": "Alex was at the finish line with a stupid sign and I just stood there for ten minutes. Didn't even say anything. Just held the medal."
+              }
+            ]
+          },
+          {
+            "question": "我自己后来是怎么看这场比赛的？",
+            "answer": "7 月 20 日你把整个备赛过程写成了一篇帖子——膝盖的伤、赛前的恐慌都写进去了。读完评论，你自己想明白了一件事：这场比赛从来不是关于成绩的，是证明自己能把一件事坚持到底。",
+            "references": [
+              {
+                "sliceId": "20260720-1102",
+                "quote": "the race was never really about the time. It was about proving I could stick with something."
+              }
+            ]
+          }
+        ]
+      },
+      "evolution": {
+        "history": [
+          {
+            "question": "你最近改过关于我的卡片吗？",
+            "answer": "改过。7 月 29 日，direction 里加了一条「具体地庆祝胜利」——你在半马完赛之后习惯性地贬低自己的成绩，连即将到来的婚礼演讲也提前贬了一轮。这条改动挂着两个切片作证：完赛当晚的，和你赛后反思的那次。"
+          },
+          {
+            "question": "这种改动是随便改的吗？",
+            "answer": "不是。每一条卡片或 direction 的改动都必须挂切片指针当证据，写进只增不删的 mutations 档案。而且下一条改动入账时，系统会回头验收上一条——被证明没用的改动不会被删掉，但会被打上 ineffective 的标记，留在档案里。"
+          }
+        ]
+      },
+      "anatomy": {
+        "history": [
+          {
+            "question": "一个「切片」到底记了些啥？",
+            "answer": "拿 7 月 16 日那一片来说：focus 是「半马完赛与个人成长」；情绪色调记的是 proud、reflective；open_loops 里留着一条「你接下来可能会拾起的健身目标」；从头到尾的完整对话在 timeline/core.md 里，一字未动。"
+          },
+          {
+            "question": "这些字段是谁写上去的？",
+            "answer": "切片关闭的那一刻，回合分析器统一标记：focus、summary、tags、情绪色调。就算模型那次没写好，也有确定性兜底——任何一片都不会「空着」关闭。"
+          }
+        ]
+      }
     },
     "presets": {
       "recall-worldcup": {
-        "label": "世界杯决赛夜",
         "question": "2026 年世界杯决赛前后我在干嘛？和谁在一起？"
       },
       "recall-mom": {
-        "label": "妈妈健康惊吓",
         "question": "2025 年我妈妈的健康出了什么事？我是什么时候知道的？"
       },
       "recall-marathon": {
-        "label": "半马冲线",
         "question": "说说我跑完人生第一个半程马拉松那天的事。"
       },
       "evolution-card": {
-        "label": "看卡片怎么进化",
         "question": "对我最新的切片跑一遍卡片进化——会发生什么变化，为什么？"
       },
       "slice-anatomy": {
-        "label": "一个切片怎么被记住",
         "question": "讲讲这个切片是怎么被记住的——每一部分都是从哪来的？"
       }
     },
     "ui": {
-      "windowTitle": "previously — playground",
-      "idleHint": "点下面的预设——demo 会代你发问。",
-      "working": "Previously 正在工作…",
-      "runAgain": "再跑一次",
-      "cachedBadge": "来自缓存",
+      "sceneTime": "23:47",
+      "working": {
+        "recall": "正在回忆…",
+        "evolution": "正在演化卡片…",
+        "anatomy": "正在拆解切片…"
+      },
+      "retry": "重试",
       "error": "出了点问题，请重试。",
       "references": "引用",
       "searched": "检索轨迹",
@@ -50,7 +94,7 @@
       "cardBefore": "进化前的卡片",
       "cardAfter": "进化后的卡片",
       "playbook": "Playbook 备注",
-      "notPersisted": "演示模式：这次进化是实时算出来的，但不会落盘——刷新页面，卡片就恢复原样。",
+      "notPersisted": "这次进化只是预演，没有落盘——刷新页面，卡片就恢复原样。",
       "frontmatter": "Frontmatter"
     }
   }

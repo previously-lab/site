@@ -4,6 +4,30 @@ import { useTranslations } from "next-intl";
 import type { RecallResult } from "@/lib/playground/contracts";
 
 /**
+ * One evidence anchor: mono slice id + verbatim quote. Shared by the recall
+ * result view and the playground's pre-recorded history.
+ */
+export function ReferenceCard({
+  sliceId,
+  quote,
+  note,
+}: {
+  sliceId: string;
+  quote: string;
+  note?: string;
+}) {
+  return (
+    <div className="rounded-md border border-border/60 bg-muted/40 px-2.5 py-1.5">
+      <span className="font-mono text-xs text-muted-foreground">{sliceId}</span>
+      <blockquote className="mt-1 border-l-2 border-[var(--pg-brand-line)] pl-2 text-xs leading-relaxed text-foreground/80 italic">
+        {quote}
+      </blockquote>
+      {note && <p className="mt-1 text-xs text-muted-foreground">{note}</p>}
+    </div>
+  );
+}
+
+/**
  * Recall preset result — mirrors the kernel's recall tool renderer: the
  * colleague's answer, evidence-anchored reference cards (verbatim quote in
  * italic + mono slice id), the searched trail folded away, and a confidence
@@ -28,20 +52,12 @@ export function RecallResultView({ result }: { result: RecallResult }) {
           </p>
           <div className="space-y-1.5">
             {result.references.map((r, i) => (
-              <div
+              <ReferenceCard
                 key={i}
-                className="rounded-md border border-border/60 bg-muted/40 px-2.5 py-1.5"
-              >
-                <span className="font-mono text-xs text-muted-foreground">
-                  {r.slice_id}
-                </span>
-                <blockquote className="mt-1 border-l-2 border-[var(--pg-brand-line)] pl-2 text-xs leading-relaxed text-foreground/80 italic">
-                  {r.quote}
-                </blockquote>
-                {r.note && (
-                  <p className="mt-1 text-xs text-muted-foreground">{r.note}</p>
-                )}
-              </div>
+                sliceId={r.slice_id}
+                quote={r.quote}
+                note={r.note}
+              />
             ))}
           </div>
         </div>

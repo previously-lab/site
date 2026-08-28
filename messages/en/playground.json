@@ -1,46 +1,90 @@
 {
   "Playground": {
-    "Meta": {
-      "title": "Playground — try Previously on a real memory",
-      "description": "A live, read-only demo of Previously running on a real two-and-a-half-year memory dataset: episodic recall, card evolution, and slice anatomy — no signup, no API key."
-    },
-    "Intro": {
-      "eyebrow": "Playground",
-      "title": "Try it on a real memory",
-      "body": "This is Previously running live on a real dataset: one person's two-and-a-half-year memory, 97 conversation slices from January 2024 to August 2026. Pick a preset below — the demo asks the question for you, and the agent answers from actual memory, not a script.",
-      "rules": "Demo rules: presets only, no free-form input. Everything runs read-only — the evolution demo computes what would change, but nothing is written; refresh and it's as if it never happened.",
-      "recallHeading": "Recall — ask the memory",
-      "evolutionHeading": "Evolution — watch the card learn",
-      "anatomyHeading": "Anatomy — how a slice gets remembered"
+    "capabilities": {
+      "recall": {
+        "history": [
+          {
+            "question": "Was I really that nervous before my first half-marathon?",
+            "answer": "You barely slept. In the July 11 conversation you said you spent the whole night staring at the ceiling with your heart racing — and at 2am you texted Alex, who answered with a voice memo promising to be at the finish line no matter what.",
+            "references": [
+              {
+                "sliceId": "20260711-1108",
+                "quote": "I barely slept last night. Just lay there staring at the ceiling, heart racing. Ended up texting Alex at 2am and they sent a voice memo saying they'll be at the finish no matter what."
+              }
+            ]
+          },
+          {
+            "question": "And then? How did race day go?",
+            "answer": "On the evening of July 16 you were still standing at the finish line, medal in hand, a little in shock. Alex was there holding a ridiculous sign. You stood there for ten minutes without saying a word.",
+            "references": [
+              {
+                "sliceId": "20260716-1913",
+                "quote": "Alex was at the finish line with a stupid sign and I just stood there for ten minutes. Didn't even say anything. Just held the medal."
+              }
+            ]
+          },
+          {
+            "question": "How did I end up seeing the race myself?",
+            "answer": "On July 20 you turned the whole training journey into a post — the knee injury, the pre-race panic, all of it. Reading the comments, you realized something yourself: the race was never about the time. It was about proving you could stick with something.",
+            "references": [
+              {
+                "sliceId": "20260720-1102",
+                "quote": "the race was never really about the time. It was about proving I could stick with something."
+              }
+            ]
+          }
+        ]
+      },
+      "evolution": {
+        "history": [
+          {
+            "question": "Have you changed my card recently?",
+            "answer": "Yes. On July 29 the direction gained a new line: \"celebrate wins concretely\" — after finishing the half-marathon you reflexively discounted your own achievement, and you were already discounting the wedding speech ahead of time. The change is anchored to two slices: the finish-line night, and your post-race reflection."
+          },
+          {
+            "question": "Do changes like that just happen on a whim?",
+            "answer": "No. Every change to the card or the direction must carry slice pointers as evidence and goes into an append-only mutations archive. And when the next mutation lands, the system turns around and evaluates the previous one — a change that proved useless is never deleted, but it gets stamped ineffective and stays in the record."
+          }
+        ]
+      },
+      "anatomy": {
+        "history": [
+          {
+            "question": "What exactly does a \"slice\" record?",
+            "answer": "Take the July 16 slice: its focus is \"half-marathon completion and personal growth\"; the emotional tone reads proud, reflective; open_loops still holds \"fitness goals you might pick up next\"; and the full conversation sits untouched in timeline/core.md."
+          },
+          {
+            "question": "Who writes those fields?",
+            "answer": "The moment a slice closes, the turn analyzer marks it: focus, summary, tags, emotional tone. And if the model falls short that time, a deterministic fallback steps in — no slice ever closes empty."
+          }
+        ]
+      }
     },
     "presets": {
       "recall-worldcup": {
-        "label": "World Cup final night",
         "question": "What was I doing around the 2026 World Cup final? Who was I with?"
       },
       "recall-mom": {
-        "label": "Mom's health scare",
         "question": "What happened with my mom's health in 2025? When did I find out?"
       },
       "recall-marathon": {
-        "label": "The half-marathon finish",
         "question": "Tell me about the day I finished my first half-marathon."
       },
       "evolution-card": {
-        "label": "Watch the card evolve",
         "question": "Run one card-evolution pass over my latest slices — what would change, and why?"
       },
       "slice-anatomy": {
-        "label": "How a slice gets remembered",
         "question": "Explain how this slice gets remembered — where does each part of it come from?"
       }
     },
     "ui": {
-      "windowTitle": "previously — playground",
-      "idleHint": "Pick the preset below — the demo asks the question for you.",
-      "working": "Previously is working…",
-      "runAgain": "Run again",
-      "cachedBadge": "served from cache",
+      "sceneTime": "11:47 PM",
+      "working": {
+        "recall": "Recalling…",
+        "evolution": "Evolving the card…",
+        "anatomy": "Dissecting the slice…"
+      },
+      "retry": "Retry",
       "error": "Something went wrong. Please try again.",
       "references": "References",
       "searched": "Search trail",
@@ -50,7 +94,7 @@
       "cardBefore": "Card before",
       "cardAfter": "Card after",
       "playbook": "Playbook note",
-      "notPersisted": "Demo mode: this evolution pass is computed live but never persisted — refresh and the card is back to what it was.",
+      "notPersisted": "This pass is only a rehearsal — nothing is written. Refresh, and the card is back to what it was.",
       "frontmatter": "Frontmatter"
     }
   }

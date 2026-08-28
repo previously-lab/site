@@ -136,7 +136,7 @@ export function FinaleSection({
         transition={{ duration: 0.6, delay: 1.8, ease: EASE }}
       >
         <Link
-          href="/playground"
+          href="/docs/recall"
           className={cn(buttonVariants({ size: "lg" }), "w-full sm:w-auto")}
         >
           {ctaDemo}
