@@ -11,7 +11,7 @@ Previously has a single kernel, but two ways to run it: deployed to Vercel, it i
 
 **Vercel (recommended).** The same codebase deploys to Vercel, where memory reads and writes go through the GitHub API against your own private repo. No database: state lives entirely in files — the files just lie somewhere else. Deployment steps are in [Deploy on Vercel](/docs/deployment); the execution machinery unique to the cloud form (durable runs, resuming after dropped connections) has its own page: [How a Cloud Turn Works](/docs/cloud-runtime).
 
-**Local (npm, early preview).** The kernel ships as an npm package, pinned exactly by the client, reading and writing a memory directory on the local filesystem — a git ledger maintained in pure JS (isomorphic-git), no git binary required. See [Local First](/docs/local-first).
+**Local (npm).** The kernel ships as an npm package, pinned exactly by the client, reading and writing a memory directory on the local filesystem — a git ledger maintained in pure JS (isomorphic-git), no git binary required. See [Local First](/docs/local-first).
 
 ## A prompt frozen to the slice
 

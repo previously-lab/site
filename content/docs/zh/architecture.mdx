@@ -11,7 +11,7 @@ Previously 只有一颗内核，但它有两种跑法：部署到 Vercel 时，�
 
 **Vercel（推荐）。** 同一套代码部署到 Vercel，记忆读写改走 GitHub API，后端是你自己的私有仓库。没有数据库：状态全部活在文件里，只是文件换了个地方躺着。部署步骤见[部署到 Vercel](/docs/deployment)；云端形态独有的执行机制（耐久运行、断线续跑）单独写在[云端的一回合](/docs/cloud-runtime)。
 
-**本机（npm，早期预览）。** 内核以 npm 包的形式随客户端精确锁版分发，读写本地文件系统上的记忆目录——那是一个由纯 JS（isomorphic-git）维护的 git 账本，不需要 git 二进制。详见[本地优先](/docs/local-first)。
+**本机（npm）。** 内核以 npm 包的形式随客户端精确锁版分发，读写本地文件系统上的记忆目录——那是一个由纯 JS（isomorphic-git）维护的 git 账本，不需要 git 二进制。详见[本地优先](/docs/local-first)。
 
 ## 冻结在切片上的提示词
 

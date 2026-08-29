@@ -1,6 +1,6 @@
 ---
 title: 快速开始
-description: 两种跑法：把 Previously 部署到你自己的 Vercel 项目（推荐，完整体验）；或者在本机用 npm 装客户端（早期预览，记忆留在本机硬盘上）。
+description: 两种跑法：把 Previously 部署到你自己的 Vercel 项目（推荐，完整体验）；或者在本机用 npm 装客户端（记忆留在本机硬盘上）。
 ---
 
 # 快速开始
@@ -8,7 +8,7 @@ description: 两种跑法：把 Previously 部署到你自己的 Vercel 项目�
 Previously 是我们自己造的 agent——同一颗内核，两种跑法：
 
 - **部署到 Vercel（推荐）** —— 完整形态：每一轮对话都是耐久运行，断线可续；随处可达，包括手机浏览器；所有能力全开。记忆存进**你自己的私有 GitHub 仓库**，没有数据库。
-- **在本机运行（npm，早期预览）** —— 不想部署任何东西时的可选路径：一条 npm 命令，记忆躺在本机硬盘上。功能与云端同构，但客户端本身还在早期预览阶段。
+- **在本机运行（npm）** —— 不想部署任何东西时的可选路径：一条 npm 命令，记忆躺在本机硬盘上。功能与云端同构。
 
 两条路都在本篇走完，先推荐的那条。
 
@@ -34,14 +34,10 @@ DEEPSEEK_API_KEY=sk-...            # 驱动搜索同事的 web 检索
 
 ## 路径二：在本机运行（npm）
 
-<Callout variant="warning">
-**早期预览。** 本地客户端还在早期预览阶段：核心链路可用，但你会遇到毛边和破坏性变更。想要稳定完整的体验，选上面的 Vercel 路径。
-</Callout>
-
 **要求**：Node.js ≥ 22.13。不需要 Docker，不需要装 git。
 
 ```bash
-npm i -g @previously-lab/client@preview
+npm i -g @previously-lab/client
 previously
 ```
 

@@ -1,13 +1,9 @@
 ---
 title: Local First
-description: The local client is Previously's optional form — the same kernel as an npm package running on your own machine, memory on hardware you own from day one. Currently in early preview.
+description: The local client is Previously's optional form — the same kernel as an npm package running on your own machine, memory on hardware you own from day one.
 ---
 
 # Local First
-
-<Callout variant="warning">
-**Early preview.** The local client is still in early preview: the core path works, but expect rough edges and breaking changes. For the stable, complete experience, choose [Deploy on Vercel](/docs/deployment) — that is Previously's recommended form.
-</Callout>
 
 Your memory is the most private thing that exists between you and an AI: the anxieties you said out loud, the nights you didn't sleep, the plans you didn't finish. Some people simply don't want a thing like that passing through any deployment — even a deployment to their own Vercel project. The local client is for those people: **the same kernel running on your own machine, memory lying on hardware you own from day one, conversations never leaving your machine.**
 
@@ -18,7 +14,7 @@ Previously has one kernel and two ways to run it. In the local form, the kernel 
 Installing the whole product takes:
 
 ```bash
-npm i -g @previously-lab/client@preview
+npm i -g @previously-lab/client
 previously
 ```
 
@@ -40,7 +36,7 @@ The kernel version is pinned exactly by the client — not "compatible with ^0.9
 So an upgrade is always one sentence:
 
 ```bash
-npm i -g @previously-lab/client@preview
+npm i -g @previously-lab/client
 ```
 
 The new kernel arrives as a dependency, installs into `~/.previously/kernel/versions/<version>/`, and the pointer flips atomically. The old version stays where it was. No in-place migration scripts, no "do not power off".

@@ -1,6 +1,6 @@
 ---
 title: Getting Started
-description: Two ways to run Previously — deploy it to your own Vercel project (recommended, the full experience), or install the client locally with npm (early preview, memory stays on your local disk).
+description: Two ways to run Previously — deploy it to your own Vercel project (recommended, the full experience), or install the client locally with npm (memory stays on your local disk).
 ---
 
 # Getting Started
@@ -8,7 +8,7 @@ description: Two ways to run Previously — deploy it to your own Vercel project
 Previously is an agent we built ourselves — one kernel, two ways to run it:
 
 - **Deploy on Vercel (recommended)** — the full form: every conversation turn is a durable run that survives dropped connections; reachable from anywhere, including your phone's browser; every capability switched on. Memory lives in **your own private GitHub repository** — no database.
-- **Run locally (npm, early preview)** — the optional path when you don't want to deploy anything: one npm command, memory on your local disk. Feature-for-feature the same as the cloud, but the client itself is still in early preview.
+- **Run locally (npm)** — the optional path when you don't want to deploy anything: one npm command, memory on your local disk. Feature-for-feature the same as the cloud.
 
 Both paths are walked through on this page, the recommended one first.
 
@@ -34,14 +34,10 @@ Step-by-step detail, the access defense, and upgrades are in [Deploy on Vercel](
 
 ## Path two: run locally (npm)
 
-<Callout variant="warning">
-**Early preview.** The local client is still in early preview: the core path works, but expect rough edges and breaking changes. For the stable, complete experience, take the Vercel path above.
-</Callout>
-
 **Requirements**: Node.js ≥ 22.13. No Docker, no git installation needed.
 
 ```bash
-npm i -g @previously-lab/client@preview
+npm i -g @previously-lab/client
 previously
 ```
 

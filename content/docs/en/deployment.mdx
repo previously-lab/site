@@ -7,7 +7,7 @@ description: The recommended way to run Previously — deploy it to your own Ver
 
 This is Previously's recommended form: the same kernel running inside your own Vercel project, with **your own private GitHub repository** as the memory backend — no database; the same files, just lying in your repo. You get a tab you can open from anywhere (including your phone's browser), plus the full cloud execution capabilities (durable runs, resuming after dropped connections — see [How a Cloud Turn Works](/docs/cloud-runtime)).
 
-If you'd rather not deploy anything, the local npm client is the optional other path (early preview) — see [Getting Started](/docs/getting-started).
+If you'd rather not deploy anything, the local npm client is the optional other path — see [Getting Started](/docs/getting-started).
 
 <Callout variant="warning">
 **Single-user product, no login system.** The cloud kernel has no accounts: anyone who gets your deployment URL can use your instance and read your memory. Guard the URL, and set `ACCESS_SECRET` if needed (see "Defenses" below).

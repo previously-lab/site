@@ -1,13 +1,9 @@
 ---
 title: 本地优先
-description: 本地客户端是 Previously 的可选形态：同一颗内核以 npm 包跑在你自己的机器上，记忆从第一天起就存在你拥有的硬件上。早期预览中。
+description: 本地客户端是 Previously 的可选形态：同一颗内核以 npm 包跑在你自己的机器上，记忆从第一天起就存在你拥有的硬件上。
 ---
 
 # 本地优先
-
-<Callout variant="warning">
-**早期预览。** 本地客户端还在早期预览阶段：核心链路可用，但你会遇到毛边和破坏性变更。想要稳定完整的体验，请选[部署到 Vercel](/docs/deployment)——那是 Previously 的推荐形态。
-</Callout>
 
 你的记忆是你和 AI 之间最私密的东西：你说过的焦虑、没睡好的夜、没完成的计划。这样一份东西，有些人就是不想让它经过任何部署——哪怕部署目标是你自己的 Vercel 项目。本地客户端就是为这种人准备的：**同一颗内核跑在你自己的机器上，记忆从第一天起就躺在你拥有的硬件上，对话不出你的机器。**
 
@@ -18,7 +14,7 @@ Previously 只有一颗内核，两种跑法。本地形态里，内核被打包
 安装整个产品只需要：
 
 ```bash
-npm i -g @previously-lab/client@preview
+npm i -g @previously-lab/client
 previously
 ```
 
@@ -40,7 +36,7 @@ previously
 所以升级永远只有一句话：
 
 ```bash
-npm i -g @previously-lab/client@preview
+npm i -g @previously-lab/client
 ```
 
 新版本的内核随依赖一起到来，装进 `~/.previously/kernel/versions/<版本号>/`，指针原子切换。旧版本原地保留。没有原地迁移脚本，没有"升级中请勿关机"。
