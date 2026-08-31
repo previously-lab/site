@@ -33,6 +33,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title: t("Meta.title"),
       description: t("Meta.description"),
       url: `/${locale}`,
+      // The page-level openGraph replaces the layout's wholesale, so the
+      // image and type set in [locale]/layout.tsx must be repeated here —
+      // otherwise the homepage ships without og:image / og:type.
+      type: "website",
+      images: [
+        {
+          url: siteConfig.ogImage,
+          width: 1200,
+          height: 630,
+          alt: siteConfig.name,
+        },
+      ],
     },
     twitter: {
       title: t("Meta.title"),

@@ -86,6 +86,34 @@ export async function SiteFooter({
           <p className="text-xs text-muted-foreground">
             &copy; {currentYear} {siteConfig.orgName}. {t("license")}.
           </p>
+          <nav aria-label="Legal">
+            <ul className="flex items-center gap-4">
+              <li>
+                <Link
+                  href="/about"
+                  className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {t("about")}
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/contact"
+                  className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {t("contact")}
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/privacy"
+                  className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {t("privacy")}
+                </Link>
+              </li>
+            </ul>
+          </nav>
         </div>
       </div>
     </footer>

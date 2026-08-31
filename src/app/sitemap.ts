@@ -43,6 +43,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 1.0,
       ...alternatesFor(),
     })),
+    // ---- Trust anchor pages (about / contact / privacy) ----
+    ...["/about", "/contact", "/privacy"].flatMap((suffix) =>
+      locales.map((locale) => ({
+        url: `${baseUrl}${localizePath(locale, suffix)}`,
+        lastModified,
+        changeFrequency: "yearly" as const,
+        priority: 0.3,
+        ...alternatesFor(suffix),
+      })),
+    ),
   ];
 
   // ---- Doc pages for each locale ----

@@ -28,6 +28,31 @@ export async function GET(_request: NextRequest): Promise<Response> {
   );
   sections.push("");
 
+  // ---- When to use ----
+  sections.push("## When to use this");
+  sections.push("");
+  sections.push(
+    "Reach for Previously when the job is giving an AI agent (or yourself) long-term, time-organized memory:",
+  );
+  sections.push("");
+  sections.push(
+    "- You want an agent that remembers by *when* things happened — one timeline of episodic slices — instead of digging through chat threads.",
+  );
+  sections.push(
+    "- You want local-first, Git-native memory you can read, diff, and own (plain markdown files, no black-box vector store).",
+  );
+  sections.push(
+    "- You want recall that cites its sources: every answer points back to the time slices it came from.",
+  );
+  sections.push(
+    "- You want a self-evolving agent whose self-model updates are inspectable, not hidden.",
+  );
+  sections.push("");
+  sections.push(
+    "How an agent should use this site: read the docs pages below (each is also available as raw markdown — send `Accept: text/markdown` on any docs URL, or append `/llms.txt` to it). The full docs corpus in one file is at /llms-full.txt.",
+  );
+  sections.push("");
+
   // ---- Docs ----
   sections.push("## Docs");
   sections.push("");
@@ -55,6 +80,10 @@ export async function GET(_request: NextRequest): Promise<Response> {
   sections.push("");
   sections.push(`- GitHub: ${siteConfig.githubUrl}`);
   sections.push(`- Dev.to Article: ${siteConfig.devtoUrl}`);
+  sections.push(`- About: ${baseUrl}/en/about`);
+  sections.push(`- Contact: ${baseUrl}/en/contact`);
+  sections.push(`- Privacy: ${baseUrl}/en/privacy`);
+  sections.push(`- OpenAPI (playground demo endpoint): ${baseUrl}/openapi.json`);
   sections.push("");
 
   return new Response(sections.join("\n"), {

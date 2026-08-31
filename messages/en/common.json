@@ -12,7 +12,80 @@
     "docs": "Docs",
     "community": "Community",
     "devto": "Is time the missing dimension in AI memory?",
+    "about": "About",
+    "contact": "Contact",
+    "privacy": "Privacy",
     "license": "MIT License"
+  },
+  "About": {
+    "Meta": {
+      "title": "About Previously Lab",
+      "description": "Previously Lab is an independent open-source lab building Previously — a personal AI agent that organizes memory by time."
+    },
+    "title": "About Previously Lab",
+    "paragraphs": [
+      "Previously Lab is an independent open-source lab. We build Previously — a personal AI agent that organizes memory by time: one timeline of episodic slices instead of scattered chat threads. The idea is simple: an agent that remembers your life should remember it the way you do — by when things happened.",
+      "The project is MIT-licensed and Git-native. Every memory is a plain markdown file you can read, diff, and own. The agent's self-model evolves in the open, and every recall answer cites the exact time slices it used — no black box, no lock-in.",
+      "Previously Lab is run by @likedreamwalker as an open-source project. The best way to follow or join the work is the GitHub repository and the dev.to essay on the memory model, both linked below."
+    ],
+    "linksHeading": "Find us"
+  },
+  "Contact": {
+    "Meta": {
+      "title": "Contact Previously Lab",
+      "description": "How to reach Previously Lab: GitHub Issues for bugs, GitHub Discussions for questions, dev.to for the memory-model essay."
+    },
+    "title": "Contact",
+    "intro": "Previously is an open-source project, and the fastest way to reach us is in the open. Public threads get faster, better answers — and they help the next person with the same question.",
+    "channels": [
+      {
+        "label": "a@ldwid.com",
+        "description": "",
+        "url": "mailto:a@ldwid.com"
+      },
+      {
+        "label": "GitHub Issues",
+        "description": "Bug reports and feature requests for the Previously agent.",
+        "url": "https://github.com/previously-lab/agent/issues"
+      },
+      {
+        "label": "GitHub Discussions",
+        "description": "Questions, ideas, and design conversations about the project.",
+        "url": "https://github.com/previously-lab/agent/discussions"
+      },
+      {
+        "label": "dev.to",
+        "description": "Comments on the essay that started the project — the time-based memory model.",
+        "url": "https://dev.to/likedreamwalker/is-time-the-missing-dimension-in-ai-memory-2l9c"
+      }
+    ],
+    "outro": "If you found a security issue, please report it through GitHub's private vulnerability reporting on the repository rather than a public issue or email."
+  },
+  "Privacy": {
+    "Meta": {
+      "title": "Privacy Policy",
+      "description": "What data this site and the Previously playground collect — spoiler: almost none."
+    },
+    "title": "Privacy Policy",
+    "updated": "Last updated: August 2026",
+    "sections": [
+      {
+        "heading": "This website",
+        "body": "This site runs no analytics, no tracking pixels, and no advertising cookies. The only things stored on your device are your theme preference and, if your browser sends one, your language preference — both kept in your own browser and never sent anywhere else."
+      },
+      {
+        "heading": "The playground demo",
+        "body": "The playground on this site enforces a per-IP rate limit (20 requests per hour). The counter is held in memory only and is never persisted or shared. When you run a preset, the preset's fixed content is sent to the model provider (DeepSeek) to generate the demo answer. Presets are fixed demonstrations — the endpoint does not accept free-form prompts. Please don't try to put personal data into it."
+      },
+      {
+        "heading": "The Previously agent",
+        "body": "Previously itself is local-first. Your memory files live in your own environment and your own GitHub repository. This website never sees them, and Previously Lab has no access to them. What the agent sends to a model provider when you run it depends on your own configuration and is governed by that provider's policy."
+      },
+      {
+        "heading": "Questions",
+        "body": "Questions about this policy? Open a thread on GitHub Discussions — see the contact page for links."
+      }
+    ]
   },
   "Common": {
     "themeLight": "Light",

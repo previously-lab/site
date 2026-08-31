@@ -32,6 +32,14 @@ export function JsonLd({ locale }: { locale: string }): React.ReactElement {
         "@type": "Organization",
         name: siteConfig.orgName,
         url: siteConfig.orgUrl,
+        // Lets agents verify legitimacy and answer "how do I contact them".
+        // No `address`: this is a personal OSS project — privacy decision.
+        contactPoint: {
+          "@type": "ContactPoint",
+          contactType: "customer support",
+          url: siteConfig.contactUrl,
+          email: siteConfig.contactEmail,
+        },
       },
       {
         "@type": "WebSite",

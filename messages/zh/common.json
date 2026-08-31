@@ -12,7 +12,80 @@
     "docs": "文档",
     "community": "社区",
     "devto": "时间是否是 AI 记忆缺失的维度？",
+    "about": "关于我们",
+    "contact": "联系方式",
+    "privacy": "隐私政策",
     "license": "MIT 许可证"
+  },
+  "About": {
+    "Meta": {
+      "title": "关于 Previously Lab",
+      "description": "Previously Lab 是一个独立的开源实验室，正在构建 Previously——一个按时间组织记忆的个人 AI 代理。"
+    },
+    "title": "关于 Previously Lab",
+    "paragraphs": [
+      "Previously Lab 是一个独立的开源实验室。我们正在构建 Previously——一个按时间组织记忆的个人 AI 代理：用一条情景切片时间线，取代散落的聊天线程。理念很简单：一个记住你生活的代理，应该像你一样记忆——按事情发生的时间。",
+      "项目采用 MIT 许可证，Git 原生。每一段记忆都是你可以阅读、对比、拥有的纯 markdown 文件。代理的自我模型公开演进，每次回忆的答案都会引用它所用到的确切时间切片——没有黑盒，没有锁定。",
+      "Previously Lab 由 @likedreamwalker 以开源项目的方式运营。关注或参与这项工作最好的方式，是下方链接的 GitHub 仓库和 dev.to 上关于记忆模型的文章。"
+    ],
+    "linksHeading": "找到我们"
+  },
+  "Contact": {
+    "Meta": {
+      "title": "联系 Previously Lab",
+      "description": "如何联系 Previously Lab:GitHub Issues 提交 bug,GitHub Discussions 提问交流,dev.to 上讨论记忆模型文章。"
+    },
+    "title": "联系方式",
+    "intro": "Previously 是一个开源项目,最快的联系方式就是公开渠道。公开的讨论能得到更快、更好的回答——也能帮助下一个有同样问题的人。",
+    "channels": [
+      {
+        "label": "a@ldwid.com",
+        "description": "",
+        "url": "mailto:a@ldwid.com"
+      },
+      {
+        "label": "GitHub Issues",
+        "description": "Previously 代理的 bug 报告和功能请求。",
+        "url": "https://github.com/previously-lab/agent/issues"
+      },
+      {
+        "label": "GitHub Discussions",
+        "description": "关于项目的提问、想法和设计讨论。",
+        "url": "https://github.com/previously-lab/agent/discussions"
+      },
+      {
+        "label": "dev.to",
+        "description": "在开启这个项目的文章下评论——关于基于时间的记忆模型。",
+        "url": "https://dev.to/likedreamwalker/is-time-the-missing-dimension-in-ai-memory-2l9c"
+      }
+    ],
+    "outro": "如果你发现了安全问题,请通过仓库的 GitHub 私密漏洞报告渠道提交,而不是公开的 issue 或邮件。"
+  },
+  "Privacy": {
+    "Meta": {
+      "title": "隐私政策",
+      "description": "本站和 Previously playground 收集哪些数据——剧透:几乎没有。"
+    },
+    "title": "隐私政策",
+    "updated": "最后更新:2026 年 8 月",
+    "sections": [
+      {
+        "heading": "本网站",
+        "body": "本站不运行任何分析统计、跟踪像素或广告 cookie。你的设备上仅存储主题偏好,以及(如果你的浏览器发送了)语言偏好——两者都只保存在你自己的浏览器里,不会发送到其他地方。"
+      },
+      {
+        "heading": "Playground 演示",
+        "body": "本站 playground 实施按 IP 的速率限制(每小时 20 次请求)。计数器只保存在内存中,从不持久化或共享。当你运行一个预设时,预设的固定内容会被发送给模型服务方(DeepSeek)以生成演示回答。预设是固定的演示——该端点不接受自由文本提示。请不要尝试在其中输入个人数据。"
+      },
+      {
+        "heading": "Previously 代理本身",
+        "body": "Previously 本身是本地优先的。你的记忆文件存放在你自己的环境和你自己的 GitHub 仓库中。本网站永远看不到它们,Previously Lab 也无法访问。运行时代理向模型服务方发送什么内容,取决于你自己的配置,并受该服务方政策约束。"
+      },
+      {
+        "heading": "疑问",
+        "body": "对本政策有疑问?请在 GitHub Discussions 上开帖——链接见联系页面。"
+      }
+    ]
   },
   "Common": {
     "themeLight": "浅色",

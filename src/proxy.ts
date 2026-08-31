@@ -1,9 +1,63 @@
+import { type NextRequest, NextResponse } from "next/server";
 import createMiddleware from "next-intl/middleware";
 import { routing } from "./i18n/routing";
 
-const proxy = createMiddleware(routing);
+const intlMiddleware = createMiddleware(routing);
 
-export default proxy;
+/**
+ * Markdown content negotiation (acceptmarkdown.com).
+ *
+ * Agents that send `Accept: text/markdown` get the raw-markdown variant
+ * instead of HTML:
+ *   /{locale}              → /llms.txt                       (site index)
+ *   /{locale}/docs/{slug}  → /{locale}/docs/{slug}/llms.txt  (raw doc source)
+ *
+ * Both variants live on the same canonical URL, so every response for these
+ * paths carries `Vary: Accept` — otherwise a CDN could hand the cached HTML
+ * variant to an agent that asked for markdown (or the reverse).
+ */
+const LOCALE_HOME_RE = /^\/(en|zh)\/?$/;
+const DOC_PAGE_RE = /^\/(en|zh)\/docs\/([^/]+?)\/?$/;
+
+function wantsMarkdown(req: NextRequest): boolean {
+  return (req.headers.get("accept") ?? "").includes("text/markdown");
+}
+
+/** Append Accept to Vary without dropping the existing Next.js entries. */
+function addVaryAccept(res: Response): void {
+  const existing = res.headers.get("vary");
+  if (!existing) {
+    res.headers.set("vary", "Accept");
+  } else if (!existing.toLowerCase().includes("accept")) {
+    res.headers.set("vary", `${existing}, Accept`);
+  }
+}
+
+export default function proxy(req: NextRequest): Response {
+  const { pathname } = req.nextUrl;
+  const isHome = LOCALE_HOME_RE.test(pathname);
+  const doc = DOC_PAGE_RE.exec(pathname);
+
+  if (wantsMarkdown(req)) {
+    const target = doc
+      ? `/${doc[1]}/docs/${doc[2]}/llms.txt`
+      : isHome
+        ? "/llms.txt"
+        : null;
+    if (target) {
+      const url = req.nextUrl.clone();
+      url.pathname = target;
+      const res = NextResponse.rewrite(url);
+      addVaryAccept(res);
+      return res;
+    }
+  }
+
+  const res = intlMiddleware(req);
+  // HTML variant of a negotiated path — declare the Accept variance too.
+  if (isHome || doc) addVaryAccept(res);
+  return res;
+}
 
 export const config = {
   matcher: "/((?!api|trpc|_next|_vercel|.*\\..*).*)",
