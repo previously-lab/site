@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Raleway, Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { MotionConfig } from "motion/react";
 import { siteConfig } from "@/lib/site";
@@ -41,6 +42,8 @@ export default async function RootLayout({
             {children}
           </MotionConfig>
         </ThemeProvider>
+        {/* Vercel Web Analytics (Pro) — cookieless, anonymous aggregates. */}
+        <Analytics />
       </body>
     </html>
   );

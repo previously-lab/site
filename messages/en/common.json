@@ -71,7 +71,7 @@
     "sections": [
       {
         "heading": "This website",
-        "body": "This site runs no analytics, no tracking pixels, and no advertising cookies. The only things stored on your device are your theme preference and, if your browser sends one, your language preference — both kept in your own browser and never sent anywhere else."
+        "body": "This site uses Vercel Web Analytics — a privacy-friendly, cookieless counter that gives us anonymous, aggregate numbers only: page views, referrers, and rough geography. It sets no cookies, collects no personal data, and does not track you across sites. There are no tracking pixels and no advertising cookies. The only things stored on your device are your theme preference and, if your browser sends one, your language preference — both kept in your own browser."
       },
       {
         "heading": "The playground demo",
