@@ -19,6 +19,14 @@ const intlMiddleware = createMiddleware(routing);
 const LOCALE_HOME_RE = /^\/(en|zh)\/?$/;
 const DOC_PAGE_RE = /^\/(en|zh)\/docs\/([^/]+?)\/?$/;
 
+/**
+ * Trust anchor pages probed by agent checkers at the unprefixed URL.
+ * next-intl would 307 them to /en/...; some crawlers don't follow, so
+ * serve the English page directly (rewrite — canonical still points at
+ * the /en URL).
+ */
+const ROOT_TRUST_PATHS = new Set(["/about", "/contact", "/privacy"]);
+
 function wantsMarkdown(req: NextRequest): boolean {
   return (req.headers.get("accept") ?? "").includes("text/markdown");
 }
@@ -41,7 +49,7 @@ export default function proxy(req: NextRequest): Response {
   if (wantsMarkdown(req)) {
     const target = doc
       ? `/${doc[1]}/docs/${doc[2]}/llms.txt`
-      : isHome
+      : isHome || pathname === "/"
         ? "/llms.txt"
         : null;
     if (target) {
@@ -51,6 +59,13 @@ export default function proxy(req: NextRequest): Response {
       addVaryAccept(res);
       return res;
     }
+  }
+
+  // Unprefixed trust pages — serve directly instead of 307-hop.
+  if (ROOT_TRUST_PATHS.has(pathname)) {
+    const url = req.nextUrl.clone();
+    url.pathname = `/en${pathname}`;
+    return NextResponse.rewrite(url);
   }
 
   const res = intlMiddleware(req);

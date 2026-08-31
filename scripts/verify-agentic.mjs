@@ -66,6 +66,22 @@ async function get(path, headers = {}) {
   const home = await get("/en", { Accept: "text/markdown" });
   assert.match(home.headers.get("content-type") ?? "", /text\/(markdown|plain)/);
   assert.ok(home.body.includes("# Previously Lab"));
+
+  // Root "/" with Accept: text/markdown must serve markdown directly,
+  // no redirect hop (some checkers don't preserve Accept across a 307).
+  const root = await fetch(`${base}/`, {
+    headers: { Accept: "text/markdown" },
+    redirect: "manual",
+  });
+  assert.equal(root.status, 200, "root markdown must not redirect");
+  assert.match(root.headers.get("content-type") ?? "", /text\/(markdown|plain)/);
+}
+
+/* ---- 2b. Unprefixed trust pages serve directly (no 307) ---- */
+for (const path of ["/about", "/contact", "/privacy"]) {
+  const res = await fetch(`${base}${path}`, { redirect: "manual" });
+  assert.equal(res.status, 200, `${path} must serve without redirect`);
+  assert.ok((await res.text()).length > 2000, `${path} needs content`);
 }
 
 /* ---- 3. llms.txt when-to-use ---- */
