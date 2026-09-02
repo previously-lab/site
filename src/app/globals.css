@@ -434,6 +434,17 @@ pre.shiki {
   --pg-brand: oklch(0.6 0.23 260);
   --pg-brand-soft: oklch(0.6 0.23 260 / 8%);
   --pg-brand-line: oklch(0.6 0.23 260 / 25%);
+  /* Emerald — the evolution accent (same hue family as the landing's
+     --accent-emerald), for the fired fitness trigger + direction moves. */
+  --pg-evolve: oklch(0.6 0.16 160);
+  --pg-evolve-soft: oklch(0.6 0.16 160 / 8%);
+  --pg-evolve-line: oklch(0.6 0.16 160 / 25%);
+}
+
+.dark .playground-scope {
+  --pg-evolve: oklch(0.7 0.15 160);
+  --pg-evolve-soft: oklch(0.7 0.15 160 / 10%);
+  --pg-evolve-line: oklch(0.7 0.15 160 / 30%);
 }
 
 /* Breathing pulse for the "working" pill — frozen by the global

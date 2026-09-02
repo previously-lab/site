@@ -93,7 +93,7 @@ Previously 项目当前 demo 体验存在三个主要障碍：
 ```
 
 - `kind = recall` → `{ answer, references: [{ slice_id, quote, note? }], searched: string[], confidence: 0..1 }`
-- `kind = evolution` → `{ triggerReasons: string[], directionVerdict, cardBefore, cardAfter, playbookNote }`（`cardBefore` 由服务端直接取 vendored 卡片原文，不经模型，保证 diff 诚实）
+- `kind = evolution` → `{ triggerReasons: string[], fitnessLedger: [{ bucket, delta, evidence }], directionVerdict, directionChanges: { portraitAdded, portraitRetired, hypothesesPromoted, hypothesesProposed, hypothesesRetired }, cardBefore, cardAfter, playbookNote }`（`cardBefore` 由服务端直接取 vendored 卡片原文，不经模型，保证 diff 诚实;fitness 账本的 evidence 必须是用户原话引文,无证据不打分)
 - `kind = anatomy` → `{ narrative, sliceId, frontmatter }`（`frontmatter` 由服务端用 gray-matter 从切片 core.md 解析，不经模型）
 
 **错误响应**：统一 `{ "error": string, "code": "bad_request" | "rate_limited" | "unavailable" | "upstream" }`，`error` 文案按 locale 双语。

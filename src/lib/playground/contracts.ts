@@ -27,14 +27,61 @@ export const recallResultSchema = z.object({
 });
 export type RecallResult = z.infer<typeof recallResultSchema>;
 
+/** The five fitness buckets the kernel scores every turn against. */
+export const fitnessBucketSchema = z.enum([
+  "card",
+  "recall",
+  "search",
+  "thinkdeep",
+  "interaction",
+]);
+export type FitnessBucket = z.infer<typeof fitnessBucketSchema>;
+
 /**
- * What the model returns for evolution-card. `cardBefore` is NOT part of the
- * model output — the route attaches the vendored card verbatim so the diff is
- * honest by construction.
+ * One ledger entry: an ordinal delta (-2..+1) anchored to a verbatim quote
+ * of the user's own words from the slices under review (evidence-less deltas
+ * are force-zeroed in the real kernel — the prompt enforces the same).
+ */
+export const fitnessLedgerEntrySchema = z.object({
+  bucket: fitnessBucketSchema,
+  delta: z.number().int().min(-2).max(1),
+  evidence: z.string(),
+});
+export type FitnessLedgerEntry = z.infer<typeof fitnessLedgerEntrySchema>;
+
+/**
+ * The direction document's movements in one merged run: portrait entries
+ * added/retired, and hypothesis migrations (confirmed → promoted into the
+ * portrait; newly proposed; refuted or stale → retired). Entries are the
+ * moved text lines themselves.
+ */
+export const directionChangesSchema = z.object({
+  portraitAdded: z.array(z.string()).default([]),
+  portraitRetired: z.array(z.string()).default([]),
+  hypothesesPromoted: z.array(z.string()).default([]),
+  hypothesesProposed: z.array(z.string()).default([]),
+  hypothesesRetired: z.array(z.string()).default([]),
+});
+export type DirectionChanges = z.infer<typeof directionChangesSchema>;
+
+/**
+ * What the model returns for evolution-card — one full evolution-loop pass:
+ * the fitness ledger that fired the trigger, the direction document's
+ * movements, then the card mutation + playbook note. `cardBefore` is NOT
+ * part of the model output — the route attaches the vendored card verbatim
+ * so the diff is honest by construction.
  */
 export const evolutionModelSchema = z.object({
   triggerReasons: z.array(z.string()).default([]),
-  directionVerdict: z.string(),
+  fitnessLedger: z.array(fitnessLedgerEntrySchema).default([]),
+  directionVerdict: z.string().default(""),
+  directionChanges: directionChangesSchema.default({
+    portraitAdded: [],
+    portraitRetired: [],
+    hypothesesPromoted: [],
+    hypothesesProposed: [],
+    hypothesesRetired: [],
+  }),
   cardAfter: z.string(),
   playbookNote: z.string().default(""),
 });

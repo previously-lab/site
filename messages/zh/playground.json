@@ -38,12 +38,12 @@
       "evolution": {
         "history": [
           {
-            "question": "你最近改过关于我的卡片吗？",
-            "answer": "改过。7 月 29 日，direction 里加了一条「具体地庆祝胜利」——你在半马完赛之后习惯性地贬低自己的成绩，连即将到来的婚礼演讲也提前贬了一轮。这条改动挂着两个切片作证：完赛当晚的，和你赛后反思的那次。"
+            "question": "你对我的画像最近有变化吗？",
+            "answer": "有——画像一直在进化。最新一条加在「特质与认知风格」维度下：你系统性地低估自己的进步。半马完赛后你习惯性地把成绩说成运气，婚礼演讲还没讲就先贬低了一轮。这条画像挂着两个切片作证：完赛当晚的，和你赛后反思的那次。"
           },
           {
             "question": "这种改动是随便改的吗？",
-            "answer": "不是。每一条卡片或 direction 的改动都必须挂切片指针当证据，写进只增不删的 mutations 档案。而且下一条改动入账时，系统会回头验收上一条——被证明没用的改动不会被删掉，但会被打上 ineffective 的标记，留在档案里。"
+            "answer": "不是。每个回合，五个 fitness bucket——卡片、回忆、搜索、深思、交互——都在累积带证据的打分；没挂你原话当证据的分会被强制归零。只有某个 bucket 的净分跌到 −5，进化才会真正触发；成功跑完一次，这一代就结算清零，重新累积。"
           }
         ]
       },
@@ -71,7 +71,7 @@
         "question": "说说我跑完人生第一个半程马拉松那天的事。"
       },
       "evolution-card": {
-        "question": "对我最新的切片跑一遍卡片进化——会发生什么变化，为什么？"
+        "question": "我的画像最近进化出了什么？"
       },
       "slice-anatomy": {
         "question": "讲讲这个切片是怎么被记住的——每一部分都是从哪来的？"
@@ -81,7 +81,7 @@
       "sceneTime": "23:47",
       "working": {
         "recall": "正在回忆…",
-        "evolution": "正在演化卡片…",
+        "evolution": "正在运行进化回路…",
         "anatomy": "正在拆解切片…"
       },
       "recallDone": "回忆完成",
@@ -90,8 +90,24 @@
       "references": "引用",
       "searched": "检索轨迹",
       "confidence": "置信度",
-      "triggers": "触发原因",
-      "direction": "Direction 判定",
+      "fitnessLedger": "Fitness 账本——这一代的选择压力",
+      "net": "净分",
+      "triggered": "已触发",
+      "directionChanges": "Direction 变更——画像与假说",
+      "noChange": "检查过了，没有变化。",
+      "portraitAdded": "画像·新增",
+      "portraitRetired": "画像·移除",
+      "hypothesesPromoted": "假说·证实晋升",
+      "hypothesesProposed": "假说·新提出",
+      "hypothesesRetired": "假说·证伪或退休",
+      "promoted": "晋升",
+      "buckets": {
+        "card": "卡片",
+        "recall": "回忆",
+        "search": "搜索",
+        "thinkdeep": "深思",
+        "interaction": "交互"
+      },
       "cardBefore": "进化前的卡片",
       "cardAfter": "进化后的卡片",
       "playbook": "Playbook 备注",

@@ -21,7 +21,6 @@ export interface PlaygroundSnapshot {
   strands: Record<string, string[]>;
   currentCard: string;
   direction: string | null;
-  mutations: string | null;
   slices: Record<string, { core: string; previously: string }>;
   /** Content hash — response caches key on this, so a dataset update
    *  automatically invalidates cached preset answers. */
@@ -39,7 +38,6 @@ const CORE_FILES = {
   strands: "episodic/strands.json",
   currentCard: "episodic/current-previously.md",
   direction: "evolution/direction.md",
-  mutations: "evolution/mutations.md",
 } as const;
 
 /** Union of every preset's deep-read slices — presets.ts is the single
@@ -68,16 +66,15 @@ function hashOf(contents: string[]): string {
 }
 
 /** Fetch the whole snapshot from the live repo. Returns null if any core
- *  file is unavailable (direction/mutations are optional). */
+ *  file is unavailable (direction is optional). */
 async function fetchRemoteSnapshot(): Promise<PlaygroundSnapshot | null> {
   const paths = slicePaths();
-  const [timeline, strandsRaw, currentCard, direction, mutations, ...sliceFiles] =
+  const [timeline, strandsRaw, currentCard, direction, ...sliceFiles] =
     await Promise.all([
       fetchText(CORE_FILES.timeline),
       fetchText(CORE_FILES.strands),
       fetchText(CORE_FILES.currentCard),
       fetchText(CORE_FILES.direction),
-      fetchText(CORE_FILES.mutations),
       ...paths.flatMap((p) => [
         fetchText(`episodic/slices/${p}/timeline/core.md`),
         fetchText(`episodic/slices/${p}/previously.md`),
@@ -107,7 +104,6 @@ async function fetchRemoteSnapshot(): Promise<PlaygroundSnapshot | null> {
     strands,
     currentCard,
     direction,
-    mutations,
     slices,
     version: hashOf([timeline, strandsRaw, currentCard, ...sliceFiles.map((f) => f ?? "")]),
   };

@@ -1,6 +1,6 @@
 ---
 title: The Memory Model
-description: How memory is structured — the build-time identity constitution, the episodic timeline of slices and strands, the living user card, the evolution data layer (direction, fitness, mutations archive, playbooks), the whitelist boundary, and context frozen with the slice.
+description: How memory is structured — the build-time identity constitution, the episodic timeline of slices and strands, the living user card, the evolution data layer (direction, fitness, playbooks), the whitelist boundary, and context frozen with the slice.
 ---
 
 # The Memory Model
@@ -54,7 +54,7 @@ The index is a map, not an answer source: each line carries enough texture to ju
 
 `memory/episodic/current-previously.md` is the living distillation of the timeline — a compact card that answers *who you are*, refined after slice boundaries. It is the difference between an agent that stores your history and one that arrives already knowing you: it is what makes an arrival briefing possible.
 
-The card has five sections:
+The card has four sections:
 
 | Section | Contents |
 |---------|----------|
@@ -62,7 +62,6 @@ The card has five sections:
 | **Past** | A rolling third-person profile paragraph, updated in place, plus anchor facts — durable dates, decisions, and red lines that will still be true in years |
 | **Now** | Current-state hooks, not narratives — mechanically expired after 7 days |
 | **Horizon** | Future-facing commitments and deadlines, each with a `by:` date; overdue items are flagged, never silently dropped |
-| **Self-model** | The agent's operating lessons about working with you — deltas from its standing directives only |
 
 Every entry carries `refs` pointers back to the slices that evidence it, so any claim can be drilled down to the raw record. The card is never rewritten wholesale and never touched by the generic write tool: the evolution agent edits it through validated per-entry mutations (`addNow`, `updatePastProfile`, `resolveHorizon`, …), and over-limit writes are rejected with compression instructions. Hard caps keep the whole card under roughly 8 KB, so it stays cheap to inject into every prompt. See [The User Card](/docs/user-card) for the full format.
 
@@ -72,22 +71,20 @@ Next to the episodic layer sits a second, smaller data layer — the state of th
 
 ```
 memory/evolution/
-  direction.md      -- the selection criteria: Direction / Anti-goals / Evidence / Log
+  direction.md      -- the learned user portrait: Portrait + Hypotheses pool
   fitness.json      -- bounded store of scored events + mechanical signals
-  mutations.md      -- append-only archive of accepted mutations
 memory/agent-playbooks/
   recall.md         -- evolved behavioral brief for the recall colleague
   search.md         -- ... for webSearch
   thinkdeep.md      -- ... for thinkDeep
 ```
 
-- **direction.md** — what "better for you" means across slices. Abstract (still true in a month), cross-slice (multiple slices plus the agent timeline per conclusion, with pointers in Evidence), and its Log section is append-only. This is the loop's environment; the card and playbooks are only its products.
-- **fitness.json** — the selection pressure's ledger. Events are per-slice, per-bucket (`card` / `recall` / `search` / `thinkdeep` / `interaction`) ordinal deltas (−2…+1) with user-verbatim evidence attached — an evidence-less score is force-zeroed structurally on write. Alongside them sit mechanical signals (recall verify/rework/repeat) recorded by instrumentation, not by any model. The store is deliberately bounded: it is a soft-signal log, never an archive of record.
-- **mutations.md** — the mutation archive. Append-only: each entry carries its target, a summary, an expected benefit, and evidence pointers. Archiving a new mutation evaluates the previous one on the same target — a bucket that kept losing points earns an `**Evaluation: ineffective**` line. No rollback, no deletion.
+- **direction.md** — the loop's learned model of who you are: a Portrait of confirmed, cross-context traits (descriptive, never imperative, evidence in trailing `— refs:` tails) plus a bounded pool of falsifiable hypotheses with a code-enforced TTL. This is the loop's environment; the card and playbooks are only its products.
+- **fitness.json** — the selection pressure's ledger. Events are per-slice, per-bucket (`card` / `recall` / `search` / `thinkdeep` / `interaction`) ordinal deltas (−2…+1) with user-verbatim evidence attached — an evidence-less score is force-zeroed structurally on write. Alongside them sit mechanical signals (recall verify/rework/repeat, regenerate/stop) recorded by instrumentation, not by any model. The store is deliberately bounded: it is the current generation's pressure gauge, never an archive of record.
 - **agent-playbooks/** — one short brief per sub-agent, injected into its user prompt at call time. A missing playbook is a normal state: the injection is simply skipped.
 
 <Callout variant="info">
-**The evolvable surface is data; the contracts are code.** Direction, playbooks, the card, and the archive under `memory/` are what the evolution loop may rewrite. The sub-agent schemas, tool sets, budgets, trigger math, and acceptance rules stay in the code — deliberately outside the loop's reach, so the protocol that governs evolution cannot itself be evolved. See [The Evolution Loop](/docs/evolution).
+**The evolvable surface is data; the contracts are code.** Direction, playbooks, and the card under `memory/` are what the evolution loop may rewrite. The sub-agent schemas, tool sets, budgets, trigger math, and acceptance rules stay in the code — deliberately outside the loop's reach, so the protocol that governs evolution cannot itself be evolved. See [The Evolution Loop](/docs/evolution).
 </Callout>
 
 ## The Whitelist Boundary
@@ -123,7 +120,7 @@ Deep context is never stuffed into the prompt by default either — the main age
 Every piece of memory is a Markdown file with YAML frontmatter. This choice is deliberate:
 
 - **Portable** — `git clone` anywhere, read on any device, no server needed.
-- **Git-diffable** — every change to a slice, the card, the direction, or the mutation archive is tracked in version history. You can see what Previously learned, and when.
+- **Git-diffable** — every change to a slice, the card, or the direction is tracked in version history. You can see what Previously learned, and when.
 - **Human-editable** — open any file in your editor, fix a summary, add a tag. No admin UI, no SDK.
 - **Any tool reads it** — Previously writes, Claude Code reads, Codex extends. No lock-in, no integration tax, no schema migration.
 
@@ -133,6 +130,6 @@ Files are the interface.
 
 - [Recall](/docs/recall) — the colleague who works the timeline at inference time
 - [The User Card](/docs/user-card) — the living distillation of you, and the loop that evolves it
-- [The Evolution Loop](/docs/evolution) — the full story of direction, fitness, and mutation acceptance
+- [The Evolution Loop](/docs/evolution) — the full story of direction, fitness, and triggers
 - [The Scribe](/docs/scribe) — how conversations from other tools enter this timeline
 - [The Only Way In](/docs/ingest) — the acceptance-gated entry point for outside content

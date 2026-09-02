@@ -60,7 +60,7 @@ export const PLAYGROUND_PRESETS = [
     id: "evolution-card",
     kind: "evolution",
     questionEn:
-      "Run one card-evolution pass over my latest slices — what would change, and why?",
+      "Walk me through one full evolution-loop run over my latest slices — the fitness ledger that fired it, what changed in my direction, and what my card would become.",
     slices: ["2026/08/11/2054", "2026/08/17/1721"],
     strandKeys: [],
   },

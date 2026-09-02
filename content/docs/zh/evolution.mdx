@@ -1,104 +1,78 @@
 ---
 title: 进化回路
-description: Previously 的自进化是达尔文式的：direction.md 是筛选标准，fitness 是选择压力，append-only 的变异档案记录每一次被接受的改变——用户卡片与子 Agent playbook 只是产物。
+description: Previously 的自进化是达尔文式的：用户画像（direction.md）是环境，挂证据的 fitness 评分是选择压力，唯一的进化 Agent 是唯一写入者——用户卡片与同事们的 playbook 只是产物。
 ---
 
 # 进化回路
 
-Previously 会学习如何更好地对待你——但它不能悄悄改写自己。每一次改变都从证据出发，落进一份只追加的档案，事后可以被你逐条审计。进化回路跑在**切片边界**，分两个阶段，而且大多数时候，它根本不跑。
+Previously 会学习如何更好地对待你——但它不能悄悄改写自己。每一次改变都从证据出发，触发条件写在确定性代码里，而且大多数时候，回路的裁决是什么都不改。
 
 Previously 的自进化是达尔文式的，不是堆积式的。四个角色，一一映射到生物学：
 
 | 达尔文角色 | 在 Previously 中 |
 |----------------|---------------|
-| 环境 / 筛选标准 | `memory/evolution/direction.md`——跨 slice 的「什么是对你更好」 |
+| 环境 /「更适应」的含义 | `memory/evolution/direction.md`——一份学出来的「你是谁」的画像，外加一池可证伪的假说 |
 | 选择压力 | fitness 评分——挂证据、分桶、在确定性代码里聚合 |
-| 变异机制 | 进化 Agent——卡片、direction 与 playbook 的**唯一写入者** |
+| 变异机制 | 进化 Agent——方向、卡片与 playbook 的**唯一写入者** |
 | 表型 / 产物 | 用户卡片 + `memory/agent-playbooks/{recall,search,thinkdeep}.md` |
 
 ## 没有触发，就没有进化
 
-进化不是例行公事。触发条件是确定性代码，不看心情：
+回路在**每一轮、Agent 回答之前**都会被检查——而检查只是一个数字，由代码算出。fitness store 不是信用史，它是当前**世代（generation）**的压力表：某个桶的净分降到 **−5**，进化立刻运行。也就是五条弱信号（−1），或者两条明确抱怨（−2）再加一条——噪声永远点不燃它，持续的模式才会。
 
-- 某个 fitness 桶在最近 10 个切片里的净分 **≤ −3**；
-- 或者本切片出现单条**挂着证据的 −2**；
-- 外加 turn analyzer 的 `evolve_card.worth` 闸门（分析器失败时默认运行：浪费一次检查很便宜，错过一次演化是永久的记忆丢失）、旧版卡片的强制升级，以及你明确的请求或纠正——「记住……」「以后别这样了」会立刻触发一次**仅卡片**的进化，不等切片边界。
+一次成功的运行会**结算整个世代**：账本清零，因为结果已经沉积进方向、卡片或 playbook——「检查过，没有变化」也算一种结果。失败的运行不结算，压力原样留到下一轮。你的明确请求——「记住……」「以后别这样了」——根本不进入这本账：它们走另一条指令通道，单独触发自己的运行。
 
-没有触发，进化子 Agent 就完全不运行。它不会"顺便看看有什么可改的"。
+**强制检查 ≠ 强制突变。** 进化运行最常见的结局是 `no_change`。触发买来的只是对原始证据的一次仔细重读——改不改、改什么，由进化 Agent 自己裁决。
 
-## 第一阶段：方向
+## 环境：一份画像，不是一本规则手册
 
-Direction Agent 评估 `memory/evolution/direction.md`——这条回路**学出来的奖惩模型**。它只有提议权，手里没有任何写入工具。
+`memory/evolution/direction.md` 是回路学到的「**你这个人**」——产物们要去适应的环境。它固定只有两节。
 
-direction.md 固定四个小节：
+**# Portrait（画像）** —— 已确认的理解，组织在六个固定维度里：Traits & cognitive style · Triggers & rhythms · Patterns & loops · Strengths & resilience · Communication preferences · Values & boundaries。一条目要够格进画像，必须同时满足三个硬条件：
 
-```markdown
-# Direction
+- **跨情境成立**，不只在证据它的那段对话里成立；
+- **比证据活得久**——deadline 过了、旅行结束了、项目交付了，它仍然成立；
+- **可预测**——它能说出你下一次会怎么做、需要什么。
 
-- Favor honest, specific feedback over comfort — you act on blunt critique
-  and stall on vague reassurance.
-- Protect recovery: after the 2025 knee injury, pushing through pain is a
-  failure mode, not dedication.
+画像只描述，不祈使：它描述你，从不指挥 Agent 该怎么做。正文不带人名、日期、事件——所有具体性只挂在行尾的 `— refs:` 切片指针里，每一行都能钻回原始记录。
 
-# Anti-goals
-
-- Never become a flatterer or a scorekeeper.
-
-# Evidence
-
-- refs: [2024/04/22/1930] [2025/02/17/2145] [2025/07/19/1030]
-
-# Log
-
-- 2025-08-23 — added "protect recovery" after the injury arc — refs: [2025/07/19/1030] [2025/08/21/0730]
-```
-
-让方向保持诚实的是写法纪律——没有冷却期计时器，只有标准本身：
-
-- **抽象。**「你昨天去爬山了」永远进不了 direction——那是卡片的事。方向必须在一个月后仍然成立。
-- **跨片。** 每条方向结论都由多个 slice 加 agent 时间线对照支撑，Evidence 节里挂着 slice 指针。代码在结构上强制骨架与证据门槛：没有 slice 指针，就不予接受。
-- **结构开放。** 不预设维度清单——agent 可以自生长新维度。固定的是写法纪律；`Log` 节是 append-only 的：方向何时、因何证据而变。
-
-「没有变化」是最常见的结果，此时什么都不写（评估本身仍会留痕）。史上第一份方向由 bootstrap 闸门兜底，标准相应放低。
-
-## 第二阶段：唯一的写手
-
-Previously Agent 是用户卡片和各家 playbook 的**唯一写手**。它通过逐条校验过的 mutation 工具编辑（卡片那份工具清单见[用户卡片](/docs/user-card)）——永远是按条目修改，从不整文件重写；超出长度上限的写入会被拒绝，并附带压缩指令；同一个拒绝反复出现时，回路刹车会强制落地，不允许死循环。
-
-**Playbook** 是回路触达子 Agent 的方式：每个同事一份简短的行为指引——`memory/agent-playbooks/{recall,search,thinkdeep}.md`（「涉及情感话题，先读完整 slice 再下结论」之类）。Playbook 注入子 Agent 的 **user prompt**，绝不进静态 system prompt，供应商的前缀缓存因此得以保住；上限 2,000 字符，缺失时优雅降级——整个注入块直接省略。
-
-## 计分，不许空口
-
-分数来自一个**回合分析器（turn analyzer）**，它在事后评估每一轮——agent 绝不给自己打分。fitness store 分五个桶：`card` / `recall` / `search` / `thinkdeep` / `interaction`，单条增量从 −2（明确抱怨或纠正）到 +1（明确认可），按桶各自记账。
-
-结构性的一条规定：**每条非零分必须挂用户原话作为证据，任何不挂证据的增量被强制归零**——在 store 里强制，而不是靠提示词纪律。分数可以错，但不能没有出处——这和回忆的证据锚定是同一条纪律。**分数只决定「要不要进化」，绝不决定「改成什么」**：触发只是买来一次由进化 Agent 重读原始证据的仔细检查，改成什么样由它自己裁决。分数是传感器，不是裁判。
-
-## 验收档案，只追加
-
-每次被接受的改动都追加进 `memory/evolution/mutations.md`，附上预期收益与证据指针：
+**# Hypotheses（假说）** —— 一池有界的（≤ 10 条）特质级猜测，还没挣到晋升资格：
 
 ```markdown
-## 2026-08-03T22:14:05Z — playbook:recall
-
-- **Summary:** Recall now reads the full slice before answering anything
-  about the wedding-speech drafts, instead of answering from summaries.
-- **Expected benefit:** Fewer confident-but-wrong recalls on emotionally
-  loaded topics; the recall bucket stops losing points.
-- **Evidence:**
-  - fitness: 2026-07-28 recall -2 — "that's not what I said, read the actual conversation"
-  - slice 2026-07-28-2043
+- [proposed 2026-08-10-2130] 你在把决定说出来之后行动更快 — falsify if: 你两次不经过对话就直接拍板
 ```
 
-档案是只追加的，而且自带验收：**归档一条新改动时，会回头评估同一目标上的上一条改动**。如果它落地之后对应的 fitness 桶仍在扣分，档案里会追加一行 `**Evaluation: ineffective**`——这行字永远不会被删。没有自动回滚，没有冷却期，没有变异预算，只有一份越来越长的、诚实的记录。接受条件必须同时满足：用户信号不降级，且至少一个维度有证据支持的改善。
+没有证伪条件的猜测是幻想，所以证伪条件是强制的。生命周期由代码执行，不靠自觉：被确认（至少两个不同切片的证据，或你亲口确认）→ 当次运行**晋升**进画像；被证伪 → **移除**；提出后四个切片仍未验证 → 代码强制**退休**，有新证据可以再提。每次运行把池子补满到十条。画像和未决假说会挂进主 Agent 的系统提示词——猜测被明确标注为未验证，只会被轻轻试探，绝不当事实断言。
 
-整个过程实时流式呈现在聊天里：一次被跳过的运行也会连同原因一起报告——静默的跳过读起来就像「它从没运行过」。
+史上第一份画像和旧格式文档由代码里的 bootstrap/migrate 闸门兜底，证据门槛相应放低。
+
+## 分数是传感器，不是裁判
+
+选择压力来自一个**回合分析器（turn analyzer）**，它在事后评估每一轮——Agent 绝不给自己打分。五个桶——`card` / `recall` / `search` / `thinkdeep` / `interaction`——各自记账，单条增量从 −2（明确抱怨或纠正）到 +1（明确认可）。两条结构性规则保证账本诚实：
+
+- **没证据，就没分。** 每条非零分必须挂你的原话作为证据；不挂证据的增量在 store 内部被强制归零，不靠提示词纪律。分数可以错，但不能没有出处。
+- **分数只决定「要不要」，绝不决定「改成什么」。** 触发买来的只是重读证据，不是一次突变。
+
+分析器拿画像当它学出来的评分标准：一轮命中已知失败模式的对话，即使没有明确抱怨，也会带着证据吃到 −1。也不是所有信号都是分数——你在界面上的反应被机械地埋点：一次重新生成、一次被你掐断的回答，都作为赤裸的事实入账（`interaction_regenerate`、`interaction_interrupt`），是分析器可以打也可以不打的 −1 候选。回忆同事也有自己的仪表：主 Agent 在 recall 已经作答之后重读同一切片时，这次读取被分类为 `verify`、`rework` 或 `repeat`——rework 就是那记安静的差评。
+
+## 一次合并运行，一个写入者
+
+进化一旦触发，就**只跑一次**——一次合并的运行。Previously Agent 先评估方向：它只有提议权，手里没有任何写入工具；提案由代码校验（固定骨架、每条假说的结构化元数据、稳态下至少两个不同切片的证据门槛）。被拒绝的提案会如实地显示为「被拒绝」——绝不伪装成「无变化」——而且闸门在本切片剩余时间里放宽，防止一份持续不合格的提案每轮都拖起完整运行。
+
+然后，在同一次运行里、在可能已更新的画像之下，Agent 进化产物：用户卡片通过逐条校验的 mutation 工具编辑（工具清单见[用户卡片](/docs/user-card)），以及恰好被触发的那些桶的 playbook。**Playbook** 是每个同事一份的简短行为指引——`memory/agent-playbooks/{recall,search,thinkdeep}.md`——注入同事的 **user prompt**，绝不进静态 system prompt，供应商的前缀缓存因此保住；上限 2,000 字符，缺失时整个注入块直接省略。
+
+整个运行实时流式呈现在聊天里——包括一次被跳过的运行，连同原因。静默的跳过读起来就像「它从没运行过」。
+
+## 为什么没有变异档案
+
+早期版本留过一份只追加的变异档案——每次被接受的改动，附预期收益、证据指针与自我评估。它被删掉了，出于一个原则：**进化没有方向，只有拟合。** 一次变异永远不与它的前任比较——因为根本没有「进步」这条轴可以比较——只有系统是否还贴合现在的你。你变了，旧的画像条目就*应当*退休；没有回滚，因为不存在一个更真的过去可以回滚。改动的记录并没有消失——所有文件都是 git 里的纯 Markdown——但那是活文档的版本历史，不是回路要去查阅的账本。
 
 <Callout variant="warning">
-**单一写入者。** 进化 Agent 是卡片、方向、playbook 与档案的唯一写入者。Recall、webSearch、thinkDeep 全部只读、只汇报——recall 读到值得记住的东西，就在报告里带回来，由进化阶段统一落笔。只有一个写入者，接受规则与证据链就只有一处要守。
+**单一写入者。** 进化 Agent 是方向、卡片与 playbook 的唯一写入者。Recall、webSearch、thinkDeep 全部只读、只汇报——recall 读到值得记住的东西，就在报告里带回来，由进化运行统一落笔。只有一个写入者，证据链就只有一处要守。
 </Callout>
 
 <Callout variant="info">
-**一句话**：它在学习如何对你更好，但它走的每一步都留着脚印。
+**一句话**：它在学习如何对你更好——在它无法造假的选择压力下，握着一份必须保持可证伪的画像。
 </Callout>
 
 ## 相关文档

@@ -221,7 +221,7 @@
     "Act3": {
       "eyebrow": "03",
       "title": "A memory that evolves.",
-      "body": "Evolution here is Darwinian, not decorative. A direction doc defines what \"better for you\" means; every turn is fitness-scored against evidence in your own words; an append-only mutations log keeps the process honest. The card below is just what selection leaves behind.",
+      "body": "The card is what the timeline distills into — what happened, what you're carrying right now, and where you're headed next. Nothing lands on it by default; every line is selected with evidence, in your own words.",
       "cta": "Explore the memory model",
       "cardTitle": "current-previously.md",
       "identityLabel": "Identity",
@@ -244,10 +244,78 @@
           "meta": "refs: [2026/07/16], [2026/08/02] | since: 2026-07-16"
         }
       ],
-      "updatedNote": "selected by direction.md · fitness-scored with evidence · archived in mutations.md"
+      "updatedNote": "selected by the portrait in direction.md · fitness-scored with evidence"
+    },
+    "ActPortrait": {
+      "eyebrow": "04",
+      "title": "A portrait of who you are.",
+      "body": "Beyond the card, the system keeps direction.md — a portrait of you in six dimensions: how you think, what sets you off, the loops you repeat, what you can lean on, how you want to be talked to, what you won't trade. Beside it sits a small pool of falsifiable guesses — confirmed ones are promoted into the portrait, refuted ones are removed, and any guess left unverified for too long retires.",
+      "cta": "Explore the evolution loop",
+      "cardTitle": "direction.md",
+      "portraitLabel": "Portrait",
+      "entries": [
+        {
+          "dim": "Traits & cognitive style",
+          "text": "evidence before enthusiasm — wants the blunt version first",
+          "refs": "— refs: [2025/02/24], [2026/06/27]"
+        },
+        {
+          "dim": "Triggers & rhythms",
+          "text": "sharp in the mornings since the training block; drafts get deleted late at night",
+          "refs": "— refs: [2026/07/11], [2026/08/07]"
+        },
+        {
+          "dim": "Patterns & loops",
+          "text": "starts fast, stalls at polish — ships when a real deadline appears",
+          "refs": "— refs: [2026/03/16], [2026/08/07]"
+        },
+        {
+          "dim": "Strengths & resilience",
+          "text": "sticks with things: 5K to half-marathon in two years, one bad knee behind",
+          "refs": "— refs: [2025/04/16], [2026/07/16]"
+        },
+        {
+          "dim": "Communication preferences",
+          "text": "short and honest; allergic to sap",
+          "refs": "— refs: [2026/08/07]"
+        },
+        {
+          "dim": "Values & boundaries",
+          "text": "weekly calls with Mom are non-negotiable; truth-tellers are the inner circle",
+          "refs": "— refs: [2025/07/30]"
+        }
+      ],
+      "hypothesesLabel": "Hypotheses",
+      "falsifyLabel": "falsify if:",
+      "proposedLabel": "proposed",
+      "promotedLabel": "promoted",
+      "retiredLabel": "retired",
+      "promoteHint": "← confirmed · into the portrait",
+      "hypotheses": [
+        {
+          "text": "deadlines with a face beat self-imposed ones",
+          "falsify": "ships a side project with no external date",
+          "status": "proposed"
+        },
+        {
+          "text": "runs to think, not to race",
+          "falsify": "enters a competitive race",
+          "status": "promoted"
+        },
+        {
+          "text": "writes by deleting — five drafts is the process",
+          "falsify": "shows an early draft to anyone",
+          "status": "proposed"
+        },
+        {
+          "text": "a night owl by nature",
+          "falsify": "keeps waking before dawn",
+          "status": "retired"
+        }
+      ]
     },
     "Act4": {
-      "eyebrow": "04",
+      "eyebrow": "05",
       "title": "No black box.",
       "body": "Recall runs in the open. A fast worker scans slice summaries and returns pointers; the main model deep-reads what matters. Every step is visible.",
       "cta": "Explore the architecture",
@@ -269,7 +337,7 @@
       ]
     },
     "Act5": {
-      "eyebrow": "05",
+      "eyebrow": "06",
       "title": "Specialists, not brute force.",
       "body": "Sub-agents here are specialists, not one overextended generalist. The recall agent remembers like a witness — every answer cites the original slice, and \"I don't have that memory\" is a valid answer. The research agent investigates with sources; the thinking agent is a clean thinking chamber, on demand. The main agent orchestrates and verifies — nothing more.",
       "cta": "Explore the architecture",
@@ -282,7 +350,7 @@
       "w3Label": "research agent",
       "w3Detail": "cited sources · with confidence",
       "w4Label": "evolution agent",
-      "w4Detail": "scores fitness · mutates direction"
+      "w4Detail": "evidence-anchored fitness · rewrites portrait & card"
     },
     "Trust": {
       "cards": [
@@ -325,12 +393,8 @@
             "text": "   ├─ evolution/"
           },
           {
-            "text": "   │  ├─ direction.md",
+            "text": "   │  └─ direction.md",
             "note": "← what better is"
-          },
-          {
-            "text": "   │  └─ mutations.md",
-            "note": "← append-only"
           },
           {
             "text": "   ├─ current-previously.md",
@@ -363,13 +427,19 @@
       }
     },
     "GetStarted": {
-      "eyebrow": "06",
+      "eyebrow": "07",
       "title": "Run it today.",
       "body": "Two ways to run Previously: deploy to Vercel — the path we recommend — or keep everything on your own machine with the npm client.",
       "cloud": {
         "badge": "Recommended",
         "title": "Cloud · Vercel",
         "body": "Fork the repo, deploy to Vercel in one click — memory lands in your own private GitHub repo, models run on your own API key. Five minutes to live.",
+        "notes": [
+          "Bring three things: a Vercel account, a private GitHub repo (memory's home), and your own model API key",
+          "Fork, one-click deploy, fill in the env vars — five minutes to live",
+          "Then open your private URL from any device, anywhere — memory travels with you"
+        ],
+        "tradeoff": "The price: three things to prepare before the first conversation.",
         "cta": "Deployment guide"
       },
       "local": {
@@ -386,6 +456,7 @@
           "Bring your own API key (BYOK) — the exact same experience as the cloud",
           "No key? Bridge a local Claude / Codex / Kimi CLI to try it first; that's a fallback, and some agent behavior is limited by the target CLI"
         ],
+        "tradeoff": "The boundary: it lives on this machine — there's no link to open from anywhere else.",
         "cta": "Run it locally"
       }
     },

@@ -11,6 +11,10 @@ export interface GetStartedPath {
   body: string;
   cta: string;
   href: string;
+  /** Requirement / guidance bullets with a check icon. */
+  notes?: readonly string[];
+  /** The honest downside, one dim line — the mirror of the other path's strength. */
+  tradeoff?: string;
 }
 
 export interface GetStartedSectionProps {
@@ -99,17 +103,9 @@ export function GetStartedSection({
           </div>
 
           {/* Requirements / guidance */}
-          <ul className="mt-4 space-y-1.5">
-            {local.notes.map((note) => (
-              <li
-                key={note}
-                className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground"
-              >
-                <Check className="mt-0.5 size-3 shrink-0 text-[oklch(0.7_0.15_160)]" aria-hidden="true" />
-                {note}
-              </li>
-            ))}
-          </ul>
+          <PathNotes notes={local.notes} accent="emerald" />
+
+          <PathTradeoff tradeoff={local.tradeoff} />
 
           <PathCta path={local} />
         </div>
@@ -132,8 +128,56 @@ function PathCard({
         className="absolute inset-x-0 top-0 h-px bg-[var(--landing-hairline)] transition-colors duration-300 group-hover/card:bg-[oklch(0.6_0.23_260)]"
       />
       <PathHeader path={path} icon={icon} />
+      {path.notes && path.notes.length > 0 && (
+        <PathNotes notes={path.notes} accent="blue" />
+      )}
+      <PathTradeoff tradeoff={path.tradeoff} />
       <PathCta path={path} />
     </div>
+  );
+}
+
+/** Requirement / guidance checklist — shared by both paths, tinted per accent. */
+function PathNotes({
+  notes,
+  accent,
+}: {
+  notes: readonly string[];
+  accent: "blue" | "emerald";
+}): React.ReactElement {
+  return (
+    <ul className="mt-4 space-y-1.5">
+      {notes.map((note) => (
+        <li
+          key={note}
+          className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground"
+        >
+          <Check
+            className={
+              accent === "blue"
+                ? "mt-0.5 size-3 shrink-0 text-[oklch(0.6_0.23_260)]"
+                : "mt-0.5 size-3 shrink-0 text-[oklch(0.7_0.15_160)]"
+            }
+            aria-hidden="true"
+          />
+          {note}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** The honest downside — one dim line that mirrors the other card's strength. */
+function PathTradeoff({
+  tradeoff,
+}: {
+  tradeoff?: string;
+}): React.ReactElement | null {
+  if (!tradeoff) return null;
+  return (
+    <p className="mt-4 border-t border-white/5 pt-3 text-xs leading-relaxed text-muted-foreground/70 italic">
+      {tradeoff}
+    </p>
   );
 }
 

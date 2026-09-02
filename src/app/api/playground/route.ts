@@ -92,7 +92,11 @@ function errorResponse(
 /*  DeepSeek — one-shot path (evolution / anatomy presets)             */
 /* ------------------------------------------------------------------ */
 
-async function callDeepSeek(system: string, user: string): Promise<unknown> {
+async function callDeepSeek(
+  system: string,
+  user: string,
+  maxTokens = 1500,
+): Promise<unknown> {
   const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!apiKey) return null; // caller maps to 503
 
@@ -109,7 +113,7 @@ async function callDeepSeek(system: string, user: string): Promise<unknown> {
         { role: "user", content: user },
       ],
       response_format: { type: "json_object" },
-      max_tokens: 1500,
+      max_tokens: maxTokens,
       temperature: 0.3,
     }),
     signal: AbortSignal.timeout(60_000),
@@ -275,7 +279,13 @@ export async function POST(req: NextRequest): Promise<Response> {
 
   let result: PlaygroundResult | null;
   try {
-    const raw = await callDeepSeek(system, user);
+    // The evolution loop returns a full rewritten card plus the ledger and
+    // direction movements — it needs more headroom than anatomy.
+    const raw = await callDeepSeek(
+      system,
+      user,
+      preset.kind === "evolution" ? 4096 : 1500,
+    );
     if (raw === null) return errorResponse(503, "unavailable", body.locale);
     result = buildResult(body.presetId, raw, snapshot);
   } catch (err) {

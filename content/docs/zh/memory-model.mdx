@@ -1,6 +1,6 @@
 ---
 title: 记忆模型
-description: 记忆如何构建——构建时打包的身份宪法、由切片与 strand 组成的情景时间线、持续演化的用户卡、进化数据层（direction、fitness、变异档案、playbooks）、白名单边界，以及随切片冻结的上下文。
+description: 记忆如何构建——构建时打包的身份宪法、由切片与 strand 组成的情景时间线、持续演化的用户卡、进化数据层（direction、fitness、playbooks）、白名单边界，以及随切片冻结的上下文。
 ---
 
 # 记忆模型
@@ -54,7 +54,7 @@ memory/episodic/slices/2026/08/10/2130/
 
 `memory/episodic/current-previously.md` 是时间线的活体蒸馏——一张回答「你是谁」的紧凑卡片，在切片边界之后被精炼。它是「存储你历史的代理」与「抵达时已经认识你的代理」之间的差别：抵达简报因它而成可能。
 
-卡片有五个区块：
+卡片有四个区块：
 
 | 区块 | 内容 |
 |------|------|
@@ -62,7 +62,6 @@ memory/episodic/slices/2026/08/10/2130/
 | **Past** | 一段原地更新的第三人称画像段落，外加锚定事实——多年后依然成立的日期、决定与红线 |
 | **Now** | 当下状态的钩子，不是叙事——7 天后机械过期 |
 | **Horizon** | 面向未来的承诺与截止期限，每条带 `by:` 日期；逾期项会被标记，绝不会被静默丢弃 |
-| **Self-model** | 代理关于如何与你共事的操作经验——只记录相对常驻指令的增量 |
 
 每条记录都带有指回证据切片的 `refs` 指针，任何论断都可以下钻到原始记录。卡片从不被整体重写，通用写入工具也碰不到它：进化代理通过经过校验的逐条变更（`addNow`、`updatePastProfile`、`resolveHorizon`……）来编辑它，超限的写入会被拒绝并附带回压指令。硬性上限把整张卡控制在约 8 KB 以内，因此它可以便宜地注入每个提示词。完整格式见[用户卡片](/docs/user-card)。
 
@@ -72,22 +71,20 @@ memory/episodic/slices/2026/08/10/2130/
 
 ```
 memory/evolution/
-  direction.md      -- 筛选标准：Direction / Anti-goals / Evidence / Log
+  direction.md      -- 学出来的用户画像：Portrait + Hypotheses 池
   fitness.json      -- 有界的已评分事件 + 机械信号存储
-  mutations.md      -- append-only 的被接受变异档案
 memory/agent-playbooks/
   recall.md         -- recall 同事的进化行为简报
   search.md         -- ……webSearch 的
   thinkdeep.md      -- ……thinkDeep 的
 ```
 
-- **direction.md** —— 跨切片的「什么是对你更好」。抽象（一个月后仍成立）、跨片（每条结论由多个切片加 agent 时间线支撑，Evidence 节挂指针），Log 节 append-only。这是回路的环境；卡片和 playbook 只是它的产物。
-- **fitness.json** —— 选择压力的账本。事件是按切片、按桶（`card` / `recall` / `search` / `thinkdeep` / `interaction`）的序数增量（−2…+1），附带用户原话证据——无证据的分数在写入时被结构性强制归零。旁边是由埋点而非任何模型记录的机械信号（recall 的 verify/rework/repeat）。存储刻意有界：它是软信号日志，从来不是事实档案。
-- **mutations.md** —— 变异档案。Append-only：每条带 target、Summary、Expected benefit 与证据指针。归档新变异时会先评估同 target 的上一条——桶若持续扣分，就追加一行 `**Evaluation: ineffective**`。不回滚、不删除。
+- **direction.md** —— 回路学到的「你是谁」：一份由跨情境特质组成的画像（只描述、不祈使，证据挂在行尾 `— refs:` 指针里），外加一个有界的可证伪假说池，TTL 由代码强制。这是回路的环境；卡片和 playbook 只是它的产物。
+- **fitness.json** —— 选择压力的账本。事件是按切片、按桶（`card` / `recall` / `search` / `thinkdeep` / `interaction`）的序数增量（−2…+1），附带用户原话证据——无证据的分数在写入时被结构性强制归零。旁边是由埋点而非任何模型记录的机械信号（recall 的 verify/rework/repeat、重新生成与中断）。存储刻意有界：它是当前世代的压力表，从来不是事实档案。
 - **agent-playbooks/** —— 每个子代理一份简短简报，调用时注入它的 user prompt。playbook 缺失是正常状态：注入直接跳过。
 
 <Callout variant="info">
-**可进化的是数据面；契约留在代码里。** `memory/` 下的 direction、playbook、卡片与档案，是进化回路允许重写的东西。子代理的 schema、工具集、预算、触发器数学与接受规则留在代码里——刻意置于回路够不到的地方，治理进化的协议本身不可被进化。详见[进化回路](/docs/evolution)。
+**可进化的是数据面；契约留在代码里。** `memory/` 下的 direction、playbook 与卡片，是进化回路允许重写的东西。子代理的 schema、工具集、预算、触发器数学与接受规则留在代码里——刻意置于回路够不到的地方，治理进化的协议本身不可被进化。详见[进化回路](/docs/evolution)。
 </Callout>
 
 ## 白名单边界
@@ -123,7 +120,7 @@ memory/   tasks/   sessions/
 每一段记忆都是带 YAML frontmatter 的 Markdown 文件。这个选择是深思熟虑的：
 
 - **可移植** —— `git clone` 到任何地方，在任何设备上阅读，无需服务器。
-- **git 可 diff** —— 对切片、用户卡、方向文档或变异档案的每次更改都记录在版本历史里。你能看到 Previously 学到了什么、什么时候学到的。
+- **git 可 diff** —— 对切片、用户卡或方向文档的每次更改都记录在版本历史里。你能看到 Previously 学到了什么、什么时候学到的。
 - **人类可编辑** —— 在编辑器里打开任意文件，改摘要、加标签。没有管理后台，没有 SDK。
 - **任何工具都能读** —— Previously 写，Claude Code 读，Codex 扩展。无锁定，无集成成本，无 schema 迁移。
 
@@ -133,6 +130,6 @@ memory/   tasks/   sessions/
 
 - [回忆](/docs/recall) —— 在推理时调取时间线的那位同事
 - [用户卡片](/docs/user-card) —— 关于你的活体蒸馏，以及进化它的回路
-- [进化回路](/docs/evolution) —— direction、fitness 与变异验收的完整故事
+- [进化回路](/docs/evolution) —— direction、fitness 与触发机制的完整故事
 - [转录](/docs/scribe) —— 别的工具里的对话如何进入这条时间线
 - [写入记忆的唯一一扇门](/docs/ingest) —— 外部内容进入记忆的验收式入口

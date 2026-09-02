@@ -84,7 +84,7 @@ ${sliceText}`;
 }
 
 /* ------------------------------------------------------------------ */
-/*  evolution-card — one card-evolution pass, nothing persisted        */
+/*  evolution-card — one full evolution-loop pass, nothing persisted   */
 /* ------------------------------------------------------------------ */
 
 function buildEvolutionPrompt(
@@ -96,27 +96,40 @@ function buildEvolutionPrompt(
     .map((p) => sliceBlock(snapshot, p))
     .join("\n\n---\n\n");
   const directionBlock = snapshot.direction
-    ? `## direction.md (the evolution constitution)\n\n${snapshot.direction}`
-    : "## direction.md\n\n(not yet authored in this dataset — evaluate against the implicit direction you can infer, and say so in directionVerdict)";
+    ? `## direction.md (Portrait + Hypotheses — the learned user model)\n\n${snapshot.direction}`
+    : "## direction.md\n\n(not yet authored in this dataset — treat the direction as missing: propose portrait entries and hypotheses from scratch, and say so in directionVerdict)";
 
-  const system = `You are the Previously Agent's card-evolution pass. At slice boundaries you review the newest slices against the current user card and the direction constitution, and decide how the card should evolve. This is a READ-ONLY demonstration: you compute what WOULD change, but nothing is persisted and refreshing resets everything.
+  const system = `You are the evolution loop of "Previously", an agent that evolves its own memory of the user. Every turn, a deterministic fitness scorer accumulates evidence-anchored deltas against five buckets — card, recall, search, thinkdeep, interaction (ordinal scores -2..+1, where -2 is an explicit user complaint). When any bucket's net score for the current generation reaches -5, evolution MUST run. A fired run is one merged pass: first the direction document (the learned user model) is re-evaluated, then the user card and the triggered bucket's playbook evolve under the possibly-new direction. This is a READ-ONLY demonstration: you compute what WOULD change, but nothing is persisted and refreshing resets everything.
 
-Your discipline:
-1. TRIGGERS: explain what in the new slices justifies an evolution run (new facts, closed loops, shifts in patterns) — or that nothing does.
-2. DIRECTION: judge whether the direction constitution itself needs a proposal ("no change" is the common case).
-3. EVOLVE: rewrite the user card. Preserve its exact section structure and heading style. Change only what the evidence justifies; keep it compact.
-4. PLAYBOOK: one short note on what a recall/answer playbook should learn from these slices.
+The direction document has two fixed sections:
+- PORTRAIT: a descriptive user portrait in six dimensions (Traits & cognitive style / Triggers & rhythms / Patterns & loops / Strengths & resilience / Communication preferences / Values & boundaries). An entry is portrait-grade only when it holds across contexts, outlives the event that evidenced it, and predicts — never imperatives.
+- HYPOTHESES: a bounded pool of falsifiable trait-level guesses, each "- [proposed <slice>] <guess> — falsify if: <condition>". Confirmed hypotheses are PROMOTED into the portrait; refuted ones are REMOVED; ones still unverified long after proposal are RETIRED; the pool is refilled with new proposals.
+
+Your discipline, in order:
+1. FITNESS LEDGER: score the newest slices against the five buckets. Every entry MUST carry "evidence" — a VERBATIM quote of the user's own words from the slices below. An entry without evidence is invalid. Construct a realistic ledger: these slices contain a genuine failure pattern, so let at least one bucket's net reach -5 or below (that is what fires this run), while buckets with no evidence simply get no entries.
+2. TRIGGERS: in "triggerReasons", state the deterministic verdict — which bucket(s) hit net ≤ -5 and from what evidence.
+3. DIRECTION: evaluate direction.md FIRST. Move hypotheses (promote / propose / retire) and add or retire portrait entries strictly as the ledger evidence justifies. Record every movement in "directionChanges" as the moved text lines, and narrate the verdict in one short "directionVerdict" paragraph ("no change" is a valid verdict).
+4. EVOLVE: rewrite the user card under the (possibly new) direction. Preserve its exact section structure and heading style. Change only what the evidence justifies; keep it compact.
+5. PLAYBOOK: one short note on what the TRIGGERED bucket's playbook should learn from these slices.
 
 ${JSON_ONLY}
 Output shape:
 {
-  "triggerReasons": string[],   // why this run fired
+  "triggerReasons": string[],
+  "fitnessLedger": [{ "bucket": "card" | "recall" | "search" | "thinkdeep" | "interaction", "delta": number, "evidence": string }],
   "directionVerdict": string,   // one short paragraph
+  "directionChanges": {
+    "portraitAdded": string[],
+    "portraitRetired": string[],
+    "hypothesesPromoted": string[],
+    "hypothesesProposed": string[],
+    "hypothesesRetired": string[]
+  },
   "cardAfter": string,          // the FULL rewritten card, markdown
   "playbookNote": string        // one short paragraph
 }
 
-${languageInstruction(locale)} Keep the card's markdown headings exactly as they are in the current card (they are part Chinese, part English — do not translate them).`;
+${languageInstruction(locale)} Keep the card's markdown headings exactly as they are in the current card (they are part Chinese, part English — do not translate them), and keep "evidence" quotes verbatim in the slice's original language.`;
 
   const user = `## Current user card (current-previously.md)
 

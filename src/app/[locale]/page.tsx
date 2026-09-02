@@ -8,6 +8,11 @@ import { ActSection } from "@/components/landing/act-section";
 import { TimelineVisual, type TimelineBeat } from "@/components/landing/timeline-visual";
 import { NowQuestion, type NowQuestionRef } from "@/components/landing/now-question";
 import { SelfModelVisual } from "@/components/landing/self-model-visual";
+import {
+  PortraitVisual,
+  type PortraitEntry,
+  type HypothesisItem,
+} from "@/components/landing/portrait-visual";
 import { ThinkingVisual } from "@/components/landing/thinking-visual";
 import { ThreeTimelinesVisual, type ThreeTimelineNode } from "@/components/landing/three-timelines-visual";
 import { OrchestrationVisual } from "@/components/landing/orchestration-visual";
@@ -71,17 +76,18 @@ function getList<T>(messages: unknown, path: string): T[] {
 
 /**
  * The landing page — a cinematic dark cold open of "Previously on you."
- * Six acts + finale:
+ * Seven acts + finale:
  *   0 Hero        — giant tagline + self-typing arrival briefing
  *   1 Proof       — code-drawn mock of the real app UI
  *   2 Act 01      — Time, not threads.       (centered stack)
  *   3 Act 02      — Three timelines.         (centered stack)
  *   4 Act 03      — A memory that learns.    (visual left, text right)
- *   5 Act 04      — No black box.            (centered stack)
- *   6 Act 05      — Specialists, not brute force. (centered stack)
- *   7 Trust band  — three compact cards
- *   8 Get started — the two ways to run it: Vercel (recommended) / npm client
- *   9 Finale      — tagline + NOW dot pulse + CTAs
+ *   5 Act 04      — A portrait of who you are. (text left, visual right)
+ *   6 Act 05      — No black box.            (centered stack)
+ *   7 Act 06      — Specialists, not brute force. (centered stack)
+ *   8 Trust band  — three compact cards
+ *   9 Get started — the two ways to run it: Vercel (recommended) / npm client
+ *  10 Finale      — tagline + NOW dot pulse + CTAs
  *
  * The .landing-scope wrapper makes this route theme-aware (cinematic
  * dark palette in dark mode, product light theme in light mode);
@@ -234,7 +240,32 @@ export default async function HomePage({ params }: Props): Promise<React.ReactEl
         }
       />
 
-      {/* ── Act 04: No black box. ───────────────────────── */}
+      {/* ── Act 04: A portrait of who you are. ──────────── */}
+      <ActSection
+        eyebrow={t("ActPortrait.eyebrow")}
+        title={t("ActPortrait.title")}
+        body={t("ActPortrait.body")}
+        docsHref="/docs/evolution"
+        docsLabel={t("ActPortrait.cta")}
+        layout="text-left"
+        accent="emerald"
+        visual={
+          <PortraitVisual
+            cardTitle={s("ActPortrait.cardTitle")}
+            portraitLabel={s("ActPortrait.portraitLabel")}
+            entries={list<PortraitEntry>("ActPortrait.entries")}
+            hypothesesLabel={s("ActPortrait.hypothesesLabel")}
+            falsifyLabel={s("ActPortrait.falsifyLabel")}
+            proposedLabel={s("ActPortrait.proposedLabel")}
+            promotedLabel={s("ActPortrait.promotedLabel")}
+            retiredLabel={s("ActPortrait.retiredLabel")}
+            promoteHint={s("ActPortrait.promoteHint")}
+            hypotheses={list<HypothesisItem>("ActPortrait.hypotheses")}
+          />
+        }
+      />
+
+      {/* ── Act 05: No black box. ───────────────────────── */}
       <ActSection
         eyebrow={t("Act4.eyebrow")}
         title={t("Act4.title")}
@@ -257,7 +288,7 @@ export default async function HomePage({ params }: Props): Promise<React.ReactEl
         }
       />
 
-      {/* ── Act 05: Specialists, not brute force. ───────── */}
+      {/* ── Act 06: Specialists, not brute force. ───────── */}
       <ActSection
         eyebrow={t("Act5.eyebrow")}
         title={t("Act5.title")}
@@ -315,6 +346,8 @@ export default async function HomePage({ params }: Props): Promise<React.ReactEl
           title: s("GetStarted.cloud.title"),
           body: s("GetStarted.cloud.body"),
           cta: s("GetStarted.cloud.cta"),
+          notes: list<string>("GetStarted.cloud.notes"),
+          tradeoff: s("GetStarted.cloud.tradeoff"),
           recommended: true,
           href: "/docs/deployment",
         }}
@@ -326,6 +359,7 @@ export default async function HomePage({ params }: Props): Promise<React.ReactEl
           commands: list<string>("GetStarted.local.commands"),
           comment: s("GetStarted.local.comment"),
           notes: list<string>("GetStarted.local.notes"),
+          tradeoff: s("GetStarted.local.tradeoff"),
           href: "/docs/local-first",
         }}
       />

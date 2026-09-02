@@ -51,7 +51,7 @@ const SLICES = [
 ];
 
 /** Optional files — the evolution layer may not exist yet in the dataset. */
-const OPTIONAL_PATHS = ["evolution/direction.md", "evolution/mutations.md"];
+const OPTIONAL_PATHS = ["evolution/direction.md"];
 
 async function existsLocal(rel) {
   try {
@@ -114,7 +114,6 @@ const snapshot = {
   strands: JSON.parse(strandsRaw),
   currentCard,
   direction: optional.direction ?? null,
-  mutations: optional.mutations ?? null,
   slices,
 };
 

@@ -38,12 +38,12 @@
       "evolution": {
         "history": [
           {
-            "question": "Have you changed my card recently?",
-            "answer": "Yes. On July 29 the direction gained a new line: \"celebrate wins concretely\" — after finishing the half-marathon you reflexively discounted your own achievement, and you were already discounting the wedding speech ahead of time. The change is anchored to two slices: the finish-line night, and your post-race reflection."
+            "question": "Has your picture of me changed recently?",
+            "answer": "Yes — the portrait keeps evolving. The newest entry sits under Traits & cognitive style: you systematically undervalue your own progress. After the half-marathon you reflexively discounted the achievement, and you were already discounting the wedding speech before giving it. The entry is anchored to two slices: the finish-line night, and your post-race reflection."
           },
           {
             "question": "Do changes like that just happen on a whim?",
-            "answer": "No. Every change to the card or the direction must carry slice pointers as evidence and goes into an append-only mutations archive. And when the next mutation lands, the system turns around and evaluates the previous one — a change that proved useless is never deleted, but it gets stamped ineffective and stays in the record."
+            "answer": "No. Every turn, five fitness buckets — card, recall, search, thinkdeep, interaction — accumulate evidence-anchored scores, and a score without your own words attached counts as zero. Only when a bucket's net drops to −5 does an evolution run actually fire; when it succeeds, that generation settles and the count restarts from zero."
           }
         ]
       },
@@ -71,7 +71,7 @@
         "question": "Tell me about the day I finished my first half-marathon."
       },
       "evolution-card": {
-        "question": "Run one card-evolution pass over my latest slices — what would change, and why?"
+        "question": "What has evolved in my portrait lately?"
       },
       "slice-anatomy": {
         "question": "Explain how this slice gets remembered — where does each part of it come from?"
@@ -81,7 +81,7 @@
       "sceneTime": "11:47 PM",
       "working": {
         "recall": "Recalling…",
-        "evolution": "Evolving the card…",
+        "evolution": "Running the evolution loop…",
         "anatomy": "Dissecting the slice…"
       },
       "recallDone": "Recall complete",
@@ -90,8 +90,24 @@
       "references": "References",
       "searched": "Search trail",
       "confidence": "Confidence",
-      "triggers": "Why this run fired",
-      "direction": "Direction verdict",
+      "fitnessLedger": "Fitness ledger — this generation's selection pressure",
+      "net": "net",
+      "triggered": "triggered",
+      "directionChanges": "Direction changes — portrait & hypotheses",
+      "noChange": "Checked, no change.",
+      "portraitAdded": "Portrait · added",
+      "portraitRetired": "Portrait · retired",
+      "hypothesesPromoted": "Hypotheses · confirmed → promoted",
+      "hypothesesProposed": "Hypotheses · newly proposed",
+      "hypothesesRetired": "Hypotheses · refuted or retired",
+      "promoted": "promoted",
+      "buckets": {
+        "card": "Card",
+        "recall": "Recall",
+        "search": "Search",
+        "thinkdeep": "Think-deep",
+        "interaction": "Interaction"
+      },
       "cardBefore": "Card before",
       "cardAfter": "Card after",
       "playbook": "Playbook note",

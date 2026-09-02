@@ -1,24 +1,24 @@
 ---
 title: The User Card
-description: The user card distills the whole timeline into one compact brief — your identity, a rolling profile, what is happening right now, what you have committed to, and what Previously has learned about working with you.
+description: The user card distills the whole timeline into one compact brief — your identity, a rolling profile, what is happening right now, and what you have committed to.
 ---
 
 # The User Card
 
-Slices record what happened. The **user card** records who you are. It is a single Markdown file — `memory/episodic/current-previously.md` — that distills the entire timeline into one compact brief: your identity, a rolling profile, what is happening right now, what you have committed to, and what Previously has learned about working with you.
+Slices record what happened. The **user card** records who you are. It is a single Markdown file — `memory/episodic/current-previously.md` — that distills the entire timeline into one compact brief: your identity, a rolling profile, what is happening right now, and what you have committed to.
 
 But the card is only a **product**. What actually learns is the evolution loop around it — the card is where the loop's output becomes visible; `memory/evolution/` is where the loop itself lives. The loop's mechanics get their own page: [The Evolution Loop](/docs/evolution).
 
 The card is injected into every turn's system prompt, right after the identity constitution. Because it changes only on evolution — never while a slice is open — the prompt prefix stays byte-stable and the provider's prompt cache keeps hitting. The stored card keeps raw ISO dates; the injected copy is annotated with relative times ("3 days ago") computed on your local clock, so the model never does date arithmetic itself.
 
-## The v5 format
+## The card's format
 
-The card has five sections, making your time axis explicit — Past, Now, and Horizon:
+The card has four sections, making your time axis explicit — Past, Now, and Horizon:
 
 ```markdown
 # Previously On
 
-_Active slice: 2026-08-10-2130 | Format: user card v5 | Updated: 2026-08-10T21:47:12Z_
+_Active slice: 2026-08-10-2130 | Format: user card v2 | Updated: 2026-08-10T21:47:12Z_
 
 ## Identity
 
@@ -43,10 +43,6 @@ relationship in your life.
 ## Horizon
 
 - Deliver the speech at Marcus's wedding — by: 2026-08-12 — refs: [2026/08/09/2000]
-
-## Self-model
-
-- When you share a speech draft, you want honest critique before reassurance — refs: [2026/08/10/2110]
 ```
 
 **Identity** — a structured, machine-parsed head: Name, Address them as, Pronouns, Alias (up to 8 lines). This is what lets Previously greet you in the arrival briefing, and how it knows how to address you.
@@ -60,7 +56,7 @@ relationship in your life.
 
 **Horizon** — future-facing open loops: commitments, deadlines, awaited replies. Every item carries an explicit `by:` date. Horizon items **never age out** — they leave the card only by being resolved. Overdue items are kept and flagged: the next turn's brief tells the agent to proactively ask you how they turned out.
 
-**Self-model** — compact operating lessons Previously has learned about working with you ("on speech drafts, honest critique before reassurance"). These are a **delta from the standing directives only** — a lesson that restates or contradicts a core rule is rejected unless it cites an explicit override from you. Cap: 10.
+Note what the card does *not* carry: no rules, no analysis, no operating lessons. Patterns about who you are — "wants honest critique before reassurance" — live in the evolution direction's Portrait, not on the card (see [The Evolution Loop](/docs/evolution)). The card is a pure memory pool: what you did, are doing, and will do.
 
 <Callout variant="info">
 **The card answers who you are, not what was said.** Every entry carries `refs` — pointers like `2026/08/10/2110` back into the slices, which remain the lossless source of truth. Before citing specifics from a past event, the agent asks the recall colleague, who quotes from the slices themselves.
@@ -78,7 +74,6 @@ The card is never rewritten wholesale. The Previously Agent holds an in-memory c
 | `addNow` / `removeNow` | Add or remove a Now hook |
 | `promoteNowToPast` | Graduate a Now hook to a Past anchor, keeping its refs |
 | `addHorizon` / `resolveHorizon` | Open or resolve a Horizon loop |
-| `addSelfModel` / `removeSelfModel` | Add or remove an operating lesson |
 
 Validation lives **inside the tools**, not in a post-hoc pass. An over-limit or malformed write is rejected with specific feedback — "2630 chars, limit 2400 — compress and retry" — and the agent itself decides what survives the cap. Refs are required: no evidence, no write. Untouched parts of the card are preserved by construction; a mutation session cannot silently drop a line it never looked at.
 
@@ -86,7 +81,7 @@ The result is written back only when the card's substance actually changed (head
 
 ## When the card evolves
 
-The card gets an evolution check at slice boundaries, but most of the time nothing happens — no trigger, no evolution. The triggers (fitness signals, your explicit requests, forced upgrades of legacy cards) and the two phases of an evolution run are covered in [The Evolution Loop](/docs/evolution).
+The card gets an evolution check every turn, but most of the time nothing happens — no trigger, no evolution. The triggers (fitness signals, your explicit requests, forced upgrades of legacy cards) and the single merged evolution run are covered in [The Evolution Loop](/docs/evolution).
 
 Progress streams to the client as it happens, and when the card moved, an evolution indicator shows a one-sentence account of what changed plus the line-level diff. A skipped run is reported too, with the reason — a silent skip would read as "it never runs".
 

@@ -221,7 +221,7 @@
     "Act3": {
       "eyebrow": "03",
       "title": "会进化的记忆。",
-      "body": "这里的进化是达尔文式的,不是装饰。一份 direction 文档定义「怎样对你更好」;每一轮都被 fitness 打分,非零分必须挂着你的原话作证据;mutations 档案只增不改,让整个过程没法作弊。下面这张卡片,只是筛选剩下的产物。",
+      "body": "卡片是时间线蒸馏出的样子——发生过什么,你现在带着什么,接下来要去哪。没有一行是默认写上去的;每一行都带着证据,用你自己的原话被选中。",
       "cta": "探索记忆模型",
       "cardTitle": "current-previously.md",
       "identityLabel": "身份",
@@ -244,10 +244,78 @@
           "meta": "refs: [2026/07/16], [2026/08/02] | since: 2026-07-16"
         }
       ],
-      "updatedNote": "由 direction.md 筛选 · 按证据打分 · 存档于 mutations.md"
+      "updatedNote": "由 direction.md 中的画像筛选 · 按证据做 fitness 打分"
+    },
+    "ActPortrait": {
+      "eyebrow": "04",
+      "title": "它记住了你是怎样的人。",
+      "body": "卡片之外,系统还维护一份 direction.md——一份关于你的画像,写在六个维度上:你怎么思考、什么会触发你、你反复陷入的循环、你可以依靠的力量、你想被怎样对话、你不愿交换的东西。旁边还有一小池关于你的可证伪猜测——被证实的晋升进画像,被推翻的移除,太久没被验证的退休。",
+      "cta": "了解进化循环",
+      "cardTitle": "direction.md",
+      "portraitLabel": "画像",
+      "entries": [
+        {
+          "dim": "特质与认知风格",
+          "text": "先看证据,再谈热情——要听不留情面的版本",
+          "refs": "— refs: [2025/02/24], [2026/06/27]"
+        },
+        {
+          "dim": "触发与节奏",
+          "text": "训练季之后上午最清醒;草稿总在深夜被删掉",
+          "refs": "— refs: [2026/07/11], [2026/08/07]"
+        },
+        {
+          "dim": "模式与循环",
+          "text": "开局很快,卡在打磨——有了真实期限才交付",
+          "refs": "— refs: [2026/03/16], [2026/08/07]"
+        },
+        {
+          "dim": "长处与韧性",
+          "text": "能把事坚持住:两年从五公里到半马,中间伤过一条膝盖",
+          "refs": "— refs: [2025/04/16], [2026/07/16]"
+        },
+        {
+          "dim": "沟通偏好",
+          "text": "短、直、诚;受不了煽情",
+          "refs": "— refs: [2026/08/07]"
+        },
+        {
+          "dim": "价值观与边界",
+          "text": "每周给妈妈打电话雷打不动;说真话的人才算自己人",
+          "refs": "— refs: [2025/07/30]"
+        }
+      ],
+      "hypothesesLabel": "假说池",
+      "falsifyLabel": "证伪条件:",
+      "proposedLabel": "待验证",
+      "promotedLabel": "已晋升",
+      "retiredLabel": "已退休",
+      "promoteHint": "← 已证实 · 写入画像",
+      "hypotheses": [
+        {
+          "text": "有具体对象的期限,胜过自己定的期限",
+          "falsify": "在没有外部期限的情况下交付了副业项目",
+          "status": "proposed"
+        },
+        {
+          "text": "跑步是为了思考,不是为了比赛",
+          "falsify": "报名参加了竞技性赛事",
+          "status": "promoted"
+        },
+        {
+          "text": "写作靠删——五稿就是过程本身",
+          "falsify": "把早期草稿给任何人看",
+          "status": "proposed"
+        },
+        {
+          "text": "天生夜行动物",
+          "falsify": "持续天亮前起床",
+          "status": "retired"
+        }
+      ]
     },
     "Act4": {
-      "eyebrow": "04",
+      "eyebrow": "05",
       "title": "没有黑箱。",
       "body": "回忆在明处运行:快速的 worker 扫描切片摘要、返回指针;主模型深读真正重要的切片。每一步都可见。",
       "cta": "探索架构设计",
@@ -269,7 +337,7 @@
       ]
     },
     "Act5": {
-      "eyebrow": "05",
+      "eyebrow": "06",
       "title": "分工,而不是硬撑。",
       "body": "子 agent 各有所长,而不是一个硬撑的通才。回忆 agent 像目击者一样回忆——每个答案都引用切片原文,「没有这段记忆」也是合法答案;调研 agent 带着来源做调研;思考 agent 是按需进入的干净思考舱。主 agent 只统筹,只校验。",
       "cta": "探索架构设计",
@@ -282,7 +350,7 @@
       "w3Label": "调研 agent",
       "w3Detail": "联网查证 · 附来源与置信度",
       "w4Label": "进化 agent",
-      "w4Detail": "fitness 打分 · 改写 direction"
+      "w4Detail": "证据锚定的 fitness · 重写画像与卡片"
     },
     "Trust": {
       "cards": [
@@ -325,12 +393,8 @@
             "text": "   ├─ evolution/"
           },
           {
-            "text": "   │  ├─ direction.md",
+            "text": "   │  └─ direction.md",
             "note": "← 「更好」的标准"
-          },
-          {
-            "text": "   │  └─ mutations.md",
-            "note": "← 只增不改的档案"
           },
           {
             "text": "   ├─ current-previously.md",
@@ -363,13 +427,19 @@
       }
     },
     "GetStarted": {
-      "eyebrow": "06",
+      "eyebrow": "07",
       "title": "现在就能跑起来。",
       "body": "Previously 有两种跑法:部署到 Vercel 是我们推荐的路径;想完全留在本机,npm 客户端已经可用。",
       "cloud": {
         "badge": "推荐",
         "title": "云端 · Vercel",
         "body": "Fork 仓库,一键部署到 Vercel——记忆写进你自己的 GitHub 私有仓库,模型跑在你自己的 API key 上。五分钟上线。",
+        "notes": [
+          "准备三样:Vercel 账号、一个放记忆的 GitHub 私有仓库、你的模型 API key",
+          "Fork、一键部署、照向导填好环境变量——五分钟上线",
+          "之后在任何设备上打开你的私有链接就能继续——记忆在云端仓库里,跟着你走"
+        ],
+        "tradeoff": "代价:第一次对话之前,得先把这三样备好。",
         "cta": "部署指南"
       },
       "local": {
@@ -386,6 +456,7 @@
           "建议配置自己的 API key(BYOK)——体验与云端完全一致",
           "没有 key?可以桥接本机已有的 Claude / Codex / Kimi 先行体验;这是兜底方案,部分 agent 表现受目标 CLI 限制"
         ],
+        "tradeoff": "边界:它只活在这台机器上——没有一个能随处打开的链接。",
         "cta": "本地运行指南"
       }
     },

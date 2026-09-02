@@ -1,24 +1,24 @@
 ---
 title: 用户卡片
-description: 用户卡片把整条时间线蒸馏成一份紧凑的简报：你的身份、滚动画像、此刻正在发生的事、你承诺过的事，以及 Previously 学到的与你协作的方式。
+description: 用户卡片把整条时间线蒸馏成一份紧凑的简报：你的身份、滚动画像、此刻正在发生的事，以及你承诺过的事。
 ---
 
 # 用户卡片
 
-Slice 记录发生了什么,**用户卡片**记录你是谁。它是一个单独的 Markdown 文件——`memory/episodic/current-previously.md`——把整条时间线蒸馏成一份紧凑的简报:你的身份、一段滚动更新的画像、此刻正在发生的事、你承诺过的事,以及 Previously 学到的与你协作的方式。
+Slice 记录发生了什么,**用户卡片**记录你是谁。它是一个单独的 Markdown 文件——`memory/episodic/current-previously.md`——把整条时间线蒸馏成一份紧凑的简报:你的身份、一段滚动更新的画像、此刻正在发生的事,以及你承诺过的事。
 
 但卡片只是**产物**。真正在学习的是围绕它的进化回路——卡片是回路输出变得可见的地方,`memory/evolution/` 才是回路本身所在的地方。回路的机制单独成篇,见[进化回路](/docs/evolution)。
 
 卡片会被注入每一轮对话的系统提示词,紧随身份宪法之后。由于它只在演化时改变——在 slice 存续期间绝不变化——提示词前缀保持字节级稳定,供应商的 prompt cache 得以持续命中。存储的卡片保留原始 ISO 日期;注入的副本会按你的本地时钟标注相对时间(「3 天前」),模型无需自己做日期换算。
 
-## v5 格式
+## 卡片格式
 
-卡片由五个部分组成,把你的时间轴显式化——Past、Now 与 Horizon:
+卡片由四个部分组成,把你的时间轴显式化——Past、Now 与 Horizon:
 
 ```markdown
 # Previously On
 
-_Active slice: 2026-08-10-2130 | Format: user card v5 | Updated: 2026-08-10T21:47:12Z_
+_Active slice: 2026-08-10-2130 | Format: user card v2 | Updated: 2026-08-10T21:47:12Z_
 
 ## Identity
 
@@ -43,10 +43,6 @@ relationship in your life.
 ## Horizon
 
 - Deliver the speech at Marcus's wedding — by: 2026-08-12 — refs: [2026/08/09/2000]
-
-## Self-model
-
-- When you share a speech draft, you want honest critique before reassurance — refs: [2026/08/10/2110]
 ```
 
 **Identity** —— 结构化的、可被机器解析的头部:Name、Address them as、Pronouns、Alias(最多 8 行)。这让 Previously 能在到达简报(arrival briefing)中问候你,也知道该如何称呼你。
@@ -60,7 +56,7 @@ relationship in your life.
 
 **Horizon** —— 面向未来的悬而未决之事:承诺、截止日期、等待中的回复。每条都带显式的 `by:` 日期。Horizon 条目**永不因过期而移除**——它们只能通过被解决离开卡片。逾期的条目会被保留并标记:下一轮的简报会告诉 agent 主动问你事情的结果如何。
 
-**Self-model** —— Previously 学到的关于如何与你协作的紧凑操作经验(「聊致辞草稿时,要先给诚实的批评,再给安慰」)。它们只是对常驻指令(DIRECTIVES)的**增量**——一条复述或违背核心规则的经验会被拒绝,除非它引用了你明确的覆盖指示。上限:10 条。
+注意卡片**不**承载什么:没有规则,没有分析,没有协作经验。关于「你是谁」的模式——「聊致辞草稿时,要先给诚实的批评,再给安慰」——住在进化方向文档的画像(Portrait)里,不在卡片上(见[进化回路](/docs/evolution))。卡片是一个纯粹的记忆池:你做过的、正在做的、将要做的事。
 
 <Callout variant="info">
 **卡片回答的是「你是谁」,而不是「说过什么」。** 每个条目都带 `refs`——形如 `2026/08/10/2110` 的指针,指回 slice;slice 才是无损的事实来源。引用过去事件的具体细节之前,agent 会问 recall 同事,由它从 slice 原文里引述。
@@ -78,7 +74,6 @@ relationship in your life.
 | `addNow` / `removeNow` | 添加或移除一条 Now 钩子 |
 | `promoteNowToPast` | 把一条 Now 钩子毕业为 Past 锚点,保留其 refs |
 | `addHorizon` / `resolveHorizon` | 开启或解决一个 Horizon 事项 |
-| `addSelfModel` / `removeSelfModel` | 添加或移除一条操作经验 |
 
 验证逻辑在**工具内部**,而不是事后的一道检查。超限或格式错误的写入会被拒绝,并附带具体的反馈——「2630 chars,limit 2400——压缩后重试」——由 agent 自己决定在上限内保留什么。Refs 是必需的:没有证据,就没有写入。卡片未被触及的部分在构造上就被保留;mutation 会话不可能静默丢弃一条它没看过的内容。
 
@@ -86,7 +81,7 @@ relationship in your life.
 
 ## 卡片何时演化
 
-卡片在切片边界上接受进化检查,但大多数时候什么都不会发生——没有触发就没有进化。触发条件(fitness 信号、你的显式请求、旧格式卡片的强制升级)和进化执行的两个阶段,都在[进化回路](/docs/evolution)一篇里。
+卡片在每一轮都接受进化检查,但大多数时候什么都不会发生——没有触发就没有进化。触发条件(fitness 信号、你的显式请求、旧格式卡片的强制升级)和那次合并的进化运行,都在[进化回路](/docs/evolution)一篇里。
 
 进展会实时流式推送给客户端;当卡片发生变化时,演化指示器会展示一句话的变化说明和逐行 diff。被跳过的运行也会连同原因一起上报——静默的跳过读起来就像「它从没运行过」。
 

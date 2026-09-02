@@ -45,7 +45,7 @@ Context stays bounded per request because the prompt is assembled from relevant 
 
 Storing conversations is trivial. Retrieving the *right* memory at the *right* moment with the *right* depth is the genuinely hard part — and that is where the effort goes. The architecture reflects this priority: recall is not a database query but a dedicated **colleague**. Since v1.0, recall is performed by a recall sub-agent — it runs on the main model you picked (thinking at low effort) and explores the memory itself, the way a colleague who was there would: first the timeline catalog to locate *when*, then the strands to find *what*, then full reads of a few slices. It answers in natural language with every claim anchored to a verbatim reference (`{slice_id, quote, note}`). "We don't remember discussing this" is a valid answer. The main agent never rummages through memory itself — it keeps only a verification channel, `readSlice`, to spot-check that the references the recall colleague cites are real.
 
-And the memory itself is no longer static: a Darwinian self-evolution loop — a direction document, evidence-anchored fitness scoring, an append-only mutation archive — keeps the agent's behavior improving across slices. The complexity budget goes to the core store-index-recall loop, not to configuration knobs or edge cases.
+And the memory itself is no longer static: a Darwinian self-evolution loop — a learned user portrait with falsifiable hypotheses, evidence-anchored fitness scoring, deterministic generation-based triggers — keeps the agent's behavior improving across slices. The complexity budget goes to the core store-index-recall loop, not to configuration knobs or edge cases.
 
 ### Simplicity over sophistication
 
