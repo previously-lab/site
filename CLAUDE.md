@@ -38,6 +38,13 @@ Related repos: the product itself lives in `previously-lab/agent`; this repo is 
 - **Search**: cmdk ⌘K dialog
 - Per-doc plain-text version at `/[locale]/docs/[slug]/llms.txt`
 
+### Blog (`src/app/[locale]/blog`)
+
+- **Content**: `content/blog/{en,zh}/<slug>.md` — YAML frontmatter (`title`, `date`, `description`; zod-validated), rendered via react-markdown + remark-gfm (`src/components/blog/markdown-renderer.tsx`) — deliberately not the docs MDX pipeline
+- **Data layer**: `src/lib/blog/content.ts` — union of slugs across locales, newest-first list, cross-locale fallback when a translation is missing (fallback posts get a language badge)
+- **Reading typography**: hand-written `.blog-prose` rules in `globals.css` — 65ch centered column, serif body stack (`--font-blog-serif`, exposed as `font-serif`), loose 1.8 leading; no typography plugin
+- Same slug in both locales is the cross-language link (article header shows a switch link when both exist)
+
 ### Internationalization (next-intl)
 
 - **Routing config**: `src/i18n/routing.ts` — locales (`en`, `zh`), default `en`
@@ -76,6 +83,14 @@ Related repos: the product itself lives in `previously-lab/agent`; this repo is 
 - All user-facing strings go through next-intl messages — no hardcoded copy
 - The brand tagline "Previously on you." stays in English in both locales (untranslatable wordplay); always ASCII period, never full-width `。`
 - Design language: huge type in hero/act titles, restrained body copy, semantic motion (each animation mirrors a real product mechanism) — see `src/components/landing/act-section.tsx`
+
+## Release flow (kernel releases)
+
+When the kernel ships a new version, the site comes first:
+
+1. Write the release post/changelog as a blog entry in `content/blog/{en,zh}/` and deploy the site.
+2. Take the canonical post URL (`https://previously.ldwid.com/{locale}/blog/<slug>`).
+3. Reference that URL in the GitHub Release notes and in every platform announcement — reuse the link, don't rewrite the story per platform.
 
 ## Extending
 

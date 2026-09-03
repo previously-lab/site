@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Raleway, Geist_Mono } from "next/font/google";
+import { Raleway, Geist_Mono, Source_Serif_4 } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { MotionConfig } from "motion/react";
@@ -16,6 +16,14 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+/* Blog body serif (latin only — CJK glyphs fall through to the
+   system serif stack in --font-blog-serif). */
+const sourceSerif = Source_Serif_4({
+  variable: "--font-source-serif",
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+});
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
 };
@@ -29,7 +37,7 @@ export default async function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${raleway.variable} ${geistMono.variable} font-sans`}
+      className={`${raleway.variable} ${geistMono.variable} ${sourceSerif.variable} font-sans`}
     >
       <body>
         <ThemeProvider

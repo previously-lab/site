@@ -2,6 +2,7 @@
   "Nav": {
     "home": "首页",
     "docs": "文档",
+    "blog": "博客",
     "github": "GitHub",
     "demo": "亲手试试"
   },
@@ -10,6 +11,7 @@
     "github": "GitHub",
     "demo": "亲手试试",
     "docs": "文档",
+    "blog": "博客",
     "community": "社区",
     "devto": "时间是否是 AI 记忆缺失的维度？",
     "about": "关于我们",

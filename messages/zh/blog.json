@@ -1,0 +1,14 @@
+{
+  "Blog": {
+    "Meta": {
+      "title": "博客",
+      "description": "Previously Lab 的随笔与记录——关于时间、记忆与自我进化的 agent。"
+    },
+    "heading": "博客",
+    "eyebrow": "Previously 博客",
+    "intro": "关于时间、记忆与自我进化 agent 的随笔与记录。",
+    "backToBlog": "返回全部文章",
+    "readInOtherLanguage": "Read in English",
+    "empty": "还没有文章。"
+  }
+}

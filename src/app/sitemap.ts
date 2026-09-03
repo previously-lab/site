@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { siteConfig } from "@/lib/site";
 import { getAllDocSlugs } from "@/lib/docs/content";
+import { getAllPostSlugs } from "@/lib/blog/content";
 
 const locales = siteConfig.locales;
 const baseUrl = siteConfig.url;
@@ -33,6 +34,7 @@ function alternatesFor(suffix?: string): NonNullable<
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const lastModified = new Date();
   const slugs = getAllDocSlugs();
+  const postSlugs = await getAllPostSlugs();
 
   const entries: MetadataRoute.Sitemap = [
     // ---- Landing pages for each locale ----
@@ -42,6 +44,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly" as const,
       priority: 1.0,
       ...alternatesFor(),
+    })),
+    // ---- Blog index for each locale ----
+    ...locales.map((locale) => ({
+      url: `${baseUrl}${localizePath(locale, "/blog")}`,
+      lastModified,
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+      ...alternatesFor("/blog"),
     })),
     // ---- Trust anchor pages (about / contact / privacy) ----
     ...["/about", "/contact", "/privacy"].flatMap((suffix) =>
@@ -64,6 +74,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         changeFrequency: "weekly" as const,
         priority: 0.9,
         ...alternatesFor(`/docs/${slug}`),
+      });
+    }
+  }
+
+  // ---- Blog posts for each locale ----
+  for (const slug of postSlugs) {
+    for (const locale of locales) {
+      entries.push({
+        url: `${baseUrl}${localizePath(locale, `/blog/${slug}`)}`,
+        lastModified,
+        changeFrequency: "monthly" as const,
+        priority: 0.8,
+        ...alternatesFor(`/blog/${slug}`),
       });
     }
   }

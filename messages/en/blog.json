@@ -1,0 +1,14 @@
+{
+  "Blog": {
+    "Meta": {
+      "title": "Blog",
+      "description": "Essays and notes from Previously Lab — on time, memory, and self-evolving agents."
+    },
+    "heading": "Blog",
+    "eyebrow": "Previously Blog",
+    "intro": "Essays and notes on time, memory, and self-evolving agents.",
+    "backToBlog": "Back to all posts",
+    "readInOtherLanguage": "阅读中文",
+    "empty": "No posts yet."
+  }
+}

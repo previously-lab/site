@@ -49,6 +49,14 @@ export async function SiteFooter({
                 </Link>
               </li>
               <li>
+                <Link
+                  href="/blog"
+                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {t("blog")}
+                </Link>
+              </li>
+              <li>
                 <a
                   href={siteConfig.githubUrl}
                   target="_blank"

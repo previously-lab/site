@@ -2,6 +2,7 @@
   "Nav": {
     "home": "Home",
     "docs": "Docs",
+    "blog": "Blog",
     "github": "GitHub",
     "demo": "Try it"
   },
@@ -10,6 +11,7 @@
     "github": "GitHub",
     "demo": "Try it",
     "docs": "Docs",
+    "blog": "Blog",
     "community": "Community",
     "devto": "Is time the missing dimension in AI memory?",
     "about": "About",
