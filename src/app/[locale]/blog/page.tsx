@@ -73,7 +73,7 @@ export default async function BlogIndexPage({ params }: Props) {
     <div className="mx-auto w-full max-w-5xl px-4 py-16 sm:px-8 sm:py-24 lg:ml-[8vw] lg:mr-auto">
       {/* ---- page header ---- */}
       <header className="mb-14 sm:mb-20">
-        <p className="blog-eyebrow">{t("eyebrow")}</p>
+        <p className="eyebrow">{t("eyebrow")}</p>
         <h1 className="mt-6 font-serif text-[clamp(2.75rem,6vw,4.5rem)] leading-none font-normal italic tracking-[-0.01em]">
           {t("heading")}
         </h1>
@@ -99,13 +99,13 @@ export default async function BlogIndexPage({ params }: Props) {
                 {/* oversized ghost index — turns brand blue on hover */}
                 <span
                   aria-hidden="true"
-                  className="font-serif text-3xl leading-none text-foreground/15 transition-colors duration-200 group-hover:text-[var(--blog-accent)] sm:text-4xl"
+                  className="font-serif text-3xl leading-none text-foreground/15 transition-colors duration-200 group-hover:text-[var(--brand-blue)] sm:text-4xl"
                 >
                   {String(index + 1).padStart(2, "0")}
                 </span>
 
                 <span className="min-w-0">
-                  <span className="block font-serif text-xl leading-snug font-normal italic transition-colors duration-200 group-hover:text-[var(--blog-accent)] sm:text-2xl">
+                  <span className="block font-serif text-xl leading-snug font-normal italic transition-colors duration-200 group-hover:text-[var(--brand-blue)] sm:text-2xl">
                     {post.frontmatter.title}
                   </span>
                   <span className="mt-2 block max-w-[52ch] text-sm leading-relaxed text-muted-foreground">

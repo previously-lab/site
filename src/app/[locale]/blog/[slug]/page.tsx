@@ -14,6 +14,7 @@ import {
   type BlogPost,
 } from "@/lib/blog/content";
 import { MarkdownRenderer } from "@/components/blog/markdown-renderer";
+import { BlogToc } from "@/components/blog/blog-toc";
 import { TechArticleJsonLd, BreadcrumbJsonLd } from "@/lib/seo/json-ld";
 
 type Props = {
@@ -123,12 +124,18 @@ export default async function BlogPostPage({ params }: Props) {
       {/* ---- article — offset to the right of the viewport at lg,
              leaving the left rail as breathing room ---- */}
       <article className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-8 sm:py-24 lg:ml-auto lg:mr-[7vw]">
-        {/* asymmetric header — left-aligned display serif, small-caps meta */}
+        {/* asymmetric header — left-aligned display serif, lede,
+            small-caps meta */}
         <header className="mb-14 sm:mb-20">
-          <p className="blog-eyebrow">{t("eyebrow")}</p>
+          <p className="eyebrow">{t("eyebrow")}</p>
           <h1 className="mt-6 max-w-[24ch] font-serif text-[clamp(2.5rem,6vw,4.25rem)] leading-[1.08] font-normal italic tracking-[-0.01em] text-balance">
             {post.frontmatter.title}
           </h1>
+          {/* lede — the frontmatter description, pulled out of the old
+              margin note into the header */}
+          <p className="mt-6 max-w-[44ch] font-serif text-lg italic leading-relaxed text-muted-foreground sm:text-xl">
+            {post.frontmatter.description}
+          </p>
           <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
             <time dateTime={post.frontmatter.date}>
               {formatPostDate(post.frontmatter.date, locale)}
@@ -145,7 +152,7 @@ export default async function BlogPostPage({ params }: Props) {
               <Link
                 href={`/blog/${slug}`}
                 locale={other}
-                className="underline decoration-border underline-offset-4 transition-colors hover:text-[var(--blog-accent)] hover:decoration-[var(--blog-accent)]"
+                className="underline decoration-border underline-offset-4 transition-colors hover:text-[var(--brand-blue)] hover:decoration-[var(--brand-blue)]"
               >
                 {t("readInOtherLanguage")}
               </Link>
@@ -153,15 +160,11 @@ export default async function BlogPostPage({ params }: Props) {
           </div>
         </header>
 
-        {/* body grid — sticky margin note in the left rail, prose right */}
+        {/* body grid — sticky TOC in the left rail (renders nothing for
+            posts with fewer than two headings), prose right */}
         <div className="lg:grid lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)] lg:gap-20">
           <aside className="hidden lg:block">
-            <div className="sticky top-24">
-              <div className="h-0.5 w-8 bg-[var(--blog-accent)]" />
-              <p className="mt-5 font-serif text-sm italic leading-relaxed text-muted-foreground">
-                {post.frontmatter.description}
-              </p>
-            </div>
+            <BlogToc />
           </aside>
 
           <div className="min-w-0">
@@ -173,7 +176,7 @@ export default async function BlogPostPage({ params }: Props) {
             <footer className="mt-16 border-t border-border pt-8 sm:mt-20">
               <Link
                 href="/blog"
-                className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-[var(--blog-accent)]"
+                className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-[var(--brand-blue)]"
               >
                 ← {t("backToBlog")}
               </Link>

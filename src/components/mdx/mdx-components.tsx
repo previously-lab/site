@@ -57,8 +57,8 @@ function Heading({
   const shared = cn(
     "scroll-mt-20 font-semibold text-foreground",
     level === 1 && "mb-4 mt-0 text-3xl font-bold tracking-tight",
-    level === 2 && "mb-3 mt-10 text-2xl font-bold tracking-tight",
-    level === 3 && "mb-2 mt-8 text-xl font-semibold",
+    level === 2 && "mb-4 mt-14 text-2xl font-bold tracking-tight",
+    level === 3 && "mb-3 mt-10 text-xl font-semibold tracking-tight",
     level === 4 && "mb-2 mt-6 text-base font-semibold",
     className,
   );
@@ -109,14 +109,14 @@ export const mdxComponents: MDXComponents = {
   ),
 
   p: ({ children, ...props }) => (
-    <p className="my-4 leading-relaxed text-foreground/85" {...props}>
+    <p className="my-5 leading-relaxed text-foreground/85" {...props}>
       {children}
     </p>
   ),
 
   ul: ({ children, ...props }) => (
     <ul
-      className="my-4 list-disc space-y-1.5 pl-6 text-foreground/85"
+      className="my-5 list-disc space-y-1.5 pl-6 text-foreground/85"
       {...props}
     >
       {children}
@@ -125,7 +125,7 @@ export const mdxComponents: MDXComponents = {
 
   ol: ({ children, ...props }) => (
     <ol
-      className="my-4 list-decimal space-y-1.5 pl-6 text-foreground/85"
+      className="my-5 list-decimal space-y-1.5 pl-6 text-foreground/85"
       {...props}
     >
       {children}
@@ -139,13 +139,13 @@ export const mdxComponents: MDXComponents = {
   ),
 
   a: ({ href, children, ...props }) => {
+    // Same restrained underline as the blog prose; hover flips to the
+    // shared brand blue.
+    const linkClass =
+      "text-foreground underline decoration-muted-foreground/60 underline-offset-[3px] transition-colors hover:text-[var(--brand-blue)] hover:decoration-[var(--brand-blue)]";
     if (href && href.startsWith("/")) {
       return (
-        <Link
-          href={href}
-          className="font-medium text-primary underline underline-offset-2 transition-colors hover:text-primary/80"
-          {...props}
-        >
+        <Link href={href} className={linkClass} {...props}>
           {children}
         </Link>
       );
@@ -155,7 +155,7 @@ export const mdxComponents: MDXComponents = {
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className="font-medium text-primary underline underline-offset-2 transition-colors hover:text-primary/80"
+        className={linkClass}
         {...props}
       >
         {children}
@@ -165,7 +165,7 @@ export const mdxComponents: MDXComponents = {
 
   blockquote: ({ children, ...props }) => (
     <blockquote
-      className="my-6 border-l-2 border-primary/30 pl-5 italic text-muted-foreground"
+      className="my-6 border-l-[3px] border-[var(--brand-blue)] pl-5 italic text-muted-foreground"
       {...props}
     >
       {children}

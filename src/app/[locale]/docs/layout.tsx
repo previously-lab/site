@@ -59,7 +59,7 @@ export default async function DocsLayout({ children, params }: Props) {
   const { records: searchIndex, itemTitles } = await buildSearchIndex(locale);
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl gap-8 px-4 pt-8 pb-8 sm:px-6 lg:gap-12 lg:pt-10 lg:pb-12">
+    <div className="mx-auto flex w-full max-w-6xl gap-8 px-4 pt-10 pb-8 sm:px-6 lg:gap-12 lg:pt-16 lg:pb-12">
       <DocsSidebar locale={locale} itemTitles={itemTitles} />
 
       <main className="min-w-0 flex-1">

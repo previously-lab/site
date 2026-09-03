@@ -32,7 +32,7 @@ export async function DocsPager({
             <ChevronLeft className="h-3 w-3" />
             {t("previousPage")}
           </span>
-          <span className="text-sm font-medium text-foreground transition-colors group-hover:text-primary">
+          <span className="text-sm font-medium text-foreground transition-colors group-hover:text-[var(--brand-blue)]">
             {prev.title}
           </span>
         </Link>
@@ -49,7 +49,7 @@ export async function DocsPager({
             {t("nextPage")}
             <ChevronRight className="h-3 w-3" />
           </span>
-          <span className="text-sm font-medium text-foreground transition-colors group-hover:text-primary">
+          <span className="text-sm font-medium text-foreground transition-colors group-hover:text-[var(--brand-blue)]">
             {next.title}
           </span>
         </Link>

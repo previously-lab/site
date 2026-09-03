@@ -190,9 +190,9 @@ export default async function DocPage({ params }: Props) {
 
       {/* ---- page content ---- */}
       <article className="min-w-0">
-        {/* Toolbar */}
-        <div className="mb-6 flex items-center justify-between">
-          <div />
+        {/* Toolbar — eyebrow label left, copy action right */}
+        <div className="mb-8 flex items-center justify-between gap-4">
+          <p className="eyebrow">{t("eyebrow")}</p>
           <CopyMarkdownButton url={`/${locale}/docs/${slug}/llms.txt`} />
         </div>
 

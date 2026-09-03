@@ -12,18 +12,19 @@ type TocHeading = {
 };
 
 /**
- * Client component that scans the rendered <article> for h2 and h3 elements
- * and builds a right-hand table of contents. Re-scans on pathname change
- * to support client-side navigation between docs.
+ * Client component that scans the rendered post body (.blog-prose) for
+ * h2 and h3 elements and builds the sticky left-rail table of contents.
+ * Same scan + IntersectionObserver pattern as the docs TOC, styled to
+ * the blog's editorial register: small sans items (material contrast
+ * against the serif body), h3 indentation, and a brand-blue square
+ * marking the current section.
  *
- * Visual language matches the blog TOC: eyebrow label, small items with
- * a brand-blue square marking the current section.
- *
- * Renders nothing when the article has no headings (below `lg` breakpoint
- * the entire aside is hidden via Tailwind).
+ * Renders nothing when the post has fewer than two headings — a
+ * one-entry TOC reads as broken, so the rail falls back to plain
+ * breathing room. (The entire rail is hidden below `lg` by the page.)
  */
-export function DocsToc() {
-  const t = useTranslations("Docs");
+export function BlogToc() {
+  const t = useTranslations("Blog");
   const pathname = usePathname();
   const [headings, setHeadings] = useState<TocHeading[]>([]);
   const [activeId, setActiveId] = useState<string>("");
@@ -35,7 +36,7 @@ export function DocsToc() {
     const scan = () => {
       if (cancelled) return;
       const elements = document.querySelectorAll<HTMLHeadingElement>(
-        "article h2, article h3",
+        ".blog-prose h2, .blog-prose h3",
       );
       const items = Array.from(elements).map((el) => ({
         id: el.id,
@@ -86,43 +87,41 @@ export function DocsToc() {
     return () => observer.disconnect();
   }, [headings]);
 
-  if (headings.length === 0) return null;
+  if (headings.length < 2) return null;
 
   return (
-    <aside className="hidden shrink-0 lg:block lg:w-56">
-      <nav className="sticky top-20" aria-labelledby="docs-toc-label">
-        <p id="docs-toc-label" className="eyebrow mb-5">
-          {t("onThisPage")}
-        </p>
-        <ul className="space-y-1.5">
-          {headings.map((h) => {
-            const isActive = activeId === h.id;
-            return (
-              <li key={h.id}>
-                <a
-                  href={`#${h.id}`}
+    <nav className="sticky top-24" aria-labelledby="blog-toc-label">
+      <p id="blog-toc-label" className="eyebrow mb-5">
+        {t("toc")}
+      </p>
+      <ul className="space-y-1.5">
+        {headings.map((h) => {
+          const isActive = activeId === h.id;
+          return (
+            <li key={h.id}>
+              <a
+                href={`#${h.id}`}
+                className={cn(
+                  "flex items-baseline gap-2 text-[13px] leading-snug transition-colors",
+                  h.level === 3 && "pl-4",
+                  isActive
+                    ? "text-[var(--brand-blue)]"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <span
+                  aria-hidden="true"
                   className={cn(
-                    "flex items-baseline gap-2 text-[13px] leading-snug transition-colors",
-                    h.level === 3 && "pl-4",
-                    isActive
-                      ? "text-[var(--brand-blue)]"
-                      : "text-muted-foreground hover:text-foreground",
+                    "h-1 w-1 shrink-0 self-center",
+                    isActive ? "bg-[var(--brand-blue)]" : "bg-transparent",
                   )}
-                >
-                  <span
-                    aria-hidden="true"
-                    className={cn(
-                      "h-1 w-1 shrink-0 self-center",
-                      isActive ? "bg-[var(--brand-blue)]" : "bg-transparent",
-                    )}
-                  />
-                  {h.text}
-                </a>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
-    </aside>
+                />
+                {h.text}
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
   );
 }
