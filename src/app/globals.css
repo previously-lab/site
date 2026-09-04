@@ -234,6 +234,9 @@ pre.shiki {
   align-items: center;
   gap: 0.625rem;
   font-size: 0.6875rem;
+  /* hug the glyphs — with the default ~1.4 line box the square centers
+     on the line box instead of the caps, reading as a few px too high */
+  line-height: 1;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--muted-foreground);
