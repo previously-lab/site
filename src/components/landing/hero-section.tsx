@@ -11,6 +11,7 @@ import {
 import { buttonVariants } from "@/components/ui/button";
 import { BriefingCard, type BriefingData } from "@/components/landing/briefing-card";
 import { Link } from "@/i18n/navigation";
+import { siteConfig } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
 interface HeroSectionProps {
@@ -162,12 +163,14 @@ export function HeroSection({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 1.1, ease: EASE }}
       >
-        <Link
-          href="/docs/recall"
+        <a
+          href={siteConfig.demoUrl}
+          target="_blank"
+          rel="noopener noreferrer"
           className={cn(buttonVariants({ size: "lg" }), "w-full sm:w-auto")}
         >
           {ctaDemo}
-        </Link>
+        </a>
         <a
           href={githubUrl}
           target="_blank"
@@ -180,7 +183,7 @@ export function HeroSection({
           {ctaGithub}
         </a>
         <Link
-          href="/docs"
+          href="/docs/introduction"
           className={cn(
             buttonVariants({ variant: "ghost", size: "lg" }),
             "w-full sm:w-auto",

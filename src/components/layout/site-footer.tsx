@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
+import { getPostList } from "@/lib/blog/content";
 import { siteConfig } from "@/lib/site";
 
 export async function SiteFooter({
@@ -8,6 +9,7 @@ export async function SiteFooter({
   locale: string;
 }): Promise<React.ReactElement> {
   const t = await getTranslations({ locale, namespace: "Footer" });
+  const posts = (await getPostList(locale)).slice(0, 3);
 
   const currentYear = new Date().getFullYear();
 
@@ -41,20 +43,14 @@ export async function SiteFooter({
                 </Link>
               </li>
               <li>
-                <Link
-                  href="/docs/recall"
+                <a
+                  href={siteConfig.demoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >
                   {t("demo")}
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/blog"
-                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  {t("blog")}
-                </Link>
+                </a>
               </li>
               <li>
                 <a
@@ -69,21 +65,29 @@ export async function SiteFooter({
             </ul>
           </div>
 
-          {/* Community column */}
+          {/* Blog column — latest posts */}
           <div className="space-y-3">
             <h4 className="text-sm font-semibold text-foreground">
-              {t("community")}
+              {t("blog")}
             </h4>
             <ul className="space-y-2">
+              {posts.map((post) => (
+                <li key={post.slug}>
+                  <Link
+                    href={`/blog/${post.slug}`}
+                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    {post.frontmatter.title}
+                  </Link>
+                </li>
+              ))}
               <li>
-                <a
-                  href={siteConfig.devtoUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <Link
+                  href="/blog"
                   className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >
-                  {t("devto")}
-                </a>
+                  {t("allPosts")} →
+                </Link>
               </li>
             </ul>
           </div>

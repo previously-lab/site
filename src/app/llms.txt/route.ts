@@ -79,7 +79,10 @@ export async function GET(_request: NextRequest): Promise<Response> {
   sections.push("## Links");
   sections.push("");
   sections.push(`- GitHub: ${siteConfig.githubUrl}`);
-  sections.push(`- Dev.to Article: ${siteConfig.devtoUrl}`);
+  sections.push(
+    `- Featured essay: ${baseUrl}/en/blog/is-time-the-missing-dimension-in-ai-memory`,
+  );
+  sections.push(`- Blog: ${baseUrl}/en/blog`);
   sections.push(`- About: ${baseUrl}/en/about`);
   sections.push(`- Contact: ${baseUrl}/en/contact`);
   sections.push(`- Privacy: ${baseUrl}/en/privacy`);

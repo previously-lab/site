@@ -109,6 +109,7 @@ export default async function BlogPostPage({ params }: Props) {
         headline={post.frontmatter.title}
         description={post.frontmatter.description}
         url={`/${locale}/blog/${slug}`}
+        type="BlogPosting"
         datePublished={post.frontmatter.date}
         publisherName={siteConfig.orgName}
       />

@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import { motion, useInView } from "motion/react";
 import { buttonVariants } from "@/components/ui/button";
-import { Link } from "@/i18n/navigation";
+import { siteConfig } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
 interface FinaleSectionProps {
@@ -135,12 +135,14 @@ export function FinaleSection({
         animate={isInView ? { opacity: 1, y: 0 } : {}}
         transition={{ duration: 0.6, delay: 1.8, ease: EASE }}
       >
-        <Link
-          href="/docs/recall"
+        <a
+          href={siteConfig.demoUrl}
+          target="_blank"
+          rel="noopener noreferrer"
           className={cn(buttonVariants({ size: "lg" }), "w-full sm:w-auto")}
         >
           {ctaDemo}
-        </Link>
+        </a>
         <a
           href={githubUrl}
           target="_blank"

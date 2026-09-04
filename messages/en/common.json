@@ -12,8 +12,7 @@
     "demo": "Try it",
     "docs": "Docs",
     "blog": "Blog",
-    "community": "Community",
-    "devto": "Is time the missing dimension in AI memory?",
+    "allPosts": "All posts",
     "about": "About",
     "contact": "Contact",
     "privacy": "Privacy",
@@ -28,9 +27,10 @@
     "paragraphs": [
       "Previously Lab is an independent open-source lab. We build Previously — a personal AI agent that organizes memory by time: one timeline of episodic slices instead of scattered chat threads. The idea is simple: an agent that remembers your life should remember it the way you do — by when things happened.",
       "The project is MIT-licensed and Git-native. Every memory is a plain markdown file you can read, diff, and own. The agent's self-model evolves in the open, and every recall answer cites the exact time slices it used — no black box, no lock-in.",
-      "Previously Lab is run by @likedreamwalker as an open-source project. The best way to follow or join the work is the GitHub repository and the dev.to essay on the memory model, both linked below."
+      "Previously Lab is run by @likedreamwalker as an open-source project. The best way to follow or join the work is the GitHub repository and the memory-model essay on our blog, both linked below."
     ],
-    "linksHeading": "Find us"
+    "linksHeading": "Find us",
+    "essayLink": "Blog — Is time the missing dimension in AI memory?"
   },
   "Contact": {
     "Meta": {

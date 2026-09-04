@@ -12,8 +12,7 @@
     "demo": "亲手试试",
     "docs": "文档",
     "blog": "博客",
-    "community": "社区",
-    "devto": "时间是否是 AI 记忆缺失的维度？",
+    "allPosts": "全部文章",
     "about": "关于我们",
     "contact": "联系方式",
     "privacy": "隐私政策",
@@ -28,9 +27,10 @@
     "paragraphs": [
       "Previously Lab 是一个独立的开源实验室。我们正在构建 Previously——一个按时间组织记忆的个人 AI 代理：用一条情景切片时间线，取代散落的聊天线程。理念很简单：一个记住你生活的代理，应该像你一样记忆——按事情发生的时间。",
       "项目采用 MIT 许可证，Git 原生。每一段记忆都是你可以阅读、对比、拥有的纯 markdown 文件。代理的自我模型公开演进，每次回忆的答案都会引用它所用到的确切时间切片——没有黑盒，没有锁定。",
-      "Previously Lab 由 @likedreamwalker 以开源项目的方式运营。关注或参与这项工作最好的方式，是下方链接的 GitHub 仓库和 dev.to 上关于记忆模型的文章。"
+      "Previously Lab 由 @likedreamwalker 以开源项目的方式运营。关注或参与这项工作最好的方式，是下方链接的 GitHub 仓库和博客上关于记忆模型的文章。"
     ],
-    "linksHeading": "找到我们"
+    "linksHeading": "找到我们",
+    "essayLink": "博客 — 时间是否是 AI 记忆缺失的维度？"
   },
   "Contact": {
     "Meta": {

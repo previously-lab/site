@@ -1,4 +1,4 @@
-import { Link } from "@/i18n/navigation";
+import { siteConfig } from "@/lib/site";
 import { ArrowRight } from "lucide-react";
 
 export interface NowQuestionRef {
@@ -23,9 +23,9 @@ interface NowQuestionProps {
  * The payoff of Act 1's NOW dot: once every thread converges, you can ask
  * ONE question across all of them. A static, product-styled illustration —
  * a question bubble plus a recall-style answer card whose references carry
- * the same strand colors as the timeline above — with a link to run the
- * real thing in the playground. Static on purpose: the homepage narrative
- * must never show a loading or error state; the playground is one click away.
+ * the same strand colors as the timeline above — with a link to the live
+ * demo. Static on purpose: the homepage narrative must never show a loading
+ * or error state; the demo is one click away.
  */
 export function NowQuestion({
   question,
@@ -75,13 +75,15 @@ export function NowQuestion({
           <p className="font-mono text-[11px] text-muted-foreground/70">
             {meta}
           </p>
-          <Link
-            href="/docs/recall"
+          <a
+            href={siteConfig.demoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-foreground/80 transition-colors hover:text-foreground"
           >
             {liveCta}
             <ArrowRight className="h-3 w-3" />
-          </Link>
+          </a>
         </div>
       </div>
     </div>

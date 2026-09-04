@@ -1,8 +1,15 @@
 import type { ReactElement } from "react";
 
+import { siteConfig } from "@/lib/site";
+
 // ---------------------------------------------------------------------------
 // Shared helpers
 // ---------------------------------------------------------------------------
+
+/** Schema.org validators expect absolute URLs — prefix site-relative paths. */
+function absolute(url: string): string {
+  return url.startsWith("/") ? `${siteConfig.url}${url}` : url;
+}
 
 /**
  * Render a <script type="application/ld+json"> element with the given
@@ -64,6 +71,8 @@ export type TechArticleJsonLdProps = {
   headline: string;
   description: string;
   url: string;
+  /** Schema type — TechArticle for docs, BlogPosting for blog posts. */
+  type?: "TechArticle" | "BlogPosting";
   image?: string;
   datePublished?: string;
   dateModified?: string;
@@ -187,6 +196,7 @@ export function TechArticleJsonLd({
   headline,
   description,
   url,
+  type = "TechArticle",
   image,
   datePublished,
   dateModified,
@@ -196,10 +206,10 @@ export function TechArticleJsonLd({
 }: TechArticleJsonLdProps): ReactElement {
   return JsonLd({
     "@context": "https://schema.org",
-    "@type": "TechArticle",
+    "@type": type,
     headline,
     description,
-    url,
+    url: absolute(url),
     ...(image ? { image } : {}),
     ...(datePublished ? { datePublished } : {}),
     ...(dateModified ? { dateModified } : {}),
@@ -233,7 +243,7 @@ export function BreadcrumbJsonLd({
       "@type": "ListItem",
       position: index + 1,
       name: item.name,
-      item: item.url,
+      item: absolute(item.url),
     })),
   });
 }

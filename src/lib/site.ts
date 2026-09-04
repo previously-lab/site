@@ -16,7 +16,6 @@ export type SiteConfig = {
   contactUrl: string;
   /** Public contact email — used in JSON-LD contactPoint and /contact. */
   contactEmail: string;
-  devtoUrl: string;
   ogImage: string;
   locales: readonly ["en", "zh"];
   defaultLocale: "en";
@@ -39,8 +38,6 @@ export const siteConfig: SiteConfig = {
   githubUrl: "https://github.com/previously-lab/agent",
   contactUrl: "https://github.com/previously-lab/agent/issues",
   contactEmail: "a@ldwid.com",
-  devtoUrl:
-    "https://dev.to/likedreamwalker/is-time-the-missing-dimension-in-ai-memory-2l9c",
   ogImage: "/opengraph-image",
   locales: ["en", "zh"] as const,
   defaultLocale: "en",

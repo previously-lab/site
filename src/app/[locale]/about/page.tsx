@@ -1,5 +1,6 @@
 import { setRequestLocale, getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
+import { Link } from "@/i18n/navigation";
 import { siteConfig } from "@/lib/site";
 import { getMessageList } from "@/lib/messages";
 
@@ -76,14 +77,12 @@ export default async function AboutPage({
           </a>
         </li>
         <li>
-          <a
-            href={siteConfig.devtoUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href="/blog/is-time-the-missing-dimension-in-ai-memory"
             className="font-medium text-primary underline underline-offset-2 transition-colors hover:text-primary/80"
           >
-            dev.to — Is time the missing dimension in AI memory?
-          </a>
+            {t("essayLink")}
+          </Link>
         </li>
       </ul>
     </article>
