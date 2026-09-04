@@ -128,11 +128,11 @@ export default async function BlogPostPage({ params }: Props) {
             all on the same central axis */}
         <header className="mb-14 text-center sm:mb-20">
           <p className="eyebrow">{t("eyebrow")}</p>
-          <h1 className="mx-auto mt-6 max-w-[26ch] font-serif text-[clamp(2rem,4vw,3rem)] leading-[1.15] font-normal italic tracking-[-0.01em] text-balance">
+          <h1 className="mx-auto mt-6 max-w-[26ch] font-serif text-[clamp(2rem,4vw,3rem)] leading-[1.15] font-normal tracking-[-0.01em] text-balance">
             {post.frontmatter.title}
           </h1>
           {/* lede — the frontmatter description */}
-          <p className="mx-auto mt-6 max-w-[44ch] font-serif text-lg italic leading-relaxed text-muted-foreground sm:text-xl">
+          <p className="mx-auto mt-6 max-w-[44ch] font-serif text-sm italic leading-relaxed text-muted-foreground sm:text-base">
             {post.frontmatter.description}
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
