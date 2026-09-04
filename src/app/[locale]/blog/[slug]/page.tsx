@@ -14,7 +14,6 @@ import {
   type BlogPost,
 } from "@/lib/blog/content";
 import { MarkdownRenderer } from "@/components/blog/markdown-renderer";
-import { BlogToc } from "@/components/blog/blog-toc";
 import { TechArticleJsonLd, BreadcrumbJsonLd } from "@/lib/seo/json-ld";
 
 type Props = {
@@ -99,33 +98,9 @@ export default async function BlogPostPage({ params }: Props) {
   const t = await getTranslations({ locale, namespace: "Blog" });
   const tCommon = await getTranslations({ locale, namespace: "Common" });
 
-  /* ---- TOC gate — mirror BlogToc's "fewer than two headings renders
-     nothing" rule on the server, so a TOC-less post does not keep an
-     empty left rail that pushes the prose off the header's axis ---- */
-  const tocHeadingCount = (post.content.match(/^#{2,3}\s/gm) ?? []).length;
-  const showToc = tocHeadingCount >= 2;
-
   /* ---- language switcher — only when the other locale has its own file ---- */
   const other = locale === "zh" ? "en" : "zh";
   const hasTranslation = await hasLocaleVersion(other, slug);
-
-  /* ---- post body + backlink footer (styled by .blog-prose in globals.css) ---- */
-  const postBody = (
-    <>
-      <div className="blog-prose max-w-[65ch]">
-        <MarkdownRenderer source={post.content} />
-      </div>
-
-      <footer className="mt-16 border-t border-border pt-8 sm:mt-20">
-        <Link
-          href="/blog"
-          className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-[var(--brand-blue)]"
-        >
-          ← {t("backToBlog")}
-        </Link>
-      </footer>
-    </>
-  );
 
   return (
     <>
@@ -145,23 +120,22 @@ export default async function BlogPostPage({ params }: Props) {
         ]}
       />
 
-      {/* ---- article — centered container; the asymmetry lives
-             INSIDE it (rail vs prose), so ultrawide viewports get
-             balanced margins instead of a void on one side ---- */}
+      {/* ---- article — paper-like centered column (research-report
+             register): every block shares one central axis, in contrast
+             to the docs' left-aligned TOC layout ---- */}
       <article className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-8 sm:py-24">
-        {/* asymmetric header — left-aligned display serif, lede,
-            small-caps meta */}
-        <header className="mb-14 sm:mb-20">
+        {/* centered header — display serif title, lede, small-caps meta,
+            all on the same central axis */}
+        <header className="mb-14 text-center sm:mb-20">
           <p className="eyebrow">{t("eyebrow")}</p>
-          <h1 className="mt-6 max-w-[24ch] font-serif text-[clamp(2.5rem,6vw,4.25rem)] leading-[1.08] font-normal italic tracking-[-0.01em] text-balance">
+          <h1 className="mx-auto mt-6 max-w-[24ch] font-serif text-[clamp(2.5rem,6vw,4.25rem)] leading-[1.08] font-normal italic tracking-[-0.01em] text-balance">
             {post.frontmatter.title}
           </h1>
-          {/* lede — the frontmatter description, pulled out of the old
-              margin note into the header */}
-          <p className="mt-6 max-w-[44ch] font-serif text-lg italic leading-relaxed text-muted-foreground sm:text-xl">
+          {/* lede — the frontmatter description */}
+          <p className="mx-auto mt-6 max-w-[44ch] font-serif text-lg italic leading-relaxed text-muted-foreground sm:text-xl">
             {post.frontmatter.description}
           </p>
-          <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
             <time dateTime={post.frontmatter.date}>
               {formatPostDate(post.frontmatter.date, locale)}
             </time>
@@ -185,20 +159,21 @@ export default async function BlogPostPage({ params }: Props) {
           </div>
         </header>
 
-        {/* body — sticky TOC in the left rail when the post has enough
-            headings; otherwise a single column that starts on the same
-            left axis as the header (no empty rail, no fake indent) */}
-        {showToc ? (
-          <div className="lg:grid lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)] lg:gap-20">
-            <aside className="hidden lg:block">
-              <BlogToc />
-            </aside>
-
-            <div className="min-w-0">{postBody}</div>
+        {/* single centered prose column — styled by .blog-prose in globals.css */}
+        <div className="mx-auto max-w-[65ch]">
+          <div className="blog-prose">
+            <MarkdownRenderer source={post.content} />
           </div>
-        ) : (
-          <div className="min-w-0">{postBody}</div>
-        )}
+
+          <footer className="mt-16 border-t border-border pt-8 sm:mt-20">
+            <Link
+              href="/blog"
+              className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-[var(--brand-blue)]"
+            >
+              ← {t("backToBlog")}
+            </Link>
+          </footer>
+        </div>
       </article>
     </>
   );
