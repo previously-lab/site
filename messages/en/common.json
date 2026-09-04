@@ -1,10 +1,7 @@
 {
   "Nav": {
-    "home": "Home",
     "docs": "Docs",
-    "blog": "Blog",
-    "github": "GitHub",
-    "demo": "Try it"
+    "blog": "Blog"
   },
   "Footer": {
     "tagline": "Thoughts beyond time.",
@@ -90,9 +87,6 @@
     ]
   },
   "Common": {
-    "themeLight": "Light",
-    "themeDark": "Dark",
-    "themeSystem": "System",
     "langEn": "English",
     "langZh": "中文"
   }

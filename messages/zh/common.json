@@ -1,10 +1,7 @@
 {
   "Nav": {
-    "home": "首页",
     "docs": "文档",
-    "blog": "博客",
-    "github": "GitHub",
-    "demo": "亲手试试"
+    "blog": "博客"
   },
   "Footer": {
     "tagline": "Thoughts beyond time.",
@@ -90,9 +87,6 @@
     ]
   },
   "Common": {
-    "themeLight": "浅色",
-    "themeDark": "深色",
-    "themeSystem": "系统",
     "langEn": "English",
     "langZh": "中文"
   }

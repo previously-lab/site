@@ -97,8 +97,8 @@ async function callDeepSeek(
   user: string,
   maxTokens = 1500,
 ): Promise<unknown> {
-  const apiKey = process.env.DEEPSEEK_API_KEY;
-  if (!apiKey) return null; // caller maps to 503
+  // The caller 503s when DEEPSEEK_API_KEY is unset, so it's always set here.
+  const apiKey = process.env.DEEPSEEK_API_KEY!;
 
   const res = await fetch("https://api.deepseek.com/chat/completions", {
     method: "POST",

@@ -27,14 +27,14 @@ Related repos: the product itself lives in `previously-lab/agent`; this repo is 
 
 ### Landing Page (`src/app/[locale]/page.tsx`)
 
-- **Design**: "cinematic dark" (放映厅) — a cold open of "Previously on you." in five acts + finale. The `.landing-scope` wrapper (globals.css) is theme-aware: dark = cinematic palette (canvas `oklch(0.145 0 0)`, white/10 hairlines), light = the product's light theme (near-white, black/10 hairlines, translucent white glass); glass/hairline/glow/grid/vignette all run on `--landing-*`/`--glow-*` tokens with per-theme values. Site chrome just follows the theme. Three-accent system mirroring the product: brand blue `oklch(0.6 0.23 260)` = time, amber = strands, emerald = evolution. `StageAtmosphere` (fixed aurora glows + grid + vignette) sits under everything; the hollow NOW dot is the recurring motif.
-- **Structure**: `HeroSection` (giant tagline + self-typing `BriefingCard`) → `ProofBand` (code-drawn app UI mock) → three `ActSection`s (varied layouts, visuals `TimelineVisual` / `SelfModelVisual` / `ThinkingVisual`) → `TrustBand` (3 cards) → `FinaleSection`. Base scroll reveals via `ScrollReveal`; all copy via `messages/{en,zh}/landing.json`.
+- **Design**: "cinematic dark" (放映厅) — a cold open of "Previously on you." in six acts (Act1–5 + ActPortrait) + finale. The `.landing-scope` wrapper (globals.css) is theme-aware: dark = cinematic palette (canvas `oklch(0.145 0 0)`, white/10 hairlines), light = the product's light theme (near-white, black/10 hairlines, translucent white glass); glass/hairline/glow/grid/vignette all run on `--landing-*`/`--glow-*` tokens with per-theme values. Site chrome just follows the theme. Three-accent system mirroring the product: brand blue `oklch(0.6 0.23 260)` = time, amber = strands, emerald = evolution. `StageAtmosphere` (fixed aurora glows + grid + vignette) sits under everything; the hollow NOW dot is the recurring motif.
+- **Structure**: `HeroSection` (giant tagline + self-typing `BriefingCard`) → `ProofBand` (code-drawn app UI mock) → six `ActSection`s (varied layouts, visuals `TimelineVisual` / `ThreeTimelinesVisual` / `SelfModelVisual` / `PortraitVisual` / `ThinkingVisual` / `OrchestrationVisual`) → `TrustBand` (3 cards) → `GetStartedSection` (the two ways to run it) → `FinaleSection`. Base scroll reveals via `ScrollReveal`; all copy via `messages/{en,zh}/landing.json`.
 - Landing components live in `src/components/landing/`; client only where motion/interaction needs it.
 
 ### Docs (`src/app/[locale]/docs/[slug]`)
 
 - **Content**: `content/docs/{en,zh}/*.mdx` — YAML frontmatter (zod-validated), rendered via `next-mdx-remote/rsc` + Shiki
-- **Manifest**: `src/lib/docs/manifest.ts` — 4 sections, 12 slugs; drives sidebar and sitemap
+- **Manifest**: `src/lib/docs/manifest.ts` — 6 sections, 27 slugs; drives sidebar and sitemap
 - **Search**: cmdk ⌘K dialog
 - Per-doc plain-text version at `/[locale]/docs/[slug]/llms.txt`
 
@@ -50,7 +50,7 @@ Related repos: the product itself lives in `previously-lab/agent`; this repo is 
 - **Routing config**: `src/i18n/routing.ts` — locales (`en`, `zh`), default `en`
 - **Request handler**: `src/i18n/request.ts` — switch-based static imports per namespace (Turbopack-compatible; no template-literal dynamic imports)
 - **Navigation**: `src/i18n/navigation.ts` — always use these instead of `next/navigation`
-- **Messages**: `messages/{en,zh}/*.json` — namespaced (common, landing, docs, theme, locale)
+- **Messages**: `messages/{en,zh}/*.json` — namespaced (common, landing, docs, blog, playground, theme, locale)
 - **Proxy**: `src/proxy.ts` (Next 16 convention — middleware.ts is deprecated)
 
 ### SEO / GEO
@@ -71,7 +71,7 @@ Related repos: the product itself lives in `previously-lab/agent`; this repo is 
 ### shadcn/ui
 
 - Style: `base-nova` · Base color: `neutral` · CSS variables enabled
-- Components: `src/components/ui/` (via CLI; `flip-words`, `number-ticker`, `text-generate-effect` are adapted Aceternity/Magic UI components)
+- Components: `src/components/ui/` (via CLI)
 - Config: `components.json` · Utilities: `cn()` from `@/lib/utils`
 
 ### Path Aliases

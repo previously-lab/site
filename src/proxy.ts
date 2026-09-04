@@ -11,6 +11,8 @@ const intlMiddleware = createMiddleware(routing);
  * instead of HTML:
  *   /{locale}              → /llms.txt                       (site index)
  *   /{locale}/docs/{slug}  → /{locale}/docs/{slug}/llms.txt  (raw doc source)
+ *   /{locale}/blog         → /{locale}/blog/llms.txt         (post list)
+ *   /{locale}/blog/{slug}  → /{locale}/blog/{slug}/llms.txt  (raw post source)
  *
  * Both variants live on the same canonical URL, so every response for these
  * paths carries `Vary: Accept` — otherwise a CDN could hand the cached HTML
@@ -18,6 +20,8 @@ const intlMiddleware = createMiddleware(routing);
  */
 const LOCALE_HOME_RE = /^\/(en|zh)\/?$/;
 const DOC_PAGE_RE = /^\/(en|zh)\/docs\/([^/]+?)\/?$/;
+const BLOG_INDEX_RE = /^\/(en|zh)\/blog\/?$/;
+const BLOG_PAGE_RE = /^\/(en|zh)\/blog\/([^/]+?)\/?$/;
 
 /**
  * Trust anchor pages probed by agent checkers at the unprefixed URL.
@@ -45,13 +49,19 @@ export default function proxy(req: NextRequest): Response {
   const { pathname } = req.nextUrl;
   const isHome = LOCALE_HOME_RE.test(pathname);
   const doc = DOC_PAGE_RE.exec(pathname);
+  const blogIndex = BLOG_INDEX_RE.exec(pathname);
+  const post = BLOG_PAGE_RE.exec(pathname);
 
   if (wantsMarkdown(req)) {
     const target = doc
       ? `/${doc[1]}/docs/${doc[2]}/llms.txt`
-      : isHome || pathname === "/"
-        ? "/llms.txt"
-        : null;
+      : post
+        ? `/${post[1]}/blog/${post[2]}/llms.txt`
+        : blogIndex
+          ? `/${blogIndex[1]}/blog/llms.txt`
+          : isHome || pathname === "/"
+            ? "/llms.txt"
+            : null;
     if (target) {
       const url = req.nextUrl.clone();
       url.pathname = target;
@@ -70,7 +80,7 @@ export default function proxy(req: NextRequest): Response {
 
   const res = intlMiddleware(req);
   // HTML variant of a negotiated path — declare the Accept variance too.
-  if (isHome || doc) addVaryAccept(res);
+  if (isHome || doc || blogIndex || post) addVaryAccept(res);
   return res;
 }
 

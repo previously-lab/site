@@ -2,13 +2,15 @@ import { type NextRequest } from "next/server";
 import { siteConfig } from "@/lib/site";
 import { docsManifest } from "@/lib/docs/manifest";
 import { getDoc } from "@/lib/docs/content";
+import { getPostList } from "@/lib/blog/content";
 
 /**
  * Route handler serving llms.txt — a plain-text file per the llmstxt.org
  * convention designed for LLM / AI answer-engine consumption.
  *
- * The document lists all documentation pages with their descriptions so that
- * generative AI systems can discover and cite the correct pages.
+ * The document lists all documentation pages and blog posts with their
+ * descriptions so that generative AI systems can discover and cite the
+ * correct pages.
  */
 export async function GET(_request: NextRequest): Promise<Response> {
   const baseUrl = siteConfig.url;
@@ -49,7 +51,7 @@ export async function GET(_request: NextRequest): Promise<Response> {
   );
   sections.push("");
   sections.push(
-    "How an agent should use this site: read the docs pages below (each is also available as raw markdown — send `Accept: text/markdown` on any docs URL, or append `/llms.txt` to it). The full docs corpus in one file is at /llms-full.txt.",
+    "How an agent should use this site: read the docs and blog pages below (each is also available as raw markdown — send `Accept: text/markdown` on any docs/blog URL, or append `/llms.txt` to it). The full docs + blog corpus in one file is at /llms-full.txt.",
   );
   sections.push("");
 
@@ -71,6 +73,18 @@ export async function GET(_request: NextRequest): Promise<Response> {
         );
       }
     }
+  }
+
+  sections.push("");
+
+  // ---- Blog ----
+  sections.push("## Blog");
+  sections.push("");
+
+  for (const post of await getPostList("en")) {
+    sections.push(
+      `- [${post.frontmatter.title}](${baseUrl}/en/blog/${post.slug}): ${post.frontmatter.description}`,
+    );
   }
 
   sections.push("");

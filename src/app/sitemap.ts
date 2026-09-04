@@ -1,10 +1,34 @@
 import type { MetadataRoute } from "next";
+import { stat } from "node:fs/promises";
+import { join } from "node:path";
 import { siteConfig } from "@/lib/site";
 import { getAllDocSlugs } from "@/lib/docs/content";
-import { getAllPostSlugs } from "@/lib/blog/content";
+import { getAllPostSlugs, getPost } from "@/lib/blog/content";
 
 const locales = siteConfig.locales;
 const baseUrl = siteConfig.url;
+
+/**
+ * Doc files carry no date in frontmatter, so their lastModified is the
+ * file mtime — with the same zh → en fallback as the content loader.
+ */
+async function docLastModified(
+  locale: string,
+  slug: string,
+): Promise<Date | undefined> {
+  const candidates = locale === "en" ? ["en"] : [locale, "en"];
+  for (const loc of candidates) {
+    try {
+      const { mtime } = await stat(
+        join(process.cwd(), "content", "docs", loc, `${slug}.mdx`),
+      );
+      return mtime;
+    } catch {
+      // Missing translation — try the fallback locale.
+    }
+  }
+  return undefined;
+}
 
 /**
  * Build locale-prefixed path. Both locales use prefixes (/en, /zh).
@@ -70,7 +94,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     for (const locale of locales) {
       entries.push({
         url: `${baseUrl}${localizePath(locale, `/docs/${slug}`)}`,
-        lastModified,
+        lastModified: (await docLastModified(locale, slug)) ?? lastModified,
         changeFrequency: "weekly" as const,
         priority: 0.9,
         ...alternatesFor(`/docs/${slug}`),
@@ -78,12 +102,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   }
 
-  // ---- Blog posts for each locale ----
+  // ---- Blog posts for each locale (lastModified = frontmatter date) ----
   for (const slug of postSlugs) {
     for (const locale of locales) {
+      const post = await getPost(locale, slug);
       entries.push({
         url: `${baseUrl}${localizePath(locale, `/blog/${slug}`)}`,
-        lastModified,
+        lastModified: new Date(`${post.frontmatter.date}T00:00:00`),
         changeFrequency: "monthly" as const,
         priority: 0.8,
         ...alternatesFor(`/blog/${slug}`),

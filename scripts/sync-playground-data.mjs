@@ -44,7 +44,6 @@ const SLICES = [
   "2026/07/16/1913",
   "2026/07/20/1102",
   // evolution-card — the latest slices the card evolution pass runs on
-  "2026/08/02/1443",
   "2026/08/11/2054",
   "2026/08/17/1721",
   // slice-anatomy reuses 2026/07/16/1913 (already above)
