@@ -99,9 +99,33 @@ export default async function BlogPostPage({ params }: Props) {
   const t = await getTranslations({ locale, namespace: "Blog" });
   const tCommon = await getTranslations({ locale, namespace: "Common" });
 
+  /* ---- TOC gate — mirror BlogToc's "fewer than two headings renders
+     nothing" rule on the server, so a TOC-less post does not keep an
+     empty left rail that pushes the prose off the header's axis ---- */
+  const tocHeadingCount = (post.content.match(/^#{2,3}\s/gm) ?? []).length;
+  const showToc = tocHeadingCount >= 2;
+
   /* ---- language switcher — only when the other locale has its own file ---- */
   const other = locale === "zh" ? "en" : "zh";
   const hasTranslation = await hasLocaleVersion(other, slug);
+
+  /* ---- post body + backlink footer (styled by .blog-prose in globals.css) ---- */
+  const postBody = (
+    <>
+      <div className="blog-prose max-w-[65ch]">
+        <MarkdownRenderer source={post.content} />
+      </div>
+
+      <footer className="mt-16 border-t border-border pt-8 sm:mt-20">
+        <Link
+          href="/blog"
+          className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-[var(--brand-blue)]"
+        >
+          ← {t("backToBlog")}
+        </Link>
+      </footer>
+    </>
+  );
 
   return (
     <>
@@ -161,29 +185,20 @@ export default async function BlogPostPage({ params }: Props) {
           </div>
         </header>
 
-        {/* body grid — sticky TOC in the left rail (renders nothing for
-            posts with fewer than two headings), prose right */}
-        <div className="lg:grid lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)] lg:gap-20">
-          <aside className="hidden lg:block">
-            <BlogToc />
-          </aside>
+        {/* body — sticky TOC in the left rail when the post has enough
+            headings; otherwise a single column that starts on the same
+            left axis as the header (no empty rail, no fake indent) */}
+        {showToc ? (
+          <div className="lg:grid lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)] lg:gap-20">
+            <aside className="hidden lg:block">
+              <BlogToc />
+            </aside>
 
-          <div className="min-w-0">
-            {/* post body — styled by .blog-prose in globals.css */}
-            <div className="blog-prose max-w-[65ch]">
-              <MarkdownRenderer source={post.content} />
-            </div>
-
-            <footer className="mt-16 border-t border-border pt-8 sm:mt-20">
-              <Link
-                href="/blog"
-                className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-[var(--brand-blue)]"
-              >
-                ← {t("backToBlog")}
-              </Link>
-            </footer>
+            <div className="min-w-0">{postBody}</div>
           </div>
-        </div>
+        ) : (
+          <div className="min-w-0">{postBody}</div>
+        )}
       </article>
     </>
   );
