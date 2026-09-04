@@ -46,7 +46,7 @@ export function GetStartedSection({
   local,
 }: GetStartedSectionProps): React.ReactElement {
   return (
-    <ScrollReveal className="relative flex w-full flex-col items-center justify-center px-5 py-16 sm:min-h-screen sm:px-6 sm:py-24 lg:px-8">
+    <ScrollReveal className="relative flex w-full flex-col items-center justify-center px-5 py-16 sm:min-h-svh sm:px-6 sm:py-24 lg:px-8">
       {/* Centered text block — same rhythm as the acts */}
       <div className="mx-auto max-w-2xl text-center">
         <p className="font-mono text-[0.65rem] uppercase tracking-[0.35em] text-[oklch(0.6_0.23_260)]">

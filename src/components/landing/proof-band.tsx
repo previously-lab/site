@@ -90,7 +90,7 @@ export function ProofBand({
   return (
     <section
       ref={ref}
-      className="relative flex min-h-screen w-full flex-col items-center justify-center overflow-hidden px-5 py-20 sm:px-6 sm:py-24 lg:px-8"
+      className="relative flex min-h-svh w-full flex-col items-center justify-center overflow-hidden px-5 py-20 sm:px-6 sm:py-24 lg:px-8"
     >
       <motion.p
         className="max-w-xl text-balance text-center text-sm text-muted-foreground sm:text-base"

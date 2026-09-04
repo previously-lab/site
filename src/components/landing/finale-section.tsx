@@ -35,7 +35,7 @@ export function FinaleSection({
   return (
     <section
       ref={ref}
-      className="relative flex min-h-screen w-full flex-col items-center justify-center overflow-hidden px-5 text-center sm:px-6 lg:px-8"
+      className="relative flex min-h-svh w-full flex-col items-center justify-center overflow-hidden px-5 text-center sm:px-6 lg:px-8"
     >
       {/* Aurora peak — the brightest glow on the page */}
       <motion.div

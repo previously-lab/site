@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import {
   motion,
   useReducedMotion,
@@ -8,6 +8,7 @@ import {
   useTransform,
   type MotionValue,
 } from "motion/react";
+import { useIsDesktop } from "./use-media-query";
 
 export interface TimelineBeat {
   date: string;
@@ -97,27 +98,29 @@ const DESKTOP: Layout = {
   falloff: 700,
 };
 
+/* Mobile canvas is ~420 units wide so a ~390px phone renders it at
+   ≈0.93 scale — viewBox font sizes are then real CSS pixels. */
 const MOBILE: Layout = {
-  viewBox: "0 0 720 2160",
-  width: 720,
-  spineX: 96,
+  viewBox: "0 0 420 1960",
+  width: 420,
+  spineX: 56,
   spineY0: 90,
-  nowY: 2060,
-  beatY: [270, 530, 790, 1050, 1310, 1570, 1830],
-  cardW: 540,
+  nowY: 1860,
+  beatY: [250, 480, 710, 940, 1170, 1400, 1630],
+  cardW: 316,
   cardH: 128,
   cardSide: [1, 1, 1, 1, 1, 1, 1],
-  strandDotX: () => 150,
-  bandX: 40,
-  bandW: 640,
+  strandDotX: () => 88,
+  bandX: 24,
+  bandW: 372,
   bandFrom: 230,
-  bandTo: 1960,
-  falloff: 640,
+  bandTo: 1760,
+  falloff: 560,
 };
 
 /** Mobile strand lanes — one vertical rail per strand, between spine and cards. */
 function laneX(strandIndex: number): number {
-  return 140 - strandIndex * 9;
+  return 82 - strandIndex * 5;
 }
 
 /** Wheel falloff — a beat is fully lit at the band, faded far from it. */
@@ -126,7 +129,7 @@ function proximity(L: Layout, center: number, beatY: number): number {
 }
 
 function cardX(L: Layout, side: number): number {
-  if (L === MOBILE) return 150;
+  if (L === MOBILE) return 88;
   return side === -1 ? 90 : L.width - 90 - L.cardW;
 }
 
@@ -195,7 +198,7 @@ function Beat({ band, reduced, L, index, beat }: Driven & { index: number; beat:
       <motion.circle
         cx={cardCX}
         cy={y}
-        r={mobile ? 130 : 120}
+        r={mobile ? 110 : 120}
         fill={`url(#bg-${index})`}
         style={reduced ? { opacity: 0.18 } : { opacity: glow }}
       />
@@ -290,7 +293,7 @@ function Strand({ p, reduced, L, strand, strandIndex }: { p: MotionValue<number>
               <line
                 x1={dotX}
                 y1={dotY}
-                x2={150}
+                x2={cardX(L, 1)}
                 y2={dotY}
                 strokeWidth={1}
                 className="landing-stroke-hairline"
@@ -349,14 +352,7 @@ export function TimelineVisual({
 }: TimelineVisualProps): React.ReactElement {
   const ref = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
-  const [isDesktop, setIsDesktop] = useState(true);
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 768px)");
-    const update = () => setIsDesktop(mq.matches);
-    update();
-    mq.addEventListener("change", update);
-    return () => mq.removeEventListener("change", update);
-  }, []);
+  const isDesktop = useIsDesktop();
 
   const L = isDesktop ? DESKTOP : MOBILE;
   const { scrollYProgress: p } = useScroll({

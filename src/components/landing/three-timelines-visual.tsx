@@ -206,8 +206,11 @@ export function ThreeTimelinesVisual({
 
   useEffect(() => {
     measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
   }, [measure]);
 
   /* Life — the shared node gets a highlight ring before it travels */
@@ -218,16 +221,16 @@ export function ThreeTimelinesVisual({
   const coreGlow = useTransform(p, R.glow, [0, 1]);
 
   const columnBody =
-    "relative flex h-[26rem] flex-col justify-between sm:h-[24rem]";
+    "relative flex h-auto flex-col gap-3 sm:h-[24rem] sm:justify-between";
 
   return (
     <div
       ref={ref}
-      className="relative w-full max-w-6xl py-[7vh]"
+      className="relative w-full max-w-6xl py-16 sm:py-24"
       role="img"
       aria-label={`${lifeLabel} · ${coreLabel} · ${agentLabel}`}
     >
-      <div className="grid grid-cols-3 gap-2 sm:gap-6">
+      <div className="grid grid-cols-1 gap-12 sm:grid-cols-3 sm:gap-6">
         {/* Left — its thinking · agent.md (dim until it lights) */}
         <div>
           <header className="mb-4 pl-5 sm:pl-6">

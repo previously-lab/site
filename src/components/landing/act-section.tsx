@@ -110,7 +110,7 @@ export function ActSection({
   );
 
   return (
-    <ScrollReveal className="relative flex min-h-screen w-full flex-col items-center justify-center overflow-hidden px-5 py-20 sm:px-6 sm:py-24 lg:px-8">
+    <ScrollReveal className="relative flex min-h-svh w-full flex-col items-center justify-center overflow-hidden px-5 py-20 sm:px-6 sm:py-24 lg:px-8">
       {layout === "center" ? (
         <div className="flex w-full max-w-5xl flex-col items-center gap-12 sm:gap-16">
           {textBlock}

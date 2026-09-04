@@ -12,9 +12,11 @@
 export function StageAtmosphere(): React.ReactElement {
   return (
     <div aria-hidden="true" className="pointer-events-none fixed inset-0 overflow-hidden">
-      {/* Dominant brand aurora — upper stage */}
+      {/* Dominant brand aurora — upper stage. On phones this is the only
+          aurora: large fixed blur-3xl layers are a mobile scroll-jank
+          source, so the two echoes below are desktop-only. */}
       <div
-        className="landing-aurora absolute -top-[20%] left-1/2 h-[55vh] w-[80vw] -translate-x-1/2 rounded-full blur-3xl"
+        className="landing-aurora absolute -top-[20%] left-1/2 h-[55vh] w-[80vw] -translate-x-1/2 rounded-full blur-2xl sm:blur-3xl"
         style={{
           background:
             "radial-gradient(ellipse at center, var(--glow-blue) 0%, var(--glow-blue-deep) 45%, transparent 70%)",
@@ -22,7 +24,7 @@ export function StageAtmosphere(): React.ReactElement {
       />
       {/* Faint amber echo — lower left */}
       <div
-        className="landing-aurora-slow absolute bottom-[5%] -left-[10%] h-[40vh] w-[45vw] rounded-full blur-3xl"
+        className="landing-aurora-slow absolute bottom-[5%] -left-[10%] hidden h-[40vh] w-[45vw] rounded-full blur-3xl sm:block"
         style={{
           background:
             "radial-gradient(ellipse at center, var(--glow-amber) 0%, transparent 65%)",
@@ -30,7 +32,7 @@ export function StageAtmosphere(): React.ReactElement {
       />
       {/* Faint emerald echo — mid right */}
       <div
-        className="landing-aurora absolute top-[35%] -right-[12%] h-[40vh] w-[40vw] rounded-full blur-3xl"
+        className="landing-aurora absolute top-[35%] -right-[12%] hidden h-[40vh] w-[40vw] rounded-full blur-3xl sm:block"
         style={{
           background:
             "radial-gradient(ellipse at center, var(--glow-emerald) 0%, transparent 65%)",

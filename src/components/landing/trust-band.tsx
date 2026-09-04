@@ -82,7 +82,7 @@ interface TrustBandProps {
  */
 export function TrustBand({ cards, visuals }: TrustBandProps): React.ReactElement {
   return (
-    <ScrollReveal className="relative flex w-full flex-col items-center justify-center px-5 py-16 sm:min-h-screen sm:px-6 sm:py-24 lg:px-8">
+    <ScrollReveal className="relative flex w-full flex-col items-center justify-center px-5 py-16 sm:min-h-svh sm:px-6 sm:py-24 lg:px-8">
       <div className="grid w-full max-w-5xl gap-4 sm:grid-cols-3 sm:gap-5">
         {cards.slice(0, 3).map((card, i) => {
           const Icon = ICONS[card.icon] ?? GitHubMark;

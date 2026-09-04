@@ -42,8 +42,9 @@ const BEAT_COLORS = [
   "oklch(0.72 0.14 350)",
   "oklch(0.6 0.23 260)",
 ] as const;
-/** Beat x positions along the 640-wide strip (16→600 is the spine). */
-const BEAT_X = [60, 111, 208, 323, 441, 530, 560] as const;
+/** Beat x positions along the 400-wide strip (16→384 is the spine).
+    Narrow viewBox ≈ phone width, so text sizes render ~1:1 on mobile. */
+const BEAT_X = [44, 76, 137, 209, 284, 340, 359] as const;
 /** Only a few beats carry a text label — the rest are dots. */
 const LABELED = new Set([0, 3, 5, 6]);
 
@@ -98,7 +99,7 @@ export function HeroSection({
   const word = line2.endsWith(".") ? line2.slice(0, -1) : line2;
 
   return (
-    <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-5 py-16 text-center sm:px-6 lg:px-8">
+    <section className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden px-5 py-16 text-center sm:px-6 lg:px-8">
       {/* Headline — type carries the emotion, over a brand aurora */}
       <div className="relative">
         <motion.div
@@ -195,12 +196,12 @@ export function HeroSection({
 
       {/* Timeline strip — a compressed preview of the Act 1 timeline:
           strand-colored slice dots, a few mono dates, hollow NOW dot */}
-      <div ref={lineRef} className="relative mt-12 w-full max-w-3xl sm:mt-16" aria-hidden="true">
-        <svg viewBox="0 0 640 40" fill="none" className="w-full">
+      <div ref={lineRef} className="relative mt-12 w-full max-w-md sm:mt-16 sm:max-w-xl" aria-hidden="true">
+        <svg viewBox="0 0 400 44" fill="none" className="w-full">
           <motion.line
             x1={16}
             y1={20}
-            x2={600}
+            x2={384}
             y2={20}
             stroke="currentColor"
             strokeWidth="1"
@@ -222,9 +223,9 @@ export function HeroSection({
               {LABELED.has(i) && (
                 <text
                   x={x}
-                  y={36}
+                  y={i === BEAT_X.length - 1 ? 12 : 36}
                   textAnchor={i === 0 ? "start" : i === BEAT_X.length - 1 ? "end" : "middle"}
-                  className="fill-muted-foreground/50 font-mono text-[8px] tabular-nums"
+                  className="fill-muted-foreground/50 font-mono text-[10px] tabular-nums"
                 >
                   {beatDates[i] ?? ""}
                 </text>
@@ -234,7 +235,7 @@ export function HeroSection({
           <motion.text
             x={16}
             y={12}
-            className="fill-muted-foreground/50 font-mono text-[8px]"
+            className="fill-muted-foreground/50 font-mono text-[10px]"
             initial={{ opacity: 0 }}
             animate={lineInView ? { opacity: 1 } : { opacity: 0 }}
             transition={{ duration: 0.4, delay: 2.2 }}
@@ -245,10 +246,10 @@ export function HeroSection({
             initial={{ opacity: 0, scale: 0 }}
             animate={lineInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0 }}
             transition={{ duration: 0.5, delay: 3.4 }}
-            style={{ transformOrigin: "600px 20px" }}
+            style={{ transformOrigin: "384px 20px" }}
           >
-            <circle cx={600} cy={20} r={5} fill="none" stroke="oklch(0.6 0.23 260)" strokeWidth="1.5" />
-            <text x={600} y={36} textAnchor="middle" className="fill-foreground font-mono text-[8px] font-semibold">
+            <circle cx={384} cy={20} r={5} fill="none" stroke="oklch(0.6 0.23 260)" strokeWidth="1.5" />
+            <text x={384} y={36} textAnchor="middle" className="fill-foreground font-mono text-[10px] font-semibold">
               {nowLabel}
             </text>
           </motion.g>

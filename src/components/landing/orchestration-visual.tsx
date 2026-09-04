@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
+import { useIsDesktop } from "./use-media-query";
 
 interface OrchestrationVisualProps {
   hubLabel: string;
@@ -62,7 +62,8 @@ const MOBILE: Layout = {
   hubEdge: { x: 200, y: 96 },
   cardX: 30,
   cardW: 340,
-  cardH: 76,
+  /* Taller than desktop: long detail strings wrap to two lines. */
+  cardH: 88,
   cardY: [150, 290, 430, 570],
   connectorFrom: (i, L) =>
     i === 0
@@ -96,14 +97,7 @@ export function OrchestrationVisual({
   w4Detail,
 }: OrchestrationVisualProps): React.ReactElement {
   const reduced = useReducedMotion();
-  const [isDesktop, setIsDesktop] = useState(true);
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 768px)");
-    const update = () => setIsDesktop(mq.matches);
-    update();
-    mq.addEventListener("change", update);
-    return () => mq.removeEventListener("change", update);
-  }, []);
+  const isDesktop = useIsDesktop();
 
   const L = isDesktop ? DESKTOP : MOBILE;
   const workers = [
@@ -229,6 +223,12 @@ export function OrchestrationVisual({
         {/* Specialist cards — light in sequence as dispatches arrive */}
         {workers.map((w, i) => {
           const at = (i * CYCLE) / workers.length;
+          /* SVG text never wraps — on mobile, split the detail on "·"
+             into two lines so long strings stay inside the card. */
+          const detailLines =
+            L === MOBILE
+              ? w.detail.split(/\s*·\s*/).filter(Boolean)
+              : [w.detail];
           return (
             <motion.g
               key={w.label}
@@ -263,13 +263,28 @@ export function OrchestrationVisual({
               >
                 {w.label}
               </text>
-              <text
-                x={L.cardX + 50}
-                y={L.cardY[i] + 56}
-                className="fill-muted-foreground/70 font-mono text-[12px]"
-              >
-                {w.detail}
-              </text>
+              {/* Detail — mobile: up to two lines under the dot;
+                  desktop: single line next to it */}
+              {detailLines.length > 1 ? (
+                detailLines.slice(0, 2).map((line, li) => (
+                  <text
+                    key={li}
+                    x={L.cardX + 30}
+                    y={L.cardY[i] + 50 + li * 17}
+                    className="fill-muted-foreground/70 font-mono text-[11px]"
+                  >
+                    {li === 0 ? `${line} ·` : line}
+                  </text>
+                ))
+              ) : (
+                <text
+                  x={L.cardX + (L === MOBILE ? 30 : 50)}
+                  y={L.cardY[i] + 56}
+                  className={`fill-muted-foreground/70 font-mono ${L === MOBILE ? "text-[11px]" : "text-[12px]"}`}
+                >
+                  {w.detail}
+                </text>
+              )}
             </motion.g>
           );
         })}
