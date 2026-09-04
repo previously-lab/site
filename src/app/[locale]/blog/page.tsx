@@ -68,9 +68,9 @@ export default async function BlogIndexPage({ params }: Props) {
   const posts = await getPostList(locale);
 
   return (
-    /* editorial table of contents — offset to the left of the viewport
-       at lg, the empty right side stays as breathing room */
-    <div className="mx-auto w-full max-w-5xl px-4 py-16 sm:px-8 sm:py-24 lg:ml-[8vw] lg:mr-auto">
+    /* editorial table of contents — centered container, same as the
+       article page; on ultrawide viewports both sides balance */
+    <div className="mx-auto w-full max-w-5xl px-4 py-16 sm:px-8 sm:py-24">
       {/* ---- page header ---- */}
       <header className="mb-14 sm:mb-20">
         <p className="eyebrow">{t("eyebrow")}</p>

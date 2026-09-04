@@ -121,9 +121,10 @@ export default async function BlogPostPage({ params }: Props) {
         ]}
       />
 
-      {/* ---- article — offset to the right of the viewport at lg,
-             leaving the left rail as breathing room ---- */}
-      <article className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-8 sm:py-24 lg:ml-auto lg:mr-[7vw]">
+      {/* ---- article — centered container; the asymmetry lives
+             INSIDE it (rail vs prose), so ultrawide viewports get
+             balanced margins instead of a void on one side ---- */}
+      <article className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-8 sm:py-24">
         {/* asymmetric header — left-aligned display serif, lede,
             small-caps meta */}
         <header className="mb-14 sm:mb-20">
