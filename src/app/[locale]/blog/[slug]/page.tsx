@@ -160,7 +160,7 @@ export default async function BlogPostPage({ params }: Props) {
         </header>
 
         {/* single centered prose column — styled by .blog-prose in globals.css */}
-        <div className="mx-auto max-w-[65ch]">
+        <div className="mx-auto max-w-[72ch]">
           <div className="blog-prose">
             <MarkdownRenderer source={post.content} />
           </div>
