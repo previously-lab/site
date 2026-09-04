@@ -128,7 +128,7 @@ export default async function BlogPostPage({ params }: Props) {
             all on the same central axis */}
         <header className="mb-14 text-center sm:mb-20">
           <p className="eyebrow">{t("eyebrow")}</p>
-          <h1 className="mx-auto mt-6 max-w-[24ch] font-serif text-[clamp(2.5rem,6vw,4.25rem)] leading-[1.08] font-normal italic tracking-[-0.01em] text-balance">
+          <h1 className="mx-auto mt-6 max-w-[26ch] font-serif text-[clamp(2rem,4vw,3rem)] leading-[1.15] font-normal italic tracking-[-0.01em] text-balance">
             {post.frontmatter.title}
           </h1>
           {/* lede — the frontmatter description */}
